@@ -19,6 +19,7 @@ import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/custom_throttle.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
+import 'package:simple_live_app/services/background_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -99,6 +100,9 @@ mixin PlayerStateMixin on PlayerMixin {
 
   /// 是否处于全屏状态
   RxBool fullScreenState = false.obs;
+
+  /// 是否处于透明“幽灵”模式
+  RxBool ghostModeState = false.obs;
 
   /// 显示手势Tip
   RxBool showGestureTip = false.obs;
@@ -345,6 +349,50 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       windowManager.setPosition(_lastWindowPosition!);
       windowManager.setAlwaysOnTop(false);
       //windowManager.setAlignment(Alignment.center);
+    }
+  }
+
+  /// 进入透明“幽灵”模式
+  void enterGhostMode() async {
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      // 保存当前窗口状态
+      _lastWindowSize = await windowManager.getSize();
+      _lastWindowPosition = await windowManager.getPosition();
+      
+      // 窗口去边框
+      windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+      // 背景透明
+      windowManager.setBackgroundColor(Colors.transparent);
+      // 窗口置顶
+      windowManager.setAlwaysOnTop(true);
+      // 进入全屏
+      windowManager.setFullScreen(true);
+      
+      ghostModeState.value = true;
+    }
+  }
+
+  /// 退出透明“幽灵”模式
+  void exitGhostMode() async {
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      // 恢复窗口状态
+      windowManager.setTitleBarStyle(TitleBarStyle.normal);
+      windowManager.setBackgroundColor(Colors.white);
+      windowManager.setAlwaysOnTop(false);
+      windowManager.setFullScreen(false);
+      windowManager.setSize(_lastWindowSize!);
+      windowManager.setPosition(_lastWindowPosition!);
+      
+      ghostModeState.value = false;
+    }
+  }
+
+  /// 切换透明“幽灵”模式
+  void toggleGhostMode() {
+    if (ghostModeState.value) {
+      exitGhostMode();
+    } else {
+      enterGhostMode();
     }
   }
 
@@ -674,6 +722,13 @@ class PlayerController extends BaseController
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await applyAudioMode();
     });
+    
+    // 初始化后台服务
+    initializeBackgroundService();
+    
+    // 监听应用生命周期
+    WidgetsBinding.instance.addObserver(_appLifecycleObserver);
+    
     super.onInit();
   }
 
@@ -683,6 +738,13 @@ class PlayerController extends BaseController
   StreamSubscription? _heightSubscription;
   StreamSubscription? _logSubscription;
   StreamSubscription? _playingSubscription;
+  
+  final _appLifecycleObserver = _AppLifecycleObserver();
+  
+  void initializeBackgroundService() async {
+    await BackgroundServiceManager().initialize();
+    await BackgroundServiceManager().setupAudioSession();
+  }
 
   void initStream() {
     _errorSubscription = player.stream.error.listen((event) {
@@ -701,6 +763,8 @@ class PlayerController extends BaseController
         WakelockPlus.enable();
         Log.d("Playing");
       }
+      // 更新后台服务的播放状态
+      BackgroundServiceManager().setPlaybackState(event);
     });
 
     _completedSubscription = player.stream.completed.listen((event) {
@@ -883,6 +947,46 @@ class PlayerController extends BaseController
     disposeDanmakuController();
     await resetSystem();
     await player.dispose();
+    
+    // 移除生命周期观察者
+    WidgetsBinding.instance.removeObserver(_appLifecycleObserver);
+    
+    // 停止后台服务
+    await BackgroundServiceManager().stopService();
+    
     super.onClose();
+  }
+}
+
+class _AppLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.inactive:
+        // 应用处于非活动状态
+        break;
+      case AppLifecycleState.paused:
+        // 应用进入后台
+        if (Get.isRegistered<PlayerController>()) {
+          final controller = Get.find<PlayerController>();
+          if (controller.player.state.playing && controller.audioOnlyMode.value) {
+            // 在黑听模式下且正在播放时启动后台服务
+            BackgroundServiceManager().startService();
+          }
+        }
+        break;
+      case AppLifecycleState.resumed:
+        // 应用回到前台
+        BackgroundServiceManager().stopService();
+        break;
+      case AppLifecycleState.detached:
+        // 应用已分离
+        break;
+      case AppLifecycleState.hidden:
+        // 应用被隐藏
+        break;
+    }
   }
 }

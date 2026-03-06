@@ -346,6 +346,23 @@ Widget buildFullControls(
                     ),
                     tooltip: "黑听模式",
                   ),
+                  Visibility(
+                    visible: !Platform.isAndroid && !Platform.isIOS,
+                    child: IconButton(
+                      onPressed: () {
+                        controller.toggleGhostMode();
+                      },
+                      icon: Obx(
+                        () => Icon(
+                          controller.ghostModeState.value
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.white,
+                        ),
+                      ),
+                      tooltip: "透明模式",
+                    ),
+                  ),
                   IconButton(
                     onPressed: () {
                       if (controller.smallWindowState.value) {
@@ -636,6 +653,23 @@ Widget buildControls(
                     ),
                   ),
                   tooltip: "黑听模式",
+                ),
+                Visibility(
+                  visible: !Platform.isAndroid && !Platform.isIOS,
+                  child: IconButton(
+                    onPressed: () {
+                      controller.toggleGhostMode();
+                    },
+                    icon: Obx(
+                      () => Icon(
+                        controller.ghostModeState.value
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.white,
+                      ),
+                    ),
+                    tooltip: "透明模式",
+                  ),
                 ),
                 IconButton(
                   onPressed: () {

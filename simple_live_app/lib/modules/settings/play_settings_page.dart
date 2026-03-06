@@ -120,6 +120,48 @@ class PlaySettingsPage extends GetView<AppSettingsController> {
                     },
                   ),
                 ),
+                AppStyle.divider,
+                Obx(
+                  () => Visibility(
+                    visible: Platform.isAndroid,
+                    child: SettingsSwitch(
+                      title: "后台保活",
+                      subtitle: "在黑听模式下保持后台运行",
+                      value: controller.backgroundKeepAlive.value,
+                      onChanged: (e) {
+                        controller.setBackgroundKeepAlive(e);
+                      },
+                    ),
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
+                  () => Visibility(
+                    visible: !Platform.isAndroid && !Platform.isIOS,
+                    child: SettingsSwitch(
+                      title: "Windows 托盘集成",
+                      subtitle: "点击关闭按钮最小化到托盘",
+                      value: controller.windowsTrayIntegration.value,
+                      onChanged: (e) {
+                        controller.setWindowsTrayIntegration(e);
+                      },
+                    ),
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
+                  () => Visibility(
+                    visible: !Platform.isAndroid && !Platform.isIOS,
+                    child: SettingsSwitch(
+                      title: "透明模式",
+                      subtitle: "边工作边看弹幕",
+                      value: controller.ghostMode.value,
+                      onChanged: (e) {
+                        controller.setGhostMode(e);
+                      },
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

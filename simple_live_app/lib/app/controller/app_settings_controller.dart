@@ -156,6 +156,15 @@ class AppSettingsController extends GetxController {
     audioOnlyMode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kAudioOnlyMode, false);
 
+    backgroundKeepAlive.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kBackgroundKeepAlive, true);
+
+    windowsTrayIntegration.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kWindowsTrayIntegration, true);
+
+    ghostMode.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kGhostMode, false);
+
     initSiteSort();
     initHomeSort();
 
@@ -540,5 +549,26 @@ class AppSettingsController extends GetxController {
     audioOnlyMode.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kAudioOnlyMode, e);
+  }
+
+  var backgroundKeepAlive = true.obs;
+  void setBackgroundKeepAlive(bool e) {
+    backgroundKeepAlive.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kBackgroundKeepAlive, e);
+  }
+
+  var windowsTrayIntegration = true.obs;
+  void setWindowsTrayIntegration(bool e) {
+    windowsTrayIntegration.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kWindowsTrayIntegration, e);
+  }
+
+  var ghostMode = false.obs;
+  void setGhostMode(bool e) {
+    ghostMode.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kGhostMode, e);
   }
 }

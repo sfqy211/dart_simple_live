@@ -255,47 +255,73 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       boxFit = BoxFit.contain;
       aspectRatio = 4 / 3;
     }
-    return Stack(
-      children: [
-        Video(
-          key: controller.globalPlayerKey,
-          controller: controller.videoController,
-          pauseUponEnteringBackgroundMode:
-              AppSettingsController.instance.playerAutoPause.value,
-          resumeUponEnteringForegroundMode:
-              AppSettingsController.instance.playerAutoPause.value,
-          controls: (state) {
-            // 确保播放器控制界面在遮罩层之上
-            return Stack(
-              children: [
-                Obx(
-                  () => Visibility(
-                    visible: controller.audioOnlyMode.value,
-                    child: const AudioModeCover(),
+    
+    return Obx(() {
+      if (controller.ghostModeState.value) {
+        // 透明“幽灵”模式，只显示弹幕
+        return Stack(
+          children: [
+            Video(
+              key: controller.globalPlayerKey,
+              controller: controller.videoController,
+              pauseUponEnteringBackgroundMode:
+                  AppSettingsController.instance.playerAutoPause.value,
+              resumeUponEnteringForegroundMode:
+                  AppSettingsController.instance.playerAutoPause.value,
+              controls: (state) => Container(), // 隐藏控制器
+              aspectRatio: aspectRatio,
+              fit: boxFit,
+              wakelock: false,
+            ),
+            // 弹幕层保持可见
+            if (controller.danmakuView != null) controller.danmakuView!,
+          ],
+        );
+      } else {
+        // 正常模式
+        return Stack(
+          children: [
+            Video(
+              key: controller.globalPlayerKey,
+              controller: controller.videoController,
+              pauseUponEnteringBackgroundMode:
+                  AppSettingsController.instance.playerAutoPause.value,
+              resumeUponEnteringForegroundMode:
+                  AppSettingsController.instance.playerAutoPause.value,
+              controls: (state) {
+                // 确保播放器控制界面在遮罩层之上
+                return Stack(
+                  children: [
+                    Obx(
+                      () => Visibility(
+                        visible: controller.audioOnlyMode.value,
+                        child: const AudioModeCover(),
+                      ),
+                    ),
+                    playerControls(state, controller),
+                  ],
+                );
+              },
+              aspectRatio: aspectRatio,
+              fit: boxFit,
+              // 自己实现
+              wakelock: false,
+            ),
+            Obx(
+              () => Visibility(
+                visible: !controller.liveStatus.value,
+                child: const Center(
+                  child: Text(
+                    "未开播",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
-                playerControls(state, controller),
-              ],
-            );
-          },
-          aspectRatio: aspectRatio,
-          fit: boxFit,
-          // 自己实现
-          wakelock: false,
-        ),
-        Obx(
-          () => Visibility(
-            visible: !controller.liveStatus.value,
-            child: const Center(
-              child: Text(
-                "未开播",
-                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
             ),
-          ),
-        ),
-      ],
-    );
+          ],
+        );
+      }
+    });
   }
 
   Widget buildUserProfile(BuildContext context) {

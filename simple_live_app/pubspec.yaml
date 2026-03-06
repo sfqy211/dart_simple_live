@@ -61,6 +61,9 @@ dependencies:
   connectivity_plus: ^7.0.0 #网络状态
   qr_code_scanner_plus: ^2.0.14 #二维码扫描
   volume_controller: ^3.4.0 #音量控制
+  flutter_background_service: ^5.0.1 #后台服务
+  audio_session: ^0.1.18 #音频会话管理
+  system_tray: ^0.1.1 #系统托盘
 
   # 网络相关
   shelf: ^1.4.2

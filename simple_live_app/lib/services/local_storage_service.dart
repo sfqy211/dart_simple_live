@@ -171,6 +171,15 @@ class LocalStorageService extends GetxService {
   /// 黑听模式
   static const String kAudioOnlyMode = "AudioOnlyMode";
 
+  /// 后台保活
+  static const String kBackgroundKeepAlive = "BackgroundKeepAlive";
+
+  /// Windows 托盘集成
+  static const String kWindowsTrayIntegration = "WindowsTrayIntegration";
+
+  /// 透明模式
+  static const String kGhostMode = "GhostMode";
+
   late Box settingsBox;
   late Box<String> shieldBox;
 
