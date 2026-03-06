@@ -13,30 +13,35 @@ class SystemTrayManager {
   Future<void> initialize() async {
     if (_isInitialized || !Platform.isWindows) return;
 
-    _systemTray = SystemTray();
+    try {
+      _systemTray = SystemTray();
 
-    // 设置托盘图标
-    await _systemTray.initSystemTray(
-      title: 'Simple Live',
-      iconPath: 'assets/logo.png',
-      toolTip: 'Simple Live',
-    );
+      // 设置托盘图标
+      await _systemTray.initSystemTray(
+        title: 'Simple Live',
+        iconPath: 'assets/logo.png',
+        toolTip: 'Simple Live',
+      );
 
-    // 监听托盘点击事件
-    _systemTray.registerSystemTrayEventHandler((eventName) {
-      if (eventName == 'click') {
-        windowManager.isVisible().then((visible) {
-          if (visible) {
-            windowManager.hide();
-          } else {
-            windowManager.show();
-            windowManager.focus();
-          }
-        });
-      }
-    });
+      // 监听托盘点击事件
+      _systemTray.registerSystemTrayEventHandler((eventName) {
+        if (eventName == 'click') {
+          windowManager.isVisible().then((visible) {
+            if (visible) {
+              windowManager.hide();
+            } else {
+              windowManager.show();
+              windowManager.focus();
+            }
+          });
+        }
+      });
 
-    _isInitialized = true;
+      _isInitialized = true;
+    } catch (e) {
+      // 托盘初始化失败，不影响应用启动
+      print('System tray initialization failed: $e');
+    }
   }
 
   Future<void> updateTooltip(String tooltip) async {
