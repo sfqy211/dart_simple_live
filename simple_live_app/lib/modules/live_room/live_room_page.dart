@@ -537,6 +537,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       ),
       child: Row(
         children: [
+          IconButton(
+            onPressed: showEmotionPanel,
+            icon: const Icon(Remix.emotion_line),
+            tooltip: "表情包",
+          ),
           Expanded(
             child: TextField(
               controller: controller.chatInputController,
@@ -574,6 +579,57 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             child: const Text("发送"),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 显示表情包选择界面
+  void showEmotionPanel() async {
+    // 获取表情包列表
+    var emoticons = await controller.getEmoticons();
+    if (emoticons == null) {
+      return;
+    }
+
+    // 显示表情包面板
+    Utils.showBottomSheet(
+      title: "选择表情包",
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 6,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+        ),
+        padding: AppStyle.edgeInsetsA12,
+        itemCount: emoticons.length,
+        itemBuilder: (context, index) {
+          var emoticon = emoticons[index];
+          var url = emoticon['url'] ?? '';
+          // 使用 emoticon_unique 作为发送的文本（参考 BLSPAM 项目）
+          var text = emoticon['emoticon_unique'] ?? emoticon['text'] ?? '';
+
+          return GestureDetector(
+            onTap: () {
+              Get.back();
+              controller.sendEmotionMessage(text);
+            },
+            child: Column(
+              children: [
+                NetImage(
+                  url,
+                  width: 48,
+                  height: 48,
+                ),
+                AppStyle.vGap4,
+                Text(
+                  text,
+                  style: const TextStyle(fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

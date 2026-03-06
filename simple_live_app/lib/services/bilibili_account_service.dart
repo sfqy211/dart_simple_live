@@ -115,4 +115,38 @@ class BiliBiliAccountService extends GetxService {
 
     return result;
   }
+
+  /// 发送表情包
+  Future<bool> sendEmotion(String roomId, String msg, {Map<String, dynamic>? emoticonOptions}) async {
+    if (!logined.value) {
+      SmartDialog.showToast("请先登录哔哩哔哩账号");
+      return false;
+    }
+
+    var token = csrfToken;
+    if (token == null) {
+      SmartDialog.showToast("无法获取 CSRF Token，请重新登录");
+      return false;
+    }
+
+    var site = (Sites.allSites[Constant.kBiliBili]!.liveSite as BiliBiliSite);
+    var result = await site.sendEmotion(
+      roomId: roomId,
+      msg: msg,
+      csrf: token,
+      emoticonOptions: emoticonOptions,
+    );
+
+    if (!result) {
+      SmartDialog.showToast("发送表情包失败，请稍后重试");
+    }
+
+    return result;
+  }
+
+  /// 获取表情包列表
+  Future<dynamic> getEmoticons(String roomId) async {
+    var site = (Sites.allSites[Constant.kBiliBili]!.liveSite as BiliBiliSite);
+    return await site.getEmoticons(roomId: roomId);
+  }
 }

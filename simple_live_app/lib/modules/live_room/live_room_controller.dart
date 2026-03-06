@@ -133,6 +133,66 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     }
   }
 
+  /// 发送表情包
+  Future<void> sendEmotionMessage(String emotion, {Map<String, dynamic>? emoticonOptions}) async {
+    if (emotion.isEmpty) return;
+
+    // 检查是否为 B 站直播间
+    if (site.id != Constant.kBiliBili) {
+      SmartDialog.showToast("当前平台暂不支持发送表情包");
+      return;
+    }
+
+    // 调用发送表情包方法
+    var success = await BiliBiliAccountService.instance.sendEmotion(
+      detail.value?.roomId ?? roomId,
+      emotion,
+      emoticonOptions: emoticonOptions,
+    );
+
+    if (success) {
+      // 清空输入框
+      chatInputController.clear();
+    }
+  }
+
+  /// 显示表情包选择界面
+  Future<dynamic> getEmoticons() async {
+    if (site.id != Constant.kBiliBili) {
+      SmartDialog.showToast("当前平台暂不支持发送表情包");
+      return null;
+    }
+
+    // 获取表情包列表
+    var emoticons = await BiliBiliAccountService.instance.getEmoticons(
+      detail.value?.roomId ?? roomId,
+    );
+
+    if (emoticons == null) {
+      SmartDialog.showToast("获取表情包列表失败");
+      return null;
+    }
+
+    // 确保 emoticons 是列表
+    if (!(emoticons is List)) {
+      SmartDialog.showToast("获取表情包列表失败");
+      return null;
+    }
+
+    if (emoticons.isEmpty) {
+      SmartDialog.showToast("暂无可用表情包");
+      return null;
+    }
+
+    // 打印表情包数量，以便调试
+    print('获取到的表情包数量: ${emoticons.length}');
+    if (emoticons.isNotEmpty) {
+      print('第一个表情包: ${emoticons[0]}');
+    }
+
+    return emoticons;
+  }
+
   @override
   void onInit() {
     WidgetsBinding.instance.addObserver(this);

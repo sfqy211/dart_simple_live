@@ -653,4 +653,200 @@ class BiliBiliSite implements LiveSite {
       return false;
     }
   }
+
+  /// 发送表情包到 B 站直播间
+  /// [roomId] 直播间真实 ID
+  /// [msg] 表情包代码
+  /// [csrf] CSRF Token (bili_jct)
+  /// [emoticonOptions] 表情包选项
+  Future<bool> sendEmotion({
+    required String roomId,
+    required String msg,
+    required String csrf,
+    Map<String, dynamic>? emoticonOptions,
+  }) async {
+    try {
+      var headers = await getHeader();
+      var formData = {
+        'roomid': roomId,
+        'msg': msg,
+        'csrf': csrf,
+        'csrf_token': csrf,
+        'rnd': (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
+        'color': '16777215',
+        'fontsize': '25',
+        'mode': '1',
+        'bubble': '0',
+        'dm_type': '1',
+        'emoticon_options': emoticonOptions ?? {},
+        'data_extend': '{"trackid":"-99998"}',
+      };
+
+      var result = await HttpClient.instance.postJson(
+        "https://api.live.bilibili.com/msg/send",
+        data: formData,
+        header: headers,
+        formUrlEncoded: true,
+      );
+
+      return result['code'] == 0;
+    } catch (e) {
+      print('发送表情包失败: $e');
+      return false;
+    }
+  }
+
+  /// 获取直播间可用的表情包列表
+  /// [platform] 平台类型，默认 web
+  /// [roomId] 直播间 ID
+  Future<dynamic> getEmoticons({
+    String platform = 'pc', // 尝试使用 pc 平台
+    required String roomId,
+  }) async {
+    try {
+      var headers = await getHeader();
+      
+      // 尝试不同的平台参数
+      List<String> platforms = ['pc', 'web', 'android', 'ios'];
+      for (var plat in platforms) {
+        print('尝试使用平台参数: $plat');
+        
+        // 构建 URL 并添加 WBI 签名
+        var url = "https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons?platform=$plat&room_id=$roomId";
+        var queryParams = await getWbiSign(url);
+        
+        var result = await HttpClient.instance.getJson(
+          "https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons",
+          queryParameters: queryParams,
+          header: headers,
+        );
+
+        // 打印原始返回数据，以便调试
+        print('表情包 API 返回数据 ($plat): $result');
+
+        // 检查是否返回了表情包数据
+        if (result is Map) {
+          // 检查正确的数据结构（参考 BLSPAM 项目）
+          if (result.containsKey('data')) {
+            var data = result['data'];
+            print('表情包 data 字段: $data');
+            
+            if (data is Map) {
+              // 检查 BLSPAM 项目使用的数据结构
+              if (data.containsKey('data')) {
+                var emoticonPackages = data['data'];
+                print('表情包 packages 字段: $emoticonPackages');
+                
+                if (emoticonPackages is List) {
+                  print('表情包 packages 数量: ${emoticonPackages.length}');
+                  
+                  // 提取所有表情包
+                  var allEmoticons = [];
+                  for (var package in emoticonPackages) {
+                    if (package is Map) {
+                      print('表情包包: ${package['pkg_name']}');
+                      if (package.containsKey('emoticons')) {
+                        var packageEmoticons = package['emoticons'];
+                        if (packageEmoticons is List) {
+                          print('包内表情包数量: ${packageEmoticons.length}');
+                          allEmoticons.addAll(packageEmoticons);
+                        }
+                      }
+                    }
+                  }
+                  
+                  print('总表情包数量: ${allEmoticons.length}');
+                  if (allEmoticons.isNotEmpty) {
+                    // 直接返回提取的表情包列表
+                    return allEmoticons;
+                  }
+                }
+              } else if (data.containsKey('emoticons')) {
+                // 旧的数据结构
+                var emoticons = data['emoticons'];
+                if (emoticons is List && emoticons.isNotEmpty) {
+                  return emoticons;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 如果所有平台都失败，尝试获取用户的默认表情包
+      try {
+        for (var plat in platforms) {
+          print('尝试获取用户默认表情包，平台: $plat');
+          
+          // 构建 URL 并添加 WBI 签名
+          var url = "https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons?platform=$plat&room_id=0";
+          var queryParams = await getWbiSign(url);
+          
+          var userEmoticonsResult = await HttpClient.instance.getJson(
+            "https://api.live.bilibili.com/xlive/web-ucenter/v2/emoticon/GetEmoticons",
+            queryParameters: queryParams,
+            header: headers,
+          );
+
+          // 打印原始返回数据，以便调试
+          print('用户默认表情包 API 返回数据 ($plat): $userEmoticonsResult');
+
+          if (userEmoticonsResult is Map) {
+            if (userEmoticonsResult.containsKey('data')) {
+              var data = userEmoticonsResult['data'];
+              print('用户默认表情包 data 字段: $data');
+              
+              if (data is Map) {
+                // 检查 BLSPAM 项目使用的数据结构
+                if (data.containsKey('data')) {
+                  var emoticonPackages = data['data'];
+                  print('用户默认表情包 packages 字段: $emoticonPackages');
+                  
+                  if (emoticonPackages is List) {
+                    print('用户默认表情包 packages 数量: ${emoticonPackages.length}');
+                    
+                    // 提取所有表情包
+                    var allEmoticons = [];
+                    for (var package in emoticonPackages) {
+                      if (package is Map) {
+                        print('用户默认表情包包: ${package['pkg_name']}');
+                        if (package.containsKey('emoticons')) {
+                          var packageEmoticons = package['emoticons'];
+                          if (packageEmoticons is List) {
+                            print('用户默认包内表情包数量: ${packageEmoticons.length}');
+                            allEmoticons.addAll(packageEmoticons);
+                          }
+                        }
+                      }
+                    }
+                    
+                    print('用户默认总表情包数量: ${allEmoticons.length}');
+                    if (allEmoticons.isNotEmpty) {
+                      // 直接返回提取的表情包列表
+                      return allEmoticons;
+                    }
+                  }
+                } else if (data.containsKey('emoticons')) {
+                  // 旧的数据结构
+                  var emoticons = data['emoticons'];
+                  if (emoticons is List && emoticons.isNotEmpty) {
+                    return emoticons;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('获取用户默认表情包失败: $e');
+      }
+
+      // 如果都没有表情包，返回一个空的表情包列表
+      print('没有找到可用的表情包');
+      return [];
+    } catch (e) {
+      print('获取表情包列表失败: $e');
+      return null;
+    }
+  }
 }
