@@ -134,9 +134,6 @@ dart_simple_live/
     *   代码: `player.platform.setProperty('vo', 'null')`
     *   效果: 解码器完全停止视频流处理，仅解复用音频流。
     *   恢复: 切换回正常模式时设为 `gpu` 或 `libmpv`。
-*   **方案 B**: 禁用视频轨道。
-    *   代码: `player.setVideoTrack(VideoTrack.no())`
-    *   注意: 需验证部分直播流在无视频轨道时是否会自动断开。
 
 #### 2. 界面伪装 (UI Layer)
 
@@ -144,10 +141,15 @@ dart_simple_live/
     *   触发条件: `isAudioOnlyMode == true`
     *   层级: 位于 `VideoView` 之上，`DanmakuView` 之下 (保证弹幕依然可见)。
     *   **视觉元素**:
-        *   背景: 纯黑 (`Colors.black`)，适配 OLED 屏幕省电。
-        *   中心: UP 主头像 (圆形，带呼吸灯效果/阴影)。
+        *   背景: 纯色，取决于当前使用主题（如 `Colors.black`）。
         *   信息: 显示直播间标题、当前热度/在线人数。
         *   频谱 (可选): 使用 `lottie` 加载一个简单的音频跳动动画。
+
+#### 3. 验收要求
+*   直播设置中添加“纯净黑听”模式开关。
+*   切换到黑听模式后，确保视频轨道已禁用，解码器 GPU 解码率降至 0。
+*   直播间标题、当前热度/在线人数等信息在 AudioModeCover 中显示。
+*   频谱的显示与否也在设置中提供开关。
 
 ### 阶段三：平台特性适配 (后台与小窗)
 

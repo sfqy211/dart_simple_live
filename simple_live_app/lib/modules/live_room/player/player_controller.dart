@@ -121,6 +121,9 @@ mixin PlayerStateMixin on PlayerMixin {
   /// 是否为竖屏直播间
   var isVertical = false.obs;
 
+  /// 是否开启黑听模式
+  var audioOnlyMode = false.obs;
+
   Widget? danmakuView;
 
   var showQualites = false.obs;
@@ -665,6 +668,8 @@ class PlayerController extends BaseController
     initStream();
     //设置音量
     player.setVolume(AppSettingsController.instance.playerVolume.value);
+    // 初始化黑听模式状态
+    audioOnlyMode.value = AppSettingsController.instance.audioOnlyMode.value;
     super.onInit();
   }
 
@@ -732,6 +737,32 @@ class PlayerController extends BaseController
 
   void mediaError(String error) {
     WakelockPlus.disable();
+  }
+
+  /// 切换黑听模式
+  Future<void> toggleAudioMode() async {
+    audioOnlyMode.value = !audioOnlyMode.value;
+    // 保存状态到设置
+    AppSettingsController.instance.setAudioOnlyMode(audioOnlyMode.value);
+    
+    // 设置 mpv 的 vo 参数
+    if (player.platform is NativePlayer) {
+      if (audioOnlyMode.value) {
+        // 禁用视频轨道
+        await (player.platform as dynamic).setProperty('vo', 'null');
+      } else {
+        // 恢复视频轨道
+        if (AppSettingsController.instance.customPlayerOutput.value) {
+          await (player.platform as dynamic).setProperty(
+            'vo',
+            AppSettingsController.instance.videoOutputDriver.value,
+          );
+        } else {
+          // 使用默认值
+          await (player.platform as dynamic).setProperty('vo', 'gpu');
+        }
+      }
+    }
   }
 
   void showDebugInfo() {

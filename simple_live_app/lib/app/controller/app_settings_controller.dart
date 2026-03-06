@@ -153,6 +153,9 @@ class AppSettingsController extends GetxController {
     updateFollowThreadCount.value = LocalStorageService.instance
         .getValue(LocalStorageService.kUpdateFollowThreadCount, 0);  // 默认 0 = 自动
 
+    audioOnlyMode.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAudioOnlyMode, false);
+
     initSiteSort();
     initHomeSort();
 
@@ -530,5 +533,12 @@ class AppSettingsController extends GetxController {
     playerForceHttps.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kPlayerForceHttps, e);
+  }
+
+  var audioOnlyMode = false.obs;
+  void setAudioOnlyMode(bool e) {
+    audioOnlyMode.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAudioOnlyMode, e);
   }
 }

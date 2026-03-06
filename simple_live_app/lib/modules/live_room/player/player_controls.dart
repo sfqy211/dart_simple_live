@@ -334,6 +334,20 @@ Widget buildFullControls(
                   ),
                   IconButton(
                     onPressed: () {
+                      controller.toggleAudioMode();
+                    },
+                    icon: Obx(
+                      () => Icon(
+                        controller.audioOnlyMode.value
+                            ? Icons.volume_up
+                            : Icons.video_library,
+                        color: Colors.white,
+                      ),
+                    ),
+                    tooltip: "黑听模式",
+                  ),
+                  IconButton(
+                    onPressed: () {
                       if (controller.smallWindowState.value) {
                         controller.exitSmallWindow();
                       } else {
@@ -608,6 +622,20 @@ Widget buildControls(
                       size: 24,
                     ),
                   ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    controller.toggleAudioMode();
+                  },
+                  icon: Obx(
+                    () => Icon(
+                      controller.audioOnlyMode.value
+                          ? Icons.volume_up
+                          : Icons.video_library,
+                      color: Colors.white,
+                    ),
+                  ),
+                  tooltip: "黑听模式",
                 ),
                 IconButton(
                   onPressed: () {
