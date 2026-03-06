@@ -101,6 +101,20 @@ Future migrateData() async {
   }
 }
 
+class _WindowCloseListener with WindowListener {
+  @override
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      await windowManager.hide();
+    } else {
+      await windowManager.destroy();
+    }
+  }
+}
+
+final _windowCloseListener = _WindowCloseListener();
+
 Future initWindow() async {
   if (!(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
     return;
@@ -119,6 +133,10 @@ Future initWindow() async {
   // 初始化系统托盘
   if (Platform.isWindows) {
     await SystemTrayManager().initialize();
+    
+    // 处理关闭按钮事件，最小化到托盘
+    windowManager.addListener(_windowCloseListener);
+    await windowManager.setPreventClose(true);
   }
 }
 
