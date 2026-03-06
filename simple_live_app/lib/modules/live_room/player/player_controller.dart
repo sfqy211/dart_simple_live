@@ -670,6 +670,10 @@ class PlayerController extends BaseController
     player.setVolume(AppSettingsController.instance.playerVolume.value);
     // 初始化黑听模式状态
     audioOnlyMode.value = AppSettingsController.instance.audioOnlyMode.value;
+    // 应用黑听模式
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await applyAudioMode();
+    });
     super.onInit();
   }
 
@@ -744,7 +748,12 @@ class PlayerController extends BaseController
     audioOnlyMode.value = !audioOnlyMode.value;
     // 保存状态到设置
     AppSettingsController.instance.setAudioOnlyMode(audioOnlyMode.value);
-    
+    // 应用黑听模式
+    await applyAudioMode();
+  }
+
+  /// 应用黑听模式
+  Future<void> applyAudioMode() async {
     // 设置 mpv 的 vo 参数
     if (player.platform is NativePlayer) {
       if (audioOnlyMode.value) {

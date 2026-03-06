@@ -265,7 +265,18 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           resumeUponEnteringForegroundMode:
               AppSettingsController.instance.playerAutoPause.value,
           controls: (state) {
-            return playerControls(state, controller);
+            // 确保播放器控制界面在遮罩层之上
+            return Stack(
+              children: [
+                Obx(
+                  () => Visibility(
+                    visible: controller.audioOnlyMode.value,
+                    child: const AudioModeCover(),
+                  ),
+                ),
+                playerControls(state, controller),
+              ],
+            );
           },
           aspectRatio: aspectRatio,
           fit: boxFit,
@@ -281,12 +292,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 style: TextStyle(fontSize: 16, color: Colors.white),
               ),
             ),
-          ),
-        ),
-        Obx(
-          () => Visibility(
-            visible: controller.audioOnlyMode.value,
-            child: const AudioModeCover(),
           ),
         ),
       ],

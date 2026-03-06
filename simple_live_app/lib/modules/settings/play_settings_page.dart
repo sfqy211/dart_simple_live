@@ -109,6 +109,17 @@ class PlaySettingsPage extends GetView<AppSettingsController> {
                     },
                   ),
                 ),
+                AppStyle.divider,
+                Obx(
+                  () => SettingsSwitch(
+                    title: "纯净黑听模式",
+                    subtitle: "仅播放音频，降低资源占用",
+                    value: controller.audioOnlyMode.value,
+                    onChanged: (e) {
+                      controller.setAudioOnlyMode(e);
+                    },
+                  ),
+                ),
               ],
             ),
           ),
