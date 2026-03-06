@@ -740,32 +740,31 @@ class BiliBiliSite implements LiveSite {
                 if (emoticonPackages is List) {
                   print('表情包 packages 数量: ${emoticonPackages.length}');
                   
-                  // 提取所有表情包
-                  var allEmoticons = [];
-                  for (var package in emoticonPackages) {
+                  // 过滤掉 pkg_id 为 100 的包（参考 BLSPAM 项目）
+                  var filteredPackages = emoticonPackages.where((package) {
                     if (package is Map) {
-                      print('表情包包: ${package['pkg_name']}');
-                      if (package.containsKey('emoticons')) {
-                        var packageEmoticons = package['emoticons'];
-                        if (packageEmoticons is List) {
-                          print('包内表情包数量: ${packageEmoticons.length}');
-                          allEmoticons.addAll(packageEmoticons);
-                        }
-                      }
+                      return package['pkg_id'] != 100;
                     }
-                  }
+                    return true;
+                  }).toList();
                   
-                  print('总表情包数量: ${allEmoticons.length}');
-                  if (allEmoticons.isNotEmpty) {
-                    // 直接返回提取的表情包列表
-                    return allEmoticons;
+                  print('过滤后表情包 packages 数量: ${filteredPackages.length}');
+                  if (filteredPackages.isNotEmpty) {
+                    // 返回按包组织的表情包数据
+                    return filteredPackages;
                   }
                 }
               } else if (data.containsKey('emoticons')) {
                 // 旧的数据结构
                 var emoticons = data['emoticons'];
                 if (emoticons is List && emoticons.isNotEmpty) {
-                  return emoticons;
+                  // 为旧数据结构创建一个包装包
+                  return [{
+                    'pkg_id': 1,
+                    'pkg_name': '默认表情',
+                    'current_cover': '',
+                    'emoticons': emoticons
+                  }];
                 }
               }
             }
@@ -805,32 +804,31 @@ class BiliBiliSite implements LiveSite {
                   if (emoticonPackages is List) {
                     print('用户默认表情包 packages 数量: ${emoticonPackages.length}');
                     
-                    // 提取所有表情包
-                    var allEmoticons = [];
-                    for (var package in emoticonPackages) {
+                    // 过滤掉 pkg_id 为 100 的包（参考 BLSPAM 项目）
+                    var filteredPackages = emoticonPackages.where((package) {
                       if (package is Map) {
-                        print('用户默认表情包包: ${package['pkg_name']}');
-                        if (package.containsKey('emoticons')) {
-                          var packageEmoticons = package['emoticons'];
-                          if (packageEmoticons is List) {
-                            print('用户默认包内表情包数量: ${packageEmoticons.length}');
-                            allEmoticons.addAll(packageEmoticons);
-                          }
-                        }
+                        return package['pkg_id'] != 100;
                       }
-                    }
+                      return true;
+                    }).toList();
                     
-                    print('用户默认总表情包数量: ${allEmoticons.length}');
-                    if (allEmoticons.isNotEmpty) {
-                      // 直接返回提取的表情包列表
-                      return allEmoticons;
+                    print('过滤后用户默认表情包 packages 数量: ${filteredPackages.length}');
+                    if (filteredPackages.isNotEmpty) {
+                      // 返回按包组织的表情包数据
+                      return filteredPackages;
                     }
                   }
                 } else if (data.containsKey('emoticons')) {
                   // 旧的数据结构
                   var emoticons = data['emoticons'];
                   if (emoticons is List && emoticons.isNotEmpty) {
-                    return emoticons;
+                    // 为旧数据结构创建一个包装包
+                    return [{
+                      'pkg_id': 1,
+                      'pkg_name': '默认表情',
+                      'current_cover': '',
+                      'emoticons': emoticons
+                    }];
                   }
                 }
               }
