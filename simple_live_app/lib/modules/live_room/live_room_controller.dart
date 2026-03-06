@@ -20,6 +20,7 @@ import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/history.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controller.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
+import 'package:simple_live_app/services/bilibili_account_service.dart';
 import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
@@ -106,6 +107,58 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   // 开播时长状态变量
   var liveDuration = "00:00:00".obs;
   Timer? _liveDurationTimer;
+
+  /// 弹幕输入控制器
+  final TextEditingController chatInputController = TextEditingController();
+
+  /// 发送弹幕
+  Future<void> sendChatMessage(String message) async {
+    if (message.isEmpty) return;
+
+    // 检查是否为 B 站直播间
+    if (site.id != Constant.kBiliBili) {
+      SmartDialog.showToast("当前平台暂不支持发送弹幕");
+      return;
+    }
+
+    // 调用发送弹幕方法
+    var success = await BiliBiliAccountService.instance.sendMsg(
+      detail.value?.roomId ?? roomId,
+      message,
+    );
+
+    if (success) {
+      // 清空输入框
+      chatInputController.clear();
+
+      // 本地回显弹幕
+      var localMessage = LiveMessage(
+        type: LiveMessageType.chat,
+        userName: BiliBiliAccountService.instance.name.value,
+        message: message,
+        color: LiveMessageColor.white,
+      );
+
+      // 添加到消息列表
+      if (messages.length > 200 && !disableAutoScroll.value) {
+        messages.removeAt(0);
+      }
+      messages.add(localMessage);
+
+      // 滚动到底部
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => chatScrollToBottom(),
+      );
+
+      // 添加到弹幕控制器
+      addDanmaku([
+        DanmakuContentItem(
+          message,
+          color: Colors.white,
+        ),
+      ]);
+    }
+  }
 
   @override
   void onInit() {

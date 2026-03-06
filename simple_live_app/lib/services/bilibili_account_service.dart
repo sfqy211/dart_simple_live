@@ -81,4 +81,38 @@ class BiliBiliAccountService extends GetxService {
       await cookieManager.deleteAllCookies();
     }
   }
+
+  /// 获取 CSRF Token (bili_jct)
+  String? get csrfToken {
+    if (cookie.isEmpty) return null;
+    var match = RegExp(r"bili_jct=(.*?);").firstMatch(cookie);
+    return match?.group(1);
+  }
+
+  /// 发送弹幕
+  Future<bool> sendMsg(String roomId, String msg) async {
+    if (!logined.value) {
+      SmartDialog.showToast("请先登录哔哩哔哩账号");
+      return false;
+    }
+
+    var token = csrfToken;
+    if (token == null) {
+      SmartDialog.showToast("无法获取 CSRF Token，请重新登录");
+      return false;
+    }
+
+    var site = (Sites.allSites[Constant.kBiliBili]!.liveSite as BiliBiliSite);
+    var result = await site.sendDanmaku(
+      roomId: roomId,
+      msg: msg,
+      csrf: token,
+    );
+
+    if (!result) {
+      SmartDialog.showToast("发送弹幕失败，请稍后重试");
+    }
+
+    return result;
+  }
 }

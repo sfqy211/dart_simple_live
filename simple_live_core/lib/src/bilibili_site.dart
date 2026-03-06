@@ -610,4 +610,47 @@ class BiliBiliSite implements LiveSite {
     accessId = id ?? "";
     return accessId;
   }
+
+  /// 发送弹幕到 B 站直播间
+  /// [roomId] 直播间真实 ID
+  /// [msg] 弹幕内容
+  /// [csrf] CSRF Token (bili_jct)
+  Future<bool> sendDanmaku({
+    required String roomId,
+    required String msg,
+    required String csrf,
+  }) async {
+    try {
+      var headers = await getHeader();
+      var formData = {
+        'roomid': roomId,
+        'msg': msg,
+        'csrf': csrf,
+        'csrf_token': csrf,
+        'rnd': (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
+        'color': '16777215',
+        'fontsize': '25',
+        'mode': '1',
+        'bubble': '0',
+        'room_type': '0',
+        'jumpfrom': '0',
+        'reply_mid': '0',
+        'reply_attr': '0',
+        'replay_dmid': '0',
+        'statistics': '{"appId":100,"platform":5}',
+      };
+
+      var result = await HttpClient.instance.postJson(
+        "https://api.live.bilibili.com/msg/send",
+        data: formData,
+        header: headers,
+        formUrlEncoded: true,
+      );
+
+      return result['code'] == 0;
+    } catch (e) {
+      print('发送弹幕失败: $e');
+      return false;
+    }
+  }
 }

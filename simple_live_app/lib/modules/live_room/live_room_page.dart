@@ -512,8 +512,68 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 ],
               ),
             ),
+            if (controller.site.id == Constant.kBiliBili)
+              buildChatInput(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildChatInput() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(Get.context!).cardColor,
+        border: Border(
+          top: BorderSide(
+            color: Colors.grey.withAlpha(25),
+          ),
+        ),
+      ),
+      padding: AppStyle.edgeInsetsA8.copyWith(
+        bottom: Platform.isAndroid || Platform.isIOS
+            ? AppStyle.bottomBarHeight + 8
+            : 8,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller.chatInputController,
+              decoration: InputDecoration(
+                hintText: "发送弹幕...",
+                border: OutlineInputBorder(
+                  borderRadius: AppStyle.radius12,
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.withAlpha(25),
+                contentPadding: AppStyle.edgeInsetsH12,
+              ),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  controller.sendChatMessage(value.trim());
+                }
+              },
+            ),
+          ),
+          AppStyle.hGap8,
+          ElevatedButton(
+            onPressed: () {
+              var message = controller.chatInputController.text.trim();
+              if (message.isNotEmpty) {
+                controller.sendChatMessage(message);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: AppStyle.radius12,
+              ),
+              padding: AppStyle.edgeInsetsH16,
+            ),
+            child: const Text("发送"),
+          ),
+        ],
       ),
     );
   }
