@@ -130,33 +130,6 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     if (success) {
       // 清空输入框
       chatInputController.clear();
-
-      // 本地回显弹幕
-      var localMessage = LiveMessage(
-        type: LiveMessageType.chat,
-        userName: BiliBiliAccountService.instance.name.value,
-        message: message,
-        color: LiveMessageColor.white,
-      );
-
-      // 添加到消息列表
-      if (messages.length > 200 && !disableAutoScroll.value) {
-        messages.removeAt(0);
-      }
-      messages.add(localMessage);
-
-      // 滚动到底部
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => chatScrollToBottom(),
-      );
-
-      // 添加到弹幕控制器
-      addDanmaku([
-        DanmakuContentItem(
-          message,
-          color: Colors.white,
-        ),
-      ]);
     }
   }
 
