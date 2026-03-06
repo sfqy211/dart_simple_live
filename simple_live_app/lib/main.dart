@@ -119,9 +119,6 @@ Future initWindow() async {
   // 初始化系统托盘
   if (Platform.isWindows) {
     await SystemTrayManager().initialize();
-    
-    // 处理关闭按钮事件，最小化到托盘
-    windowManager.setPreventClose(true);
   }
 }
 

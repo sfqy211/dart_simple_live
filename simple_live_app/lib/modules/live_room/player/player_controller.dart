@@ -713,6 +713,8 @@ class PlayerController extends BaseController
   @override
   void onInit() {
     initSystem();
+    //初始化播放器
+    initializePlayer();
     initStream();
     //设置音量
     player.setVolume(AppSettingsController.instance.playerVolume.value);
@@ -825,14 +827,12 @@ class PlayerController extends BaseController
         await (player.platform as dynamic).setProperty('vo', 'null');
       } else {
         // 恢复视频轨道
+        // 只在自定义播放器输出模式下才设置 vo 属性，否则使用默认值
         if (AppSettingsController.instance.customPlayerOutput.value) {
           await (player.platform as dynamic).setProperty(
             'vo',
             AppSettingsController.instance.videoOutputDriver.value,
           );
-        } else {
-          // 使用默认值
-          await (player.platform as dynamic).setProperty('vo', 'gpu');
         }
       }
     }
