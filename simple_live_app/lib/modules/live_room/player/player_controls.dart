@@ -45,13 +45,11 @@ Widget buildFullControls(
     var padding = MediaQuery.of(videoState.context).padding;
     GlobalKey volumeButtonkey = GlobalKey();
     return Obx(() => GestureDetector(
-      onPanUpdate: controller.ghostModeLocked.value ? null : (details) async {
-    final position = await WindowManagerPlus.current.getPosition();
-    await WindowManagerPlus.current.setPosition(Offset(
-      position.dx + details.delta.dx,
-      position.dy + details.delta.dy,
-    ));
-  },
+      onPanStart: controller.ghostModeLocked.value ||
+              (!controller.smallWindowState.value &&
+                  !controller.ghostModeState.value)
+          ? null
+          : (_) => WindowManagerPlus.current.startDragging(),
       child: Stack(
       children: [
         Container(),
@@ -440,13 +438,11 @@ Widget buildControls(
 ) {
   GlobalKey volumeButtonkey = GlobalKey();
   return Obx(() => GestureDetector(
-    onPanUpdate: controller.ghostModeLocked.value ? null : (details) async {
-      final position = await WindowManagerPlus.current.getPosition();
-      await WindowManagerPlus.current.setPosition(Offset(
-        position.dx + details.delta.dx,
-        position.dy + details.delta.dy,
-      ));
-    },
+    onPanStart: controller.ghostModeLocked.value ||
+            (!controller.smallWindowState.value &&
+                !controller.ghostModeState.value)
+        ? null
+        : (_) => WindowManagerPlus.current.startDragging(),
     child: Stack(
     children: [
       Container(),

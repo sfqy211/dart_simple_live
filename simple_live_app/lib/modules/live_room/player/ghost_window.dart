@@ -161,77 +161,78 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         _fontWeight.clamp(0, FontWeight.values.length - 1).toInt();
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: GestureDetector(
-        onPanUpdate: _locked
-            ? null
-            : (details) async {
-                final position = await WindowManagerPlus.current.getPosition();
-                await WindowManagerPlus.current.setPosition(Offset(
-                  position.dx + details.delta.dx,
-                  position.dy + details.delta.dy,
-                ));
-              },
-        child: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Text(
-                          item.text,
-                          style: TextStyle(
-                            color:
-                                item.color.withValues(alpha: _danmakuOpacity),
-                            fontSize: _fontSize,
-                            fontWeight: FontWeight.values[weightIndex],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+      body: Container(
+        color: Colors.transparent,
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          children: [
+            Container(
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.35),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
-              const SizedBox(height: 8),
-              Container(
+              child: _locked
+                  ? const SizedBox.expand()
+                  : const DragToMoveArea(
+                      child: SizedBox.expand(),
+                    ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Container(
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _inputController,
-                        decoration: const InputDecoration(
-                          hintText: "发送弹幕...",
-                          border: InputBorder.none,
+                padding: const EdgeInsets.all(8),
+                child: ListView.builder(
+                  controller: _scrollController,
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) {
+                    final item = _items[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        item.text,
+                        style: TextStyle(
+                          color: item.color.withValues(alpha: _danmakuOpacity),
+                          fontSize: _fontSize,
+                          fontWeight: FontWeight.values[weightIndex],
                         ),
-                        onSubmitted: (_) => _sendMessage(),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: _sendMessage,
-                      child: const Text("发送"),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _inputController,
+                      decoration: const InputDecoration(
+                        hintText: "发送弹幕...",
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _sendMessage,
+                    child: const Text("发送"),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

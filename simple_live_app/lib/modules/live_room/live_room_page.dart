@@ -344,62 +344,47 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       boxFit = BoxFit.contain;
       aspectRatio = 4 / 3;
     }
-    
+
     return Obx(() {
-      if (controller.ghostModeState.value) {
-        // 透明“幽灵”模式，只显示弹幕
-        return Stack(
-          children: [
-            // 隐藏视频，只显示弹幕
-            Container(color: Colors.transparent),
-            // 弹幕层保持可见
-            if (controller.danmakuView != null) controller.danmakuView!,
-          ],
-        );
-      } else {
-        // 正常模式
-        return Stack(
-          children: [
-            Video(
-              key: controller.globalPlayerKey,
-              controller: controller.videoController,
-              pauseUponEnteringBackgroundMode:
-                  AppSettingsController.instance.playerAutoPause.value,
-              resumeUponEnteringForegroundMode:
-                  AppSettingsController.instance.playerAutoPause.value,
-              controls: (state) {
-                // 确保播放器控制界面在遮罩层之上
-                return Stack(
-                  children: [
-                    Obx(
-                      () => Visibility(
-                        visible: controller.audioOnlyMode.value,
-                        child: const AudioModeCover(),
-                      ),
+      return Stack(
+        children: [
+          Video(
+            key: controller.globalPlayerKey,
+            controller: controller.videoController,
+            pauseUponEnteringBackgroundMode:
+                AppSettingsController.instance.playerAutoPause.value,
+            resumeUponEnteringForegroundMode:
+                AppSettingsController.instance.playerAutoPause.value,
+            controls: (state) {
+              return Stack(
+                children: [
+                  Obx(
+                    () => Visibility(
+                      visible: controller.audioOnlyMode.value,
+                      child: const AudioModeCover(),
                     ),
-                    playerControls(state, controller),
-                  ],
-                );
-              },
-              aspectRatio: aspectRatio,
-              fit: boxFit,
-              // 自己实现
-              wakelock: false,
-            ),
-            Obx(
-              () => Visibility(
-                visible: !controller.liveStatus.value,
-                child: const Center(
-                  child: Text(
-                    "未开播",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
+                  playerControls(state, controller),
+                ],
+              );
+            },
+            aspectRatio: aspectRatio,
+            fit: boxFit,
+            wakelock: false,
+          ),
+          Obx(
+            () => Visibility(
+              visible: !controller.liveStatus.value,
+              child: const Center(
+                child: Text(
+                  "未开播",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
             ),
-          ],
-        );
-      }
+          ),
+        ],
+      );
     });
   }
 
@@ -629,8 +614,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 ],
               ),
             ),
-            if (controller.site.id == Constant.kBiliBili)
-              buildChatInput(),
+            if (controller.site.id == Constant.kBiliBili) buildChatInput(),
           ],
         ),
       ),
@@ -752,9 +736,10 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   if (emoticons is! List) {
                     emoticons = [];
                   }
-                  
+
                   return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 6,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
@@ -765,7 +750,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       var emoticon = emoticons[index];
                       var url = emoticon['url'] ?? '';
                       // 使用 emoticon_unique 作为发送的文本（参考 BLSPAM 项目）
-                      var text = emoticon['emoticon_unique'] ?? emoticon['text'] ?? '';
+                      var text =
+                          emoticon['emoticon_unique'] ?? emoticon['text'] ?? '';
 
                       return GestureDetector(
                         onTap: () {
@@ -1082,7 +1068,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             Obx(
               () => ListTile(
                 leading: const Icon(Icons.audiotrack),
-                title: Text(controller.audioOnlyMode.value ? "切换到视频模式" : "切换到黑听模式"),
+                title: Text(
+                    controller.audioOnlyMode.value ? "切换到视频模式" : "切换到黑听模式"),
                 trailing: Switch(
                   value: controller.audioOnlyMode.value,
                   onChanged: (value) {
@@ -1098,13 +1085,18 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.visibility),
-                      title: Text(controller.ghostModeState.value ? "关闭透明模式" : "开启透明模式"),
+                      title: Text(controller.ghostModeState.value
+                          ? "关闭透明模式"
+                          : "开启透明模式"),
                       trailing: Switch(
                         value: controller.ghostModeState.value,
-                        onChanged: controller.audioOnlyMode.value ? (value) {
-                          controller.toggleGhostMode();
-                        } : null,
-                        activeThumbColor: controller.audioOnlyMode.value ? null : Colors.grey,
+                        onChanged: controller.audioOnlyMode.value
+                            ? (value) {
+                                controller.toggleGhostMode();
+                              }
+                            : null,
+                        activeThumbColor:
+                            controller.audioOnlyMode.value ? null : Colors.grey,
                         inactiveTrackColor: Colors.grey,
                       ),
                     ),
@@ -1123,7 +1115,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                   min: 0.2,
                                   max: 1.0,
                                   divisions: 8,
-                                  label: "${(controller.ghostModeOpacity.value * 100).toInt()}%",
+                                  label:
+                                      "${(controller.ghostModeOpacity.value * 100).toInt()}%",
                                   onChanged: (value) {
                                     controller.setGhostModeOpacity(value);
                                   },
@@ -1132,7 +1125,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                             ),
                             ListTile(
                               leading: const Icon(Icons.lock),
-                              title: Text(controller.ghostModeLocked.value ? "解锁浮窗" : "锁定浮窗"),
+                              title: Text(controller.ghostModeLocked.value
+                                  ? "解锁浮窗"
+                                  : "锁定浮窗"),
                               trailing: Switch(
                                 value: controller.ghostModeLocked.value,
                                 onChanged: (value) {
