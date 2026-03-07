@@ -55,6 +55,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.hidden);
         await WindowManagerPlus.current.setBackgroundColor(Colors.transparent);
         await WindowManagerPlus.current.setOpacity(_opacity);
+        await WindowManagerPlus.current.setPreventClose(true);
       });
     }
   }
@@ -142,6 +143,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
 
   @override
   void onWindowClose([int? windowId]) async {
+    await WindowManagerPlus.current.hide();
     WindowManagerPlus.current.invokeMethodToWindow(
       0,
       'ghost_closed',
@@ -260,137 +262,138 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                 }
 
                 return SafeArea(
-                    child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    const Text(
-                      "透明浮窗设置",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const SizedBox(width: 64, child: Text("透明度")),
-                        Expanded(
-                          child: Slider(
-                            value: _opacity,
-                            min: 0.2,
-                            max: 1.0,
-                            divisions: 8,
-                            label: "${(_opacity * 100).toInt()}%",
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const Text(
+                        "透明浮窗设置",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const SizedBox(width: 64, child: Text("透明度")),
+                          Expanded(
+                            child: Slider(
+                              value: _opacity,
+                              min: 0.2,
+                              max: 1.0,
+                              divisions: 8,
+                              label: "${(_opacity * 100).toInt()}%",
+                              onChanged: (value) {
+                                _updateOpacity(value);
+                                setSheetState(() {});
+                              },
+                            ),
+                          ),
+                          SizedBox(
+                            width: 48,
+                            child: Text("${(_opacity * 100).toInt()}%"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 64, child: Text("锁定")),
+                          Expanded(child: Container()),
+                          Switch(
+                            value: _locked,
                             onChanged: (value) {
-                              _updateOpacity(value);
+                              _updateLocked(value);
                               setSheetState(() {});
                             },
                           ),
-                        ),
-                        SizedBox(
-                          width: 48,
-                          child: Text("${(_opacity * 100).toInt()}%"),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const SizedBox(width: 64, child: Text("锁定")),
-                        Expanded(child: Container()),
-                        Switch(
-                          value: _locked,
-                          onChanged: (value) {
-                            _updateLocked(value);
-                            setSheetState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Color(_panelColor),
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(8)),
-                        border: Border.all(color: Colors.grey.withAlpha(60)),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const SizedBox(width: 24, child: Text("A")),
-                        Expanded(
-                          child: Slider(
-                            value: alpha.toDouble(),
-                            min: 40,
-                            max: 255,
-                            onChanged: (value) {
-                              updateColor(a: value.round());
-                            },
-                          ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Color(_panelColor),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(8)),
+                          border: Border.all(color: Colors.grey.withAlpha(60)),
                         ),
-                        SizedBox(width: 36, child: Text("$alpha")),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const SizedBox(width: 24, child: Text("R")),
-                        Expanded(
-                          child: Slider(
-                            value: red.toDouble(),
-                            min: 0,
-                            max: 255,
-                            onChanged: (value) {
-                              updateColor(r: value.round());
-                            },
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const SizedBox(width: 24, child: Text("A")),
+                          Expanded(
+                            child: Slider(
+                              value: alpha.toDouble(),
+                              min: 40,
+                              max: 255,
+                              onChanged: (value) {
+                                updateColor(a: value.round());
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 36, child: Text("$red")),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const SizedBox(width: 24, child: Text("G")),
-                        Expanded(
-                          child: Slider(
-                            value: green.toDouble(),
-                            min: 0,
-                            max: 255,
-                            onChanged: (value) {
-                              updateColor(g: value.round());
-                            },
+                          SizedBox(width: 36, child: Text("$alpha")),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const SizedBox(width: 24, child: Text("R")),
+                          Expanded(
+                            child: Slider(
+                              value: red.toDouble(),
+                              min: 0,
+                              max: 255,
+                              onChanged: (value) {
+                                updateColor(r: value.round());
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 36, child: Text("$green")),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        const SizedBox(width: 24, child: Text("B")),
-                        Expanded(
-                          child: Slider(
-                            value: blue.toDouble(),
-                            min: 0,
-                            max: 255,
-                            onChanged: (value) {
-                              updateColor(b: value.round());
-                            },
+                          SizedBox(width: 36, child: Text("$red")),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const SizedBox(width: 24, child: Text("G")),
+                          Expanded(
+                            child: Slider(
+                              value: green.toDouble(),
+                              min: 0,
+                              max: 255,
+                              onChanged: (value) {
+                                updateColor(g: value.round());
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 36, child: Text("$blue")),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _requestExitGhostMode();
-                      },
-                      child: const Text("退出透明模式"),
-                    ),
-                  ],
-                ));
+                          SizedBox(width: 36, child: Text("$green")),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const SizedBox(width: 24, child: Text("B")),
+                          Expanded(
+                            child: Slider(
+                              value: blue.toDouble(),
+                              min: 0,
+                              max: 255,
+                              onChanged: (value) {
+                                updateColor(b: value.round());
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 36, child: Text("$blue")),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _requestExitGhostMode();
+                        },
+                        child: const Text("退出透明模式"),
+                      ),
+                    ],
+                  ),
+                );
               },
             );
           },

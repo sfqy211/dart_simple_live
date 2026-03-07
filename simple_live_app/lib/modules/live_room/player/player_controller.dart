@@ -113,6 +113,115 @@ mixin PlayerStateMixin on PlayerMixin {
   /// 幽灵窗口控制器
   dynamic ghostWindowController;
   int? ghostWindowId;
+  double? _mainWindowOpacityBeforeGhost;
+  bool? _mainWindowSkipTaskbarBeforeGhost;
+  bool? _mainWindowAlwaysOnTopBeforeGhost;
+  Future<void> _resetMainWindowStyles() async {
+    final channel =
+        MethodChannel('window_manager_plus_${WindowManagerPlus.current.id}');
+    try {
+      await channel.invokeMethod('resetWindowStyles');
+    } catch (e) {
+      Log.logPrint('重置主窗口样式失败: $e');
+    }
+  }
+
+  Future<void> _normalizeMainWindowForInput() async {
+    final channel =
+        MethodChannel('window_manager_plus_${WindowManagerPlus.current.id}');
+    try {
+      await channel.invokeMethod('normalizeWindowForInput');
+      Log.logPrint('强制恢复主窗口交互 ok');
+    } catch (e) {
+      Log.logPrint('强制恢复主窗口交互失败: $e');
+    }
+  }
+
+  Future<void> _logMainWindowStyles(String tag) async {
+    final channel =
+        MethodChannel('window_manager_plus_${WindowManagerPlus.current.id}');
+    try {
+      final result = await channel.invokeMethod('getWindowStyles');
+      Log.logPrint('主窗口样式 $tag: $result');
+    } catch (e) {
+      Log.logPrint('主窗口样式获取失败 $tag: $e');
+    }
+  }
+
+  Future<void> _forceWindowRefresh() async {
+    final channel =
+        MethodChannel('window_manager_plus_${WindowManagerPlus.current.id}');
+    try {
+      await channel.invokeMethod('forceRefresh');
+    } catch (e) {
+      Log.logPrint('强制刷新主窗口失败: $e');
+    }
+    try {
+      await channel.invokeMethod('forceChildRefresh');
+    } catch (e) {
+      Log.logPrint('强制刷新子窗口失败: $e');
+    }
+  }
+
+  Future<void> _restoreMainWindowAfterGhost() async {
+    Log.logPrint(
+      '恢复主窗口 start opacity=$_mainWindowOpacityBeforeGhost skipTaskbar=$_mainWindowSkipTaskbarBeforeGhost alwaysOnTop=$_mainWindowAlwaysOnTopBeforeGhost',
+    );
+    await _logMainWindowStyles('before');
+    try {
+      await WindowManagerPlus.current.setIgnoreMouseEvents(false);
+      Log.logPrint('恢复主窗口鼠标事件 ok');
+    } catch (e) {
+      Log.logPrint('恢复主窗口鼠标事件失败: $e');
+    }
+    try {
+      final opacity = _mainWindowOpacityBeforeGhost ?? 1.0;
+      await WindowManagerPlus.current.setOpacity(opacity);
+      Log.logPrint('恢复主窗口透明度 ok: $opacity');
+    } catch (e) {
+      Log.logPrint('恢复主窗口透明度失败: $e');
+    }
+    try {
+      if (_mainWindowSkipTaskbarBeforeGhost != null) {
+        await WindowManagerPlus.current
+            .setSkipTaskbar(_mainWindowSkipTaskbarBeforeGhost!);
+        Log.logPrint('恢复主窗口任务栏显示 ok: $_mainWindowSkipTaskbarBeforeGhost');
+      }
+    } catch (e) {
+      Log.logPrint('恢复主窗口任务栏显示失败: $e');
+    }
+    try {
+      if (_mainWindowAlwaysOnTopBeforeGhost != null) {
+        await WindowManagerPlus.current
+            .setAlwaysOnTop(_mainWindowAlwaysOnTopBeforeGhost!);
+        Log.logPrint('恢复主窗口置顶 ok: $_mainWindowAlwaysOnTopBeforeGhost');
+      } else {
+        await WindowManagerPlus.current.setAlwaysOnTop(false);
+        Log.logPrint('恢复主窗口置顶 ok: false');
+      }
+    } catch (e) {
+      Log.logPrint('恢复主窗口置顶失败: $e');
+    }
+    try {
+      await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.normal);
+      Log.logPrint('恢复主窗口标题栏 ok');
+    } catch (e) {
+      Log.logPrint('恢复主窗口标题栏失败: $e');
+    }
+    try {
+      await WindowManagerPlus.current.restore();
+      await WindowManagerPlus.current.show();
+      await WindowManagerPlus.current.focus();
+      await _resetMainWindowStyles();
+      await _normalizeMainWindowForInput();
+      await _forceWindowRefresh();
+      Log.logPrint('恢复主窗口显示焦点 ok');
+    } catch (e) {
+      Log.logPrint('恢复主窗口焦点失败: $e');
+    }
+    await _logMainWindowStyles('after');
+    Log.logPrint('恢复主窗口 end');
+  }
 
   /// 显示手势Tip
   RxBool showGestureTip = false.obs;
@@ -420,11 +529,14 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   void enterGhostMode() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
       try {
-        // 创建新的弹幕窗口
-        Log.d('开始创建幽灵窗口');
-        ghostWindowController = await WindowManagerPlus.createWindow();
-        ghostWindowId = ghostWindowController?.id;
-        Log.d('幽灵窗口创建成功: $ghostWindowController');
+        if (ghostWindowController != null && ghostWindowId != null) {
+          Log.d('复用幽灵窗口: $ghostWindowController');
+        } else {
+          Log.d('开始创建幽灵窗口');
+          ghostWindowController = await WindowManagerPlus.createWindow();
+          ghostWindowId = ghostWindowController?.id;
+          Log.d('幽灵窗口创建成功: $ghostWindowController');
+        }
 
         // 设置窗口属性
         await ghostWindowController
@@ -435,7 +547,20 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
         await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
         await ghostWindowController?.setBackgroundColor(Colors.transparent);
         await ghostWindowController?.setOpacity(ghostModeOpacity.value);
-        await WindowManagerPlus.current.hide();
+        _mainWindowOpacityBeforeGhost ??=
+            await WindowManagerPlus.current.getOpacity();
+        _mainWindowSkipTaskbarBeforeGhost ??=
+            await WindowManagerPlus.current.isSkipTaskbar();
+        _mainWindowAlwaysOnTopBeforeGhost ??=
+            await WindowManagerPlus.current.isAlwaysOnTop();
+        Log.logPrint(
+          '进入透明模式 main opacity=$_mainWindowOpacityBeforeGhost skipTaskbar=$_mainWindowSkipTaskbarBeforeGhost alwaysOnTop=$_mainWindowAlwaysOnTopBeforeGhost',
+        );
+        await WindowManagerPlus.current
+            .setIgnoreMouseEvents(true, forward: true);
+        await WindowManagerPlus.current.setSkipTaskbar(true);
+        await WindowManagerPlus.current.setOpacity(0);
+        Log.logPrint('进入透明模式 main hidden');
 
         ghostModeState.value = true;
         sendGhostConfig();
@@ -451,22 +576,24 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   void exitGhostMode() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
       final controller = ghostWindowController;
-      ghostWindowController = null;
-      ghostWindowId = null;
+      Log.logPrint(
+        '退出透明模式 start ghostId=$ghostWindowId controller=$controller',
+      );
       ghostModeState.value = false;
-      Future.microtask(() async {
-        try {
-          await controller?.close();
-        } catch (e) {
-          Log.logPrint('关闭幽灵窗口失败: $e');
-        }
-      });
+      await _restoreMainWindowAfterGhost();
       try {
-        await WindowManagerPlus.current.show();
-        await WindowManagerPlus.current.focus();
+        await controller?.setAlwaysOnTop(false);
+        await controller?.setIgnoreMouseEvents(true, forward: true);
+        await controller?.setOpacity(0.0);
+        await controller?.hide();
+        Log.logPrint('退出透明模式 隐藏幽灵窗口 ok');
       } catch (e) {
-        Log.logPrint('恢复主窗口焦点失败: $e');
+        Log.logPrint('关闭幽灵窗口失败: $e');
       }
+      _mainWindowOpacityBeforeGhost = null;
+      _mainWindowSkipTaskbarBeforeGhost = null;
+      _mainWindowAlwaysOnTopBeforeGhost = null;
+      Log.logPrint('退出透明模式 end');
     }
   }
 
