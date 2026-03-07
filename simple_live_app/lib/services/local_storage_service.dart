@@ -179,6 +179,7 @@ class LocalStorageService extends GetxService {
 
   /// 透明模式
   static const String kGhostMode = "GhostMode";
+  static const String kGhostPanelColor = "GhostPanelColor";
 
   late Box settingsBox;
   late Box<String> shieldBox;

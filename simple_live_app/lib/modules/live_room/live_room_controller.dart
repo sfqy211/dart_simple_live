@@ -136,7 +136,8 @@ class LiveRoomController extends PlayerController
   }
 
   /// 发送表情包
-  Future<void> sendEmotionMessage(String emotion, {Map<String, dynamic>? emoticonOptions}) async {
+  Future<void> sendEmotionMessage(String emotion,
+      {Map<String, dynamic>? emoticonOptions}) async {
     if (emotion.isEmpty) return;
 
     // 检查是否为 B 站直播间
@@ -331,7 +332,7 @@ class LiveRoomController extends PlayerController
           msg.color.b,
         ),
       );
-      sendDanmakuToGhostWindow(item);
+      sendDanmakuToGhostWindow(item, userName: msg.userName);
       addDanmaku([item]);
     } else if (msg.type == LiveMessageType.online) {
       online.value = msg.data;

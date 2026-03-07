@@ -246,7 +246,7 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
   }
 
   /// 发送弹幕到幽灵窗口
-  void sendDanmakuToGhostWindow(DanmakuContentItem item) {
+  void sendDanmakuToGhostWindow(DanmakuContentItem item, {String? userName}) {
     if (ghostModeState.value &&
         !(Platform.isAndroid || Platform.isIOS) &&
         ghostWindowId != null) {
@@ -256,6 +256,7 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
           'danmaku',
           {
             'text': item.text,
+            'user': userName,
             'color': item.color.toARGB32(),
             'type': item.type.index,
             'selfSend': item.selfSend,
@@ -284,6 +285,7 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
               'fontWeight':
                   AppSettingsController.instance.danmuFontWeight.value,
             },
+            'panelColor': AppSettingsController.instance.ghostPanelColor.value,
           },
         );
       } catch (e) {
@@ -447,11 +449,23 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 退出透明“幽灵”模式
   void exitGhostMode() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
-      // 关闭幽灵窗口
-      await ghostWindowController?.close();
+      final controller = ghostWindowController;
       ghostWindowController = null;
       ghostWindowId = null;
       ghostModeState.value = false;
+      Future.microtask(() async {
+        try {
+          await controller?.close();
+        } catch (e) {
+          Log.logPrint('关闭幽灵窗口失败: $e');
+        }
+      });
+      try {
+        await WindowManagerPlus.current.show();
+        await WindowManagerPlus.current.focus();
+      } catch (e) {
+        Log.logPrint('恢复主窗口焦点失败: $e');
+      }
     }
   }
 

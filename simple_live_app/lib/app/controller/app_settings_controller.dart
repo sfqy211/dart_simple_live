@@ -164,6 +164,8 @@ class AppSettingsController extends GetxController {
 
     ghostMode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kGhostMode, false);
+    ghostPanelColor.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kGhostPanelColor, 0xBFD0D0D0);
 
     initSiteSort();
     initHomeSort();
@@ -570,5 +572,12 @@ class AppSettingsController extends GetxController {
     ghostMode.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kGhostMode, e);
+  }
+
+  var ghostPanelColor = 0xBFD0D0D0.obs;
+  void setGhostPanelColor(int value) {
+    ghostPanelColor.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kGhostPanelColor, value);
   }
 }

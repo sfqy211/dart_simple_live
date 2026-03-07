@@ -684,6 +684,120 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     );
   }
 
+  void _showGhostPanelColorSheet() {
+    final colorValue = AppSettingsController.instance.ghostPanelColor.value;
+    int alpha = (colorValue >> 24) & 0xFF;
+    int red = (colorValue >> 16) & 0xFF;
+    int green = (colorValue >> 8) & 0xFF;
+    int blue = colorValue & 0xFF;
+    Utils.showBottomSheet(
+      title: "透明浮窗背景色",
+      child: StatefulBuilder(
+        builder: (context, setState) {
+          void updateColor({
+            int? a,
+            int? r,
+            int? g,
+            int? b,
+          }) {
+            alpha = a ?? alpha;
+            red = r ?? red;
+            green = g ?? green;
+            blue = b ?? blue;
+            final value = (alpha << 24) | (red << 16) | (green << 8) | blue;
+            AppSettingsController.instance.setGhostPanelColor(value);
+            controller.sendGhostConfig();
+            setState(() {});
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Color(
+                        AppSettingsController.instance.ghostPanelColor.value),
+                    borderRadius: AppStyle.radius8,
+                    border: Border.all(
+                      color: Colors.grey.withAlpha(60),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const SizedBox(width: 40, child: Text("A")),
+                    Expanded(
+                      child: Slider(
+                        value: alpha.toDouble(),
+                        min: 40,
+                        max: 255,
+                        onChanged: (value) {
+                          updateColor(a: value.round());
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 36, child: Text("$alpha")),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const SizedBox(width: 40, child: Text("R")),
+                    Expanded(
+                      child: Slider(
+                        value: red.toDouble(),
+                        min: 0,
+                        max: 255,
+                        onChanged: (value) {
+                          updateColor(r: value.round());
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 36, child: Text("$red")),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const SizedBox(width: 40, child: Text("G")),
+                    Expanded(
+                      child: Slider(
+                        value: green.toDouble(),
+                        min: 0,
+                        max: 255,
+                        onChanged: (value) {
+                          updateColor(g: value.round());
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 36, child: Text("$green")),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const SizedBox(width: 40, child: Text("B")),
+                    Expanded(
+                      child: Slider(
+                        value: blue.toDouble(),
+                        min: 0,
+                        max: 255,
+                        onChanged: (value) {
+                          updateColor(b: value.round());
+                        },
+                      ),
+                    ),
+                    SizedBox(width: 36, child: Text("$blue")),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   /// 显示表情包选择界面
   void showEmotionPanel() async {
     // 获取表情包列表
@@ -1050,192 +1164,242 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         maxWidth: 600,
       ),
       isScrollControlled: true,
-      builder: (_) => Container(
-        padding: EdgeInsets.only(
-          bottom: AppStyle.bottomBarHeight,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.refresh),
-              title: const Text("刷新"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                controller.refreshRoom();
-              },
-            ),
-            Obx(
-              () => ListTile(
-                leading: const Icon(Icons.audiotrack),
-                title: Text(
-                    controller.audioOnlyMode.value ? "切换到视频模式" : "切换到黑听模式"),
-                trailing: Switch(
-                  value: controller.audioOnlyMode.value,
-                  onChanged: (value) {
-                    controller.toggleAudioMode();
-                  },
-                ),
+      builder: (_) => SafeArea(
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.8,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            void closeSheet() {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            }
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: AppStyle.bottomBarHeight,
               ),
-            ),
-            Obx(
-              () => Visibility(
-                visible: !Platform.isAndroid && !Platform.isIOS,
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.visibility),
-                      title: Text(controller.ghostModeState.value
-                          ? "关闭透明模式"
-                          : "开启透明模式"),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  ListTile(
+                    title: const Text("更多"),
+                    trailing: IconButton(
+                      onPressed: closeSheet,
+                      icon: const Icon(Remix.close_line),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.refresh),
+                    title: const Text("刷新"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      controller.refreshRoom();
+                    },
+                  ),
+                  Obx(
+                    () => ListTile(
+                      leading: const Icon(Icons.audiotrack),
+                      title: Text(controller.audioOnlyMode.value
+                          ? "切换到视频模式"
+                          : "切换到黑听模式"),
                       trailing: Switch(
-                        value: controller.ghostModeState.value,
-                        onChanged: controller.audioOnlyMode.value
-                            ? (value) {
-                                controller.toggleGhostMode();
-                              }
-                            : null,
-                        activeThumbColor:
-                            controller.audioOnlyMode.value ? null : Colors.grey,
-                        inactiveTrackColor: Colors.grey,
+                        value: controller.audioOnlyMode.value,
+                        onChanged: (value) {
+                          controller.toggleAudioMode();
+                        },
                       ),
                     ),
-                    Obx(
-                      () => Visibility(
-                        visible: controller.ghostModeState.value,
-                        child: Column(
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.opacity),
-                              title: const Text("透明度"),
-                              trailing: SizedBox(
-                                width: 150,
-                                child: Slider(
-                                  value: controller.ghostModeOpacity.value,
-                                  min: 0.2,
-                                  max: 1.0,
-                                  divisions: 8,
-                                  label:
-                                      "${(controller.ghostModeOpacity.value * 100).toInt()}%",
-                                  onChanged: (value) {
-                                    controller.setGhostModeOpacity(value);
-                                  },
-                                ),
+                  ),
+                  Obx(
+                    () => Visibility(
+                      visible: !Platform.isAndroid && !Platform.isIOS,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.visibility),
+                            title: Text(controller.ghostModeState.value
+                                ? "关闭透明模式"
+                                : "开启透明模式"),
+                            trailing: Switch(
+                              value: controller.ghostModeState.value,
+                              onChanged: controller.audioOnlyMode.value
+                                  ? (value) {
+                                      closeSheet();
+                                      controller.toggleGhostMode();
+                                    }
+                                  : null,
+                              activeThumbColor: controller.audioOnlyMode.value
+                                  ? null
+                                  : Colors.grey,
+                              inactiveTrackColor: Colors.grey,
+                            ),
+                          ),
+                          Obx(
+                            () => Visibility(
+                              visible: controller.ghostModeState.value,
+                              child: Column(
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.opacity),
+                                    title: const Text("透明度"),
+                                    trailing: SizedBox(
+                                      width: 150,
+                                      child: Slider(
+                                        value:
+                                            controller.ghostModeOpacity.value,
+                                        min: 0.2,
+                                        max: 1.0,
+                                        divisions: 8,
+                                        label:
+                                            "${(controller.ghostModeOpacity.value * 100).toInt()}%",
+                                        onChanged: (value) {
+                                          controller.setGhostModeOpacity(value);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  ListTile(
+                                    leading:
+                                        const Icon(Icons.format_color_fill),
+                                    title: const Text("背景颜色"),
+                                    trailing: InkWell(
+                                      onTap: () {
+                                        _showGhostPanelColorSheet();
+                                      },
+                                      child: Container(
+                                        width: 36,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: Color(
+                                            AppSettingsController
+                                                .instance.ghostPanelColor.value,
+                                          ),
+                                          borderRadius: AppStyle.radius8,
+                                          border: Border.all(
+                                            color: Colors.grey.withAlpha(80),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.lock),
+                                    title: Text(controller.ghostModeLocked.value
+                                        ? "解锁浮窗"
+                                        : "锁定浮窗"),
+                                    trailing: Switch(
+                                      value: controller.ghostModeLocked.value,
+                                      onChanged: (value) {
+                                        controller.toggleGhostModeLock();
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            ListTile(
-                              leading: const Icon(Icons.lock),
-                              title: Text(controller.ghostModeLocked.value
-                                  ? "解锁浮窗"
-                                  : "锁定浮窗"),
-                              trailing: Switch(
-                                value: controller.ghostModeLocked.value,
-                                onChanged: (value) {
-                                  controller.toggleGhostModeLock();
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.play_circle_outline),
+                    trailing: const Icon(Icons.chevron_right),
+                    title: const Text("切换清晰度"),
+                    onTap: () {
+                      Get.back();
+                      controller.showQualitySheet();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.switch_video_outlined),
+                    title: const Text("切换线路"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.showPlayUrlsSheet();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.aspect_ratio_outlined),
+                    title: const Text("画面尺寸"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.showPlayerSettingsSheet();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt_outlined),
+                    title: const Text("截图"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      controller.saveScreenshot();
+                    },
+                  ),
+                  Visibility(
+                    visible: Platform.isAndroid,
+                    child: ListTile(
+                      leading: const Icon(Icons.picture_in_picture),
+                      title: const Text("小窗播放"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Get.back();
+                        controller.enablePIP();
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.timer_outlined),
+                    title: const Text("定时关闭"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.showAutoExitSheet();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.share_sharp),
+                    title: const Text("分享直播间"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.share();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.copy),
+                    title: const Text("复制链接"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.copyUrl();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.open_in_new),
+                    title: const Text("APP中打开"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.openNaviteAPP();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.info_outline_rounded),
+                    title: const Text("播放信息"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.showDebugInfo();
+                    },
+                  ),
+                ],
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.play_circle_outline),
-              trailing: const Icon(Icons.chevron_right),
-              title: const Text("切换清晰度"),
-              onTap: () {
-                Get.back();
-                controller.showQualitySheet();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.switch_video_outlined),
-              title: const Text("切换线路"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                controller.showPlayUrlsSheet();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.aspect_ratio_outlined),
-              title: const Text("画面尺寸"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                controller.showPlayerSettingsSheet();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text("截图"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                controller.saveScreenshot();
-              },
-            ),
-            Visibility(
-              visible: Platform.isAndroid,
-              child: ListTile(
-                leading: const Icon(Icons.picture_in_picture),
-                title: const Text("小窗播放"),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Get.back();
-                  controller.enablePIP();
-                },
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.timer_outlined),
-              title: const Text("定时关闭"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                controller.showAutoExitSheet();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share_sharp),
-              title: const Text("分享直播间"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                controller.share();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text("复制链接"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                controller.copyUrl();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.open_in_new),
-              title: const Text("APP中打开"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                controller.openNaviteAPP();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline_rounded),
-              title: const Text("播放信息"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                controller.showDebugInfo();
-              },
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

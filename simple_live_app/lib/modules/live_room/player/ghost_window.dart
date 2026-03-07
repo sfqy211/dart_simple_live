@@ -16,6 +16,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   double _fontSize = 16.0;
   double _danmakuOpacity = 1.0;
   int _fontWeight = 4;
+  int _panelColor = 0xBFD0D0D0;
   final List<DanmakuContentItem> _items = [];
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
@@ -92,6 +93,14 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
             });
           }
         }
+        if (message.containsKey('panelColor')) {
+          final colorValue = message['panelColor'];
+          if (colorValue is int) {
+            setState(() {
+              _panelColor = colorValue;
+            });
+          }
+        }
       }
     } else if (eventName == 'danmaku') {
       if (arguments is Map) {
@@ -100,6 +109,9 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         if (text == null || text.isEmpty) {
           return null;
         }
+        final user = message['user']?.toString();
+        final displayText =
+            user == null || user.isEmpty ? text : '$user: $text';
         final colorValue = message['color'];
         final typeIndex = message['type'];
         final selfSend = message['selfSend'] == true;
@@ -110,7 +122,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
             ? DanmakuItemType.values[typeIndex]
             : DanmakuItemType.scroll;
         _appendItem(DanmakuContentItem(
-          text,
+          displayText,
           color: color,
           type: type,
           selfSend: selfSend,
@@ -159,6 +171,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   Widget build(BuildContext context) {
     final weightIndex =
         _fontWeight.clamp(0, FontWeight.values.length - 1).toInt();
+    final panelColor = Color(_panelColor);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -169,7 +182,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
             Container(
               height: 24,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.35),
+                color: panelColor,
                 borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
               child: _locked
@@ -182,7 +195,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.35),
+                  color: panelColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.all(8),
@@ -209,7 +222,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.35),
+                color: panelColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 8),
