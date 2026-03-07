@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:simple_live_app/app/utils.dart';
 
 class Log {
+  static const int _maxDebugLogs = 500;
   static LogFileWriter? logFileWriter;
   static void initWriter() {
     logFileWriter = LogFileWriter();
@@ -36,6 +37,9 @@ class Log {
     }
     try {
       debugLogs.insert(0, DebugLogModel(DateTime.now(), content, color: color));
+      if (debugLogs.length > _maxDebugLogs) {
+        debugLogs.removeRange(_maxDebugLogs, debugLogs.length);
+      }
     } catch (e) {
       if (kDebugMode) {
         print(e);
@@ -66,7 +70,6 @@ class Log {
     addDebugLog(message, Colors.blue);
     logger.i("${DateTime.now().toString()}\n$message");
     if (writeFile) {
-      logFileWriter?.write("[INFO] $_currentTime：$message");
       writeLog(message, Level.info);
     }
   }

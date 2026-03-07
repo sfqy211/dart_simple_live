@@ -1331,6 +1331,8 @@ ${errorStackTrace?.toString()}''');
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
     scrollController.removeListener(scrollListener);
+    scrollController.dispose();
+    chatInputController.dispose();
     if (!(Platform.isAndroid || Platform.isIOS)) {
       WindowManagerPlus.current.removeListener(this);
     }
