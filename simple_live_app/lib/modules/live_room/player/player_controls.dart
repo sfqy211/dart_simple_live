@@ -14,7 +14,7 @@ import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager_plus/window_manager_plus.dart';
 import 'package:simple_live_app/widgets/superchat_card.dart';
 import 'dart:async';
 import 'package:simple_live_core/simple_live_core.dart';
@@ -42,10 +42,17 @@ Widget buildFullControls(
   VideoState videoState,
   LiveRoomController controller,
 ) {
-  var padding = MediaQuery.of(videoState.context).padding;
-  GlobalKey volumeButtonkey = GlobalKey();
-  return DragToMoveArea(
-    child: Stack(
+    var padding = MediaQuery.of(videoState.context).padding;
+    GlobalKey volumeButtonkey = GlobalKey();
+    return Obx(() => GestureDetector(
+      onPanUpdate: controller.ghostModeLocked.value ? null : (details) async {
+    final position = await WindowManagerPlus.current.getPosition();
+    await WindowManagerPlus.current.setPosition(Offset(
+      position.dx + details.delta.dx,
+      position.dy + details.delta.dy,
+    ));
+  },
+      child: Stack(
       children: [
         Container(),
         buildDanmuView(videoState, controller),
@@ -332,37 +339,7 @@ Widget buildFullControls(
                       style: const TextStyle(color: Colors.white, fontSize: 15),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      controller.toggleAudioMode();
-                    },
-                    icon: Obx(
-                      () => Icon(
-                        controller.audioOnlyMode.value
-                            ? Icons.volume_up
-                            : Icons.video_library,
-                        color: Colors.white,
-                      ),
-                    ),
-                    tooltip: "黑听模式",
-                  ),
-                  Visibility(
-                    visible: !Platform.isAndroid && !Platform.isIOS,
-                    child: IconButton(
-                      onPressed: () {
-                        controller.toggleGhostMode();
-                      },
-                      icon: Obx(
-                        () => Icon(
-                          controller.ghostModeState.value
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.white,
-                        ),
-                      ),
-                      tooltip: "透明模式",
-                    ),
-                  ),
+
                   IconButton(
                     onPressed: () {
                       if (controller.smallWindowState.value) {
@@ -426,7 +403,7 @@ Widget buildFullControls(
         ),
       ],
     ),
-  );
+  ));
 }
 
 Widget buildLockButton(LiveRoomController controller) {
@@ -462,7 +439,15 @@ Widget buildControls(
   LiveRoomController controller,
 ) {
   GlobalKey volumeButtonkey = GlobalKey();
-  return Stack(
+  return Obx(() => GestureDetector(
+    onPanUpdate: controller.ghostModeLocked.value ? null : (details) async {
+      final position = await WindowManagerPlus.current.getPosition();
+      await WindowManagerPlus.current.setPosition(Offset(
+        position.dx + details.delta.dx,
+        position.dy + details.delta.dy,
+      ));
+    },
+    child: Stack(
     children: [
       Container(),
       buildDanmuView(videoState, controller),
@@ -642,37 +627,6 @@ Widget buildControls(
                 ),
                 IconButton(
                   onPressed: () {
-                    controller.toggleAudioMode();
-                  },
-                  icon: Obx(
-                    () => Icon(
-                      controller.audioOnlyMode.value
-                          ? Icons.volume_up
-                          : Icons.video_library,
-                      color: Colors.white,
-                    ),
-                  ),
-                  tooltip: "黑听模式",
-                ),
-                Visibility(
-                  visible: !Platform.isAndroid && !Platform.isIOS,
-                  child: IconButton(
-                    onPressed: () {
-                      controller.toggleGhostMode();
-                    },
-                    icon: Obx(
-                      () => Icon(
-                        controller.ghostModeState.value
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.white,
-                      ),
-                    ),
-                    tooltip: "透明模式",
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
                     controller.enterFullScreen();
                   },
                   icon: const Icon(
@@ -704,7 +658,8 @@ Widget buildControls(
         ),
       ),
     ],
-  );
+  ),
+  ));
 }
 
 Widget buildDanmuView(VideoState videoState, LiveRoomController controller) {

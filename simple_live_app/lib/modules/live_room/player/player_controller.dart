@@ -21,7 +21,7 @@ import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/services/background_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager_plus/window_manager_plus.dart';
 
 mixin PlayerMixin {
   GlobalKey<VideoState> globalPlayerKey = GlobalKey<VideoState>();
@@ -104,6 +104,15 @@ mixin PlayerStateMixin on PlayerMixin {
   /// 是否处于透明“幽灵”模式
   RxBool ghostModeState = false.obs;
 
+  /// 透明模式透明度
+  RxDouble ghostModeOpacity = 0.8.obs;
+
+  /// 透明模式是否锁定
+  RxBool ghostModeLocked = false.obs;
+
+  /// 幽灵窗口控制器
+  dynamic ghostWindowController;
+
   /// 显示手势Tip
   RxBool showGestureTip = false.obs;
 
@@ -168,6 +177,11 @@ mixin PlayerStateMixin on PlayerMixin {
   }
 
   void updateScaleMode() {
+    // 黑听模式下不更新视频显示，保持黑听状态
+    if (audioOnlyMode.value) {
+      return;
+    }
+    
     var boxFit = BoxFit.contain;
     double? aspectRatio;
     if (player.state.width != null && player.state.height != null) {
@@ -227,6 +241,21 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
     }
     for (var item in items) {
       danmakuController?.addDanmaku(item);
+      // 同时发送到幽灵窗口
+      sendDanmakuToGhostWindow(item);
+    }
+  }
+
+  /// 发送弹幕到幽灵窗口
+  void sendDanmakuToGhostWindow(DanmakuContentItem item) {
+    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowController != null) {
+      try {
+        ghostWindowController?.invokeMethod('danmaku', {
+          'text': item,
+        });
+      } catch (e) {
+        Log.logPrint('发送弹幕到幽灵窗口失败: $e');
+      }
     }
   }
 }
@@ -279,29 +308,29 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   }
 
   /// 进入全屏
-  void enterFullScreen() {
+  void enterFullScreen() async {
     fullScreenState.value = true;
     if (Platform.isAndroid || Platform.isIOS) {
       //全屏
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
       if (!isVertical.value) {
         //横屏
-        setLandscapeOrientation();
+        await setLandscapeOrientation();
       }
     } else {
-      windowManager.setFullScreen(true);
+      await WindowManagerPlus.current.setFullScreen(true);
     }
     //danmakuController?.clear();
   }
 
   /// 退出全屏
-  void exitFull() {
+  void exitFull() async {
     if (Platform.isAndroid || Platform.isIOS) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
           overlays: SystemUiOverlay.values);
-      setPortraitOrientation();
+      await setPortraitOrientation();
     } else {
-      windowManager.setFullScreen(false);
+      await WindowManagerPlus.current.setFullScreen(false);
     }
     fullScreenState.value = false;
 
@@ -318,10 +347,10 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       smallWindowState.value = true;
 
       // 读取窗口大小
-      _lastWindowSize = await windowManager.getSize();
-      _lastWindowPosition = await windowManager.getPosition();
+      _lastWindowSize = await WindowManagerPlus.current.getSize();
+      _lastWindowPosition = await WindowManagerPlus.current.getPosition();
 
-      windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+      await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.hidden);
       // 获取视频窗口大小
       var width = player.state.width ?? 16;
       var height = player.state.height ?? 9;
@@ -329,25 +358,25 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       // 横屏还是竖屏
       if (height > width) {
         var aspectRatio = width / height;
-        windowManager.setSize(Size(400, 400 / aspectRatio));
+        await WindowManagerPlus.current.setSize(Size(400, 400 / aspectRatio));
       } else {
         var aspectRatio = height / width;
-        windowManager.setSize(Size(280 / aspectRatio, 280));
+        await WindowManagerPlus.current.setSize(Size(280 / aspectRatio, 280));
       }
 
-      windowManager.setAlwaysOnTop(true);
+      await WindowManagerPlus.current.setAlwaysOnTop(true);
     }
   }
 
   ///退出小窗模式()
-  void exitSmallWindow() {
+  void exitSmallWindow() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
       fullScreenState.value = false;
       smallWindowState.value = false;
-      windowManager.setTitleBarStyle(TitleBarStyle.normal);
-      windowManager.setSize(_lastWindowSize!);
-      windowManager.setPosition(_lastWindowPosition!);
-      windowManager.setAlwaysOnTop(false);
+      await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.normal);
+      await WindowManagerPlus.current.setSize(_lastWindowSize!);
+      await WindowManagerPlus.current.setPosition(_lastWindowPosition!);
+      await WindowManagerPlus.current.setAlwaysOnTop(false);
       //windowManager.setAlignment(Alignment.center);
     }
   }
@@ -355,46 +384,84 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 进入透明“幽灵”模式
   void enterGhostMode() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
-      // 保存当前窗口状态
-      _lastWindowSize = await windowManager.getSize();
-      _lastWindowPosition = await windowManager.getPosition();
-      
-      // 窗口去边框
-      windowManager.setTitleBarStyle(TitleBarStyle.hidden);
-      // 背景透明
-      windowManager.setBackgroundColor(Colors.transparent);
-      // 窗口置顶
-      windowManager.setAlwaysOnTop(true);
-      // 进入全屏
-      windowManager.setFullScreen(true);
-      
-      ghostModeState.value = true;
+      try {
+        // 创建新的弹幕窗口
+        Log.d('开始创建幽灵窗口');
+        ghostWindowController = await WindowManagerPlus.createWindow();
+        Log.d('幽灵窗口创建成功: $ghostWindowController');
+        
+        // 设置窗口属性
+        await ghostWindowController?.setBounds(const Offset(0, 0) & const Size(400, 300));
+        await ghostWindowController?.center();
+        await ghostWindowController?.show();
+        await ghostWindowController?.setAlwaysOnTop(true);
+        await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
+        await ghostWindowController?.setBackgroundColor(Colors.black.withAlpha((ghostModeOpacity.value * 255).toInt()));
+        
+        ghostModeState.value = true;
+        Log.d('幽灵窗口显示成功');
+      } catch (e, stackTrace) {
+        Log.e('创建幽灵窗口失败: $e', stackTrace);
+        SmartDialog.showToast('创建透明模式窗口失败: $e');
+      }
     }
   }
 
   /// 退出透明“幽灵”模式
   void exitGhostMode() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
-      // 恢复窗口状态
-      windowManager.setTitleBarStyle(TitleBarStyle.normal);
-      windowManager.setBackgroundColor(Colors.white);
-      windowManager.setAlwaysOnTop(false);
-      windowManager.setFullScreen(false);
-      windowManager.setSize(_lastWindowSize!);
-      windowManager.setPosition(_lastWindowPosition!);
-      
+      // 关闭幽灵窗口
+      await ghostWindowController?.close();
+      ghostWindowController = null;
       ghostModeState.value = false;
     }
   }
 
   /// 切换透明“幽灵”模式
   void toggleGhostMode() {
+    // 只有在黑听模式下才能开启透明模式
+    if (!ghostModeState.value && !audioOnlyMode.value) {
+      return;
+    }
+    
     if (ghostModeState.value) {
       exitGhostMode();
     } else {
       enterGhostMode();
     }
   }
+
+  /// 调整透明模式透明度
+  void setGhostModeOpacity(double opacity) {
+    ghostModeOpacity.value = opacity;
+    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowController != null) {
+      try {
+        ghostWindowController?.invokeMethod('update', {
+          'opacity': opacity,
+        });
+        // 同时更新窗口背景色
+        ghostWindowController?.setBackgroundColor(Colors.black.withAlpha((opacity * 255).toInt()));
+      } catch (e) {
+        Log.logPrint('更新幽灵窗口透明度失败: $e');
+      }
+    }
+  }
+
+  /// 切换透明模式锁定状态
+  void toggleGhostModeLock() {
+    ghostModeLocked.value = !ghostModeLocked.value;
+    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowController != null) {
+      try {
+        ghostWindowController?.invokeMethod('update', {
+          'locked': ghostModeLocked.value,
+        });
+      } catch (e) {
+        Log.logPrint('更新幽灵窗口锁定状态失败: $e');
+      }
+    }
+  }
+
+
 
   /// 设置横屏
   Future setLandscapeOrientation() async {
@@ -827,12 +894,19 @@ class PlayerController extends BaseController
         await (player.platform as dynamic).setProperty('vo', 'null');
       } else {
         // 恢复视频轨道
-        // 只在自定义播放器输出模式下才设置 vo 属性，否则使用默认值
+        // 无论是否为自定义播放器输出模式，都显式设置 vo 属性为默认值
+        // 这样可以确保视频轨道被正确重新启用
+        await (player.platform as dynamic).setProperty('vo', '');
+        // 如果是自定义播放器输出模式，使用用户设置的值
         if (AppSettingsController.instance.customPlayerOutput.value) {
           await (player.platform as dynamic).setProperty(
             'vo',
             AppSettingsController.instance.videoOutputDriver.value,
           );
+        }
+        // 重新加载当前媒体，确保视频轨道被正确初始化
+        if (player.state.playlist.medias.isNotEmpty) {
+          await player.open(player.state.playlist);
         }
       }
     }

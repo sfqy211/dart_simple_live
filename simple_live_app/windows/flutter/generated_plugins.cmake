@@ -15,7 +15,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   system_tray
   url_launcher_windows
   volume_controller
-  window_manager
+  window_manager_plus
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

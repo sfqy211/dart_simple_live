@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:system_tray/system_tray.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:window_manager_plus/window_manager_plus.dart';
 import 'package:simple_live_app/app/log.dart';
 
 class SystemTrayManager {
@@ -33,13 +33,13 @@ class SystemTrayManager {
         MenuItemLabel(
           label: '显示/隐藏',
           onClicked: (menuItem) async {
-            var visible = await windowManager.isVisible();
+            var visible = await WindowManagerPlus.current.isVisible();
             if (visible) {
-              await windowManager.hide();
+              await WindowManagerPlus.current.hide();
               Log.d('Window hidden to tray');
             } else {
-              await windowManager.show();
-              await windowManager.focus();
+              await WindowManagerPlus.current.show();
+              await WindowManagerPlus.current.focus();
               Log.d('Window shown from tray');
             }
           },
@@ -48,7 +48,7 @@ class SystemTrayManager {
         MenuItemLabel(
           label: '退出',
           onClicked: (menuItem) async {
-            await windowManager.destroy();
+            await WindowManagerPlus.current.destroy();
             Log.d('Application exited from tray');
           },
         ),
@@ -64,13 +64,13 @@ class SystemTrayManager {
         switch (eventName) {
           case kSystemTrayEventClick:
             // 左键点击：显示/隐藏窗口
-            windowManager.isVisible().then((visible) {
+            WindowManagerPlus.current.isVisible().then((visible) {
               if (visible) {
-                windowManager.hide();
+                WindowManagerPlus.current.hide();
                 Log.d('Window hidden to tray');
               } else {
-                windowManager.show();
-                windowManager.focus();
+                WindowManagerPlus.current.show();
+                WindowManagerPlus.current.focus();
                 Log.d('Window shown from tray');
               }
             });

@@ -131,39 +131,128 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildPhoneUI(BuildContext context) {
-    return Column(
-      children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: buildMediaPlayer(),
-        ),
-        buildUserProfile(context),
-        buildMessageArea(),
-        buildBottomActions(context),
-      ],
-    );
+    return Obx(() {
+      if (controller.audioOnlyMode.value) {
+        // 黑听模式：显示控制界面和弹幕栏
+        return Column(
+          children: [
+            // 黑听模式控制界面
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.grey.withAlpha(25),
+                  ),
+                ),
+              ),
+              padding: AppStyle.edgeInsetsA12,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "纯净黑听模式",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: controller.toggleAudioMode,
+                    icon: const Icon(Remix.video_line),
+                    label: const Text("切换到视频模式"),
+                  ),
+                ],
+              ),
+            ),
+            buildUserProfile(context),
+            Expanded(
+              child: buildMessageArea(),
+            ),
+            buildBottomActions(context),
+          ],
+        );
+      } else {
+        // 正常模式：显示视频栏和弹幕栏
+        return Column(
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: buildMediaPlayer(),
+            ),
+            buildUserProfile(context),
+            buildMessageArea(),
+            buildBottomActions(context),
+          ],
+        );
+      }
+    });
   }
 
   Widget buildTabletUI(BuildContext context) {
     return Column(
       children: [
         Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: buildMediaPlayer(),
-              ),
-              SizedBox(
-                width: 300,
-                child: Column(
-                  children: [
-                    buildUserProfile(context),
-                    buildMessageArea(),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          child: Obx(() {
+            if (controller.audioOnlyMode.value) {
+              // 黑听模式：显示控制界面和弹幕栏
+              return Column(
+                children: [
+                  // 黑听模式控制界面
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.withAlpha(25),
+                        ),
+                      ),
+                    ),
+                    padding: AppStyle.edgeInsetsA12,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "纯净黑听模式",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: controller.toggleAudioMode,
+                          icon: const Icon(Remix.video_line),
+                          label: const Text("切换到视频模式"),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 弹幕栏
+                  Expanded(
+                    child: buildMessageArea(),
+                  ),
+                ],
+              );
+            } else {
+              // 正常模式：显示视频栏和弹幕栏
+              return Row(
+                children: [
+                  Expanded(
+                    child: buildMediaPlayer(),
+                  ),
+                  SizedBox(
+                    width: 300,
+                    child: Column(
+                      children: [
+                        buildUserProfile(context),
+                        buildMessageArea(),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+          }),
         ),
         Container(
           decoration: BoxDecoration(
@@ -261,18 +350,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         // 透明“幽灵”模式，只显示弹幕
         return Stack(
           children: [
-            Video(
-              key: controller.globalPlayerKey,
-              controller: controller.videoController,
-              pauseUponEnteringBackgroundMode:
-                  AppSettingsController.instance.playerAutoPause.value,
-              resumeUponEnteringForegroundMode:
-                  AppSettingsController.instance.playerAutoPause.value,
-              controls: (state) => Container(), // 隐藏控制器
-              aspectRatio: aspectRatio,
-              fit: boxFit,
-              wakelock: false,
-            ),
+            // 隐藏视频，只显示弹幕
+            Container(color: Colors.transparent),
             // 弹幕层保持可见
             if (controller.danmakuView != null) controller.danmakuView!,
           ],
@@ -999,6 +1078,75 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               onTap: () {
                 controller.refreshRoom();
               },
+            ),
+            Obx(
+              () => ListTile(
+                leading: const Icon(Icons.audiotrack),
+                title: Text(controller.audioOnlyMode.value ? "切换到视频模式" : "切换到黑听模式"),
+                trailing: Switch(
+                  value: controller.audioOnlyMode.value,
+                  onChanged: (value) {
+                    controller.toggleAudioMode();
+                  },
+                ),
+              ),
+            ),
+            Obx(
+              () => Visibility(
+                visible: !Platform.isAndroid && !Platform.isIOS,
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.visibility),
+                      title: Text(controller.ghostModeState.value ? "关闭透明模式" : "开启透明模式"),
+                      trailing: Switch(
+                        value: controller.ghostModeState.value,
+                        onChanged: controller.audioOnlyMode.value ? (value) {
+                          controller.toggleGhostMode();
+                        } : null,
+                        activeColor: controller.audioOnlyMode.value ? null : Colors.grey,
+                        inactiveTrackColor: Colors.grey,
+                      ),
+                    ),
+                    Obx(
+                      () => Visibility(
+                        visible: controller.ghostModeState.value,
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.opacity),
+                              title: const Text("透明度"),
+                              trailing: SizedBox(
+                                width: 150,
+                                child: Slider(
+                                  value: controller.ghostModeOpacity.value,
+                                  min: 0.2,
+                                  max: 1.0,
+                                  divisions: 8,
+                                  label: "${(controller.ghostModeOpacity.value * 100).toInt()}%",
+                                  onChanged: (value) {
+                                    controller.setGhostModeOpacity(value);
+                                  },
+                                ),
+                              ),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.lock),
+                              title: Text(controller.ghostModeLocked.value ? "解锁浮窗" : "锁定浮窗"),
+                              trailing: Switch(
+                                value: controller.ghostModeLocked.value,
+                                onChanged: (value) {
+                                  controller.toggleGhostModeLock();
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.play_circle_outline),

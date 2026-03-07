@@ -21,6 +21,7 @@ import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/follow_user_tag.dart';
 import 'package:simple_live_app/models/db/history.dart';
 import 'package:simple_live_app/modules/other/debug_log_page.dart';
+import 'package:simple_live_app/modules/live_room/player/ghost_window.dart';
 import 'package:simple_live_app/routes/app_pages.dart';
 import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/services/bilibili_account_service.dart';
@@ -32,32 +33,65 @@ import 'package:simple_live_app/services/sync_service.dart';
 import 'package:simple_live_app/services/system_tray_service.dart';
 import 'package:simple_live_app/widgets/status/app_loadding_widget.dart';
 import 'package:simple_live_core/simple_live_core.dart';
-import 'package:window_manager/window_manager.dart';
-
+import 'package:window_manager_plus/window_manager_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:dynamic_color/dynamic_color.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await migrateData();
-  await initWindow();
-  MediaKit.ensureInitialized();
-  await Hive.initFlutter(
-    (!Platform.isAndroid && !Platform.isIOS)
-        ? (await getApplicationSupportDirectory()).path
-        : null,
-  );
-  //初始化服务
-  await initServices();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  //设置状态栏为透明
-  SystemUiOverlayStyle systemUiOverlayStyle = const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-    systemNavigationBarColor: Colors.transparent,
-  );
-  SystemChrome.setSystemUIOverlayStyle(systemUiOverlayStyle);
-  runApp(const MyApp());
+  
+  // 初始化 window_manager_plus
+  await WindowManagerPlus.ensureInitialized(args.isEmpty ? 0 : int.tryParse(args[0]) ?? 0);
+  
+  // 检查是否是主窗口（通过参数判断）
+  bool isMainWindow = args.isEmpty;
+  
+  if (isMainWindow) {
+    // 主窗口：运行完整应用
+    await migrateData();
+    await initWindow();
+    MediaKit.ensureInitialized();
+    await Hive.initFlutter(
+      (!Platform.isAndroid && !Platform.isIOS)
+          ? (await getApplicationSupportDirectory()).path
+          : null,
+    );
+    //初始化服务
+    await initServices();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    //设置状态栏为透明
+    SystemUiOverlayStyle systemUiOverlayStyle = const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+    );
+    SystemChrome.setSystemUIOverlayStyle(systemUiOverlayStyle);
+    runApp(const MyApp());
+  } else {
+    // 新创建的窗口：运行幽灵窗口
+    runGhostWindow();
+  }
+}
+
+enum WindowType { main, ghost }
+
+WindowType _parseWindowArgs(List<String> args) {
+  // 解析参数，例如：--window-type=ghost
+  for (final arg in args) {
+    if (arg.startsWith('--window-type=')) {
+      final type = arg.split('=')[1];
+      switch (type) {
+        case 'ghost':
+          return WindowType.ghost;
+        default:
+          return WindowType.main;
+      }
+    }
+  }
+  
+  // 对于通过 WindowManagerPlus.createWindow 创建的窗口，默认作为幽灵窗口
+  // 这里我们假设非主窗口都是幽灵窗口
+  return WindowType.ghost;
 }
 
 /// 将Hive数据迁移到Application Support
@@ -103,12 +137,12 @@ Future migrateData() async {
 
 class _WindowCloseListener with WindowListener {
   @override
-  void onWindowClose() async {
-    bool isPreventClose = await windowManager.isPreventClose();
+  void onWindowClose([int? windowId]) async {
+    bool isPreventClose = await WindowManagerPlus.current.isPreventClose();
     if (isPreventClose) {
-      await windowManager.hide();
+      await WindowManagerPlus.current.hide();
     } else {
-      await windowManager.destroy();
+      await WindowManagerPlus.current.destroy();
     }
   }
 }
@@ -119,15 +153,14 @@ Future initWindow() async {
   if (!(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
     return;
   }
-  await windowManager.ensureInitialized();
   WindowOptions windowOptions = const WindowOptions(
     minimumSize: Size(280, 280),
     center: true,
     title: "Simple Live",
   );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
+  await WindowManagerPlus.current.waitUntilReadyToShow(windowOptions, () async {
+    await WindowManagerPlus.current.show();
+    await WindowManagerPlus.current.focus();
   });
   
   // 初始化系统托盘
@@ -135,8 +168,8 @@ Future initWindow() async {
     await SystemTrayManager().initialize();
     
     // 处理关闭按钮事件，最小化到托盘
-    windowManager.addListener(_windowCloseListener);
-    await windowManager.setPreventClose(true);
+    WindowManagerPlus.current.addListener(_windowCloseListener);
+    await WindowManagerPlus.current.setPreventClose(true);
   }
 }
 
@@ -273,8 +306,8 @@ class MyApp extends StatelessWidget {
                         instance.onTapDown = (TapDownDetails details) async {
                           //如果处于全屏状态，退出全屏
                           if (!Platform.isAndroid && !Platform.isIOS) {
-                            if (await windowManager.isFullScreen()) {
-                              await windowManager.setFullScreen(false);
+                            if (await WindowManagerPlus.current.isFullScreen()) {
+                              await WindowManagerPlus.current.setFullScreen(false);
                               return;
                             }
                           }
@@ -291,8 +324,8 @@ class MyApp extends StatelessWidget {
                         // ESC退出全屏
                         // 如果处于全屏状态，退出全屏
                         if (!Platform.isAndroid && !Platform.isIOS) {
-                          if (await windowManager.isFullScreen()) {
-                            await windowManager.setFullScreen(false);
+                          if (await WindowManagerPlus.current.isFullScreen()) {
+                            await WindowManagerPlus.current.setFullScreen(false);
                             return;
                           }
                         }
