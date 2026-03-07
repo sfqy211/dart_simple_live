@@ -48,8 +48,19 @@ class SystemTrayManager {
         MenuItemLabel(
           label: '退出',
           onClicked: (menuItem) async {
-            await WindowManagerPlus.current.destroy();
-            Log.d('Application exited from tray');
+            Log.d('Application exiting from tray');
+            try {
+              await _systemTray.destroy();
+            } catch (e) {
+              Log.logPrint('System tray destroy failed: $e');
+            }
+            try {
+              await WindowManagerPlus.current.setPreventClose(false);
+            } catch (e) {
+              Log.logPrint('Disable prevent close failed: $e');
+            }
+            WindowManagerPlus.current.destroy();
+            exit(0);
           },
         ),
       ]);
