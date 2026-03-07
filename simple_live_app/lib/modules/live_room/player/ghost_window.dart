@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
+import 'package:simple_live_app/widgets/net_image.dart';
 
 class GhostWindow extends StatefulWidget {
   const GhostWindow({Key? key}) : super(key: key);
@@ -137,6 +138,20 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       } else if (arguments is String) {
         _appendItem(DanmakuContentItem(arguments));
       }
+    } else if (eventName == 'emoticons') {
+      List<dynamic>? emoticonPackages;
+      if (arguments is Map) {
+        final message = Map<String, dynamic>.from(arguments);
+        final packages = message['packages'];
+        if (packages is List) {
+          emoticonPackages = packages;
+        }
+      } else if (arguments is List) {
+        emoticonPackages = arguments;
+      }
+      if (emoticonPackages != null && emoticonPackages.isNotEmpty) {
+        _showEmotionPanel(emoticonPackages);
+      }
     }
     return null;
   }
@@ -221,6 +236,130 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       0,
       'ghost_exit',
       {},
+    );
+  }
+
+  void _requestShowEmotions() {
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'get_emoticons',
+      {},
+    );
+  }
+
+  void _sendEmotion(String emotion, {Map<String, dynamic>? emoticonOptions}) {
+    if (emotion.isEmpty) {
+      return;
+    }
+    final payload = {
+      'text': emotion,
+      if (emoticonOptions != null) 'emoticonOptions': emoticonOptions,
+    };
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'send_emotion',
+      payload,
+    );
+  }
+
+  void _showEmotionPanel(List<dynamic> emoticonPackages) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) {
+        return DefaultTabController(
+          length: emoticonPackages.length,
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              TabBar(
+                isScrollable: true,
+                tabs: emoticonPackages.map((pkg) {
+                  var cover = '';
+                  if (pkg is Map) {
+                    cover = pkg['current_cover'] ?? '';
+                  }
+                  return Tab(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: cover.isNotEmpty
+                          ? NetImage(
+                              cover,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 4,
+                            )
+                          : const Icon(Icons.emoji_emotions_outlined, size: 20),
+                    ),
+                  );
+                }).toList(),
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: emoticonPackages.map((pkg) {
+                    dynamic emoticons;
+                    if (pkg is Map) {
+                      emoticons = pkg['emoticons'];
+                    }
+                    final emoticonList =
+                        emoticons is List ? emoticons : <dynamic>[];
+
+                    return GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 6,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      itemCount: emoticonList.length,
+                      itemBuilder: (context, index) {
+                        final emoticon = emoticonList[index];
+                        var url = '';
+                        if (emoticon is Map) {
+                          url = emoticon['url'] ?? '';
+                        }
+                        var text = '';
+                        if (emoticon is Map) {
+                          text = emoticon['emoticon_unique'] ??
+                              emoticon['text'] ??
+                              '';
+                        }
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            Map<String, dynamic>? options;
+                            if (emoticon is Map) {
+                              options = Map<String, dynamic>.from(emoticon);
+                            }
+                            _sendEmotion(text, emoticonOptions: options);
+                          },
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            alignment: Alignment.center,
+                            child: NetImage(
+                              url,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -488,6 +627,11 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
+                  IconButton(
+                    onPressed: _requestShowEmotions,
+                    icon: const Icon(Icons.emoji_emotions_outlined, size: 18),
+                    tooltip: "表情包",
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _inputController,

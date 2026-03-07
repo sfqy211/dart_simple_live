@@ -25,6 +25,7 @@ import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
+import 'package:simple_live_app/widgets/net_image.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -188,6 +189,96 @@ class LiveRoomController extends PlayerController
     }
 
     return emoticons;
+  }
+
+  Future<void> showEmotionPanel() async {
+    var emoticonPackages = await getEmoticons();
+    if (emoticonPackages == null) {
+      return;
+    }
+
+    if (emoticonPackages is! List) {
+      return;
+    }
+
+    if (emoticonPackages.isEmpty) {
+      return;
+    }
+
+    Utils.showBottomSheet(
+      title: "选择表情包",
+      child: DefaultTabController(
+        length: emoticonPackages.length,
+        child: Column(
+          children: [
+            TabBar(
+              isScrollable: true,
+              tabs: emoticonPackages.map((pkg) {
+                var cover = pkg['current_cover'] ?? '';
+                return Tab(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: cover.isNotEmpty
+                        ? NetImage(
+                            cover,
+                            width: 32,
+                            height: 32,
+                            borderRadius: 4,
+                          )
+                        : Text(pkg['pkg_name'] ?? '未知'),
+                  ),
+                );
+              }).toList(),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: emoticonPackages.map((pkg) {
+                  var emoticons = pkg['emoticons'] ?? [];
+                  if (emoticons is! List) {
+                    emoticons = [];
+                  }
+
+                  return GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 6,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                    ),
+                    padding: AppStyle.edgeInsetsA12,
+                    itemCount: emoticons.length,
+                    itemBuilder: (context, index) {
+                      var emoticon = emoticons[index];
+                      var url = emoticon['url'] ?? '';
+                      var text =
+                          emoticon['emoticon_unique'] ?? emoticon['text'] ?? '';
+
+                      return GestureDetector(
+                        onTap: () {
+                          Get.back();
+                          sendEmotionMessage(text);
+                        },
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.center,
+                          child: NetImage(
+                            url,
+                            width: 48,
+                            height: 48,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1166,6 +1257,33 @@ ${error?.stackTrace}''');
       if (message.isNotEmpty) {
         await sendChatMessage(message);
       }
+    } else if (eventName == 'send_emotion') {
+      String text = '';
+      Map<String, dynamic>? emoticonOptions;
+      if (arguments is Map) {
+        text = arguments['text']?.toString() ?? '';
+        final options = arguments['emoticonOptions'];
+        if (options is Map) {
+          emoticonOptions = Map<String, dynamic>.from(options);
+        }
+      } else if (arguments is String) {
+        text = arguments;
+      }
+      final message = text.trim();
+      if (message.isNotEmpty) {
+        await sendEmotionMessage(message, emoticonOptions: emoticonOptions);
+      }
+    } else if (eventName == 'get_emoticons') {
+      final emoticonPackages = await getEmoticons();
+      if (emoticonPackages is List && ghostWindowId != null) {
+        WindowManagerPlus.current.invokeMethodToWindow(
+          ghostWindowId!,
+          'emoticons',
+          {'packages': emoticonPackages},
+        );
+      }
+    } else if (eventName == 'show_emotions') {
+      await showEmotionPanel();
     } else if (eventName == 'ghost_settings') {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);

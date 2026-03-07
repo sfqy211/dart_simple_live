@@ -639,7 +639,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       child: Row(
         children: [
           IconButton(
-            onPressed: showEmotionPanel,
+            onPressed: controller.showEmotionPanel,
             icon: const Icon(Remix.emotion_line),
             tooltip: "表情包",
           ),
@@ -680,103 +680,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             child: const Text("发送"),
           ),
         ],
-      ),
-    );
-  }
-
-  /// 显示表情包选择界面
-  void showEmotionPanel() async {
-    // 获取表情包列表
-    var emoticonPackages = await controller.getEmoticons();
-    if (emoticonPackages == null) {
-      return;
-    }
-
-    // 确保是按包组织的数据
-    if (emoticonPackages is! List) {
-      return;
-    }
-
-    if (emoticonPackages.isEmpty) {
-      return;
-    }
-
-    // 显示表情包面板
-    Utils.showBottomSheet(
-      title: "选择表情包",
-      child: DefaultTabController(
-        length: emoticonPackages.length,
-        child: Column(
-          children: [
-            // 表情包标签页
-            TabBar(
-              isScrollable: true,
-              tabs: emoticonPackages.map((pkg) {
-                var cover = pkg['current_cover'] ?? '';
-                return Tab(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: cover.isNotEmpty
-                        ? NetImage(
-                            cover,
-                            width: 32,
-                            height: 32,
-                            borderRadius: 4,
-                          )
-                        : Text(pkg['pkg_name'] ?? '未知'),
-                  ),
-                );
-              }).toList(),
-            ),
-            // 表情包内容
-            Expanded(
-              child: TabBarView(
-                children: emoticonPackages.map((pkg) {
-                  var emoticons = pkg['emoticons'] ?? [];
-                  if (emoticons is! List) {
-                    emoticons = [];
-                  }
-
-                  return GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 6,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                    ),
-                    padding: AppStyle.edgeInsetsA12,
-                    itemCount: emoticons.length,
-                    itemBuilder: (context, index) {
-                      var emoticon = emoticons[index];
-                      var url = emoticon['url'] ?? '';
-                      // 使用 emoticon_unique 作为发送的文本（参考 BLSPAM 项目）
-                      var text =
-                          emoticon['emoticon_unique'] ?? emoticon['text'] ?? '';
-
-                      return GestureDetector(
-                        onTap: () {
-                          Get.back();
-                          controller.sendEmotionMessage(text);
-                        },
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          alignment: Alignment.center,
-                          child: NetImage(
-                            url,
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
