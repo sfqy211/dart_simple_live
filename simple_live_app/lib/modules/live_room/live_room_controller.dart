@@ -174,7 +174,7 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     }
 
     // 确保 emoticons 是列表
-    if (!(emoticons is List)) {
+    if (emoticons is! List) {
       SmartDialog.showToast("获取表情包列表失败");
       return null;
     }
@@ -182,12 +182,6 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     if (emoticons.isEmpty) {
       SmartDialog.showToast("暂无可用表情包");
       return null;
-    }
-
-    // 打印表情包数量，以便调试
-    print('获取到的表情包数量: ${emoticons.length}');
-    if (emoticons.isNotEmpty) {
-      print('第一个表情包: ${emoticons[0]}');
     }
 
     return emoticons;

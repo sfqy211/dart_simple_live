@@ -112,6 +112,7 @@ mixin PlayerStateMixin on PlayerMixin {
 
   /// 幽灵窗口控制器
   dynamic ghostWindowController;
+  int? ghostWindowId;
 
   /// 显示手势Tip
   RxBool showGestureTip = false.obs;
@@ -248,11 +249,15 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
 
   /// 发送弹幕到幽灵窗口
   void sendDanmakuToGhostWindow(DanmakuContentItem item) {
-    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowController != null) {
+    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowId != null) {
       try {
-        ghostWindowController?.invokeMethod('danmaku', {
-          'text': item,
-        });
+        WindowManagerPlus.current.invokeMethodToWindow(
+          ghostWindowId!,
+          'danmaku',
+          {
+            'text': item,
+          },
+        );
       } catch (e) {
         Log.logPrint('发送弹幕到幽灵窗口失败: $e');
       }
@@ -388,6 +393,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
         // 创建新的弹幕窗口
         Log.d('开始创建幽灵窗口');
         ghostWindowController = await WindowManagerPlus.createWindow();
+        ghostWindowId = ghostWindowController?.id;
         Log.d('幽灵窗口创建成功: $ghostWindowController');
         
         // 设置窗口属性
@@ -413,6 +419,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       // 关闭幽灵窗口
       await ghostWindowController?.close();
       ghostWindowController = null;
+      ghostWindowId = null;
       ghostModeState.value = false;
     }
   }
@@ -434,11 +441,15 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 调整透明模式透明度
   void setGhostModeOpacity(double opacity) {
     ghostModeOpacity.value = opacity;
-    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowController != null) {
+    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowId != null) {
       try {
-        ghostWindowController?.invokeMethod('update', {
-          'opacity': opacity,
-        });
+        WindowManagerPlus.current.invokeMethodToWindow(
+          ghostWindowId!,
+          'update',
+          {
+            'opacity': opacity,
+          },
+        );
         // 同时更新窗口背景色
         ghostWindowController?.setBackgroundColor(Colors.black.withAlpha((opacity * 255).toInt()));
       } catch (e) {
@@ -450,11 +461,15 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 切换透明模式锁定状态
   void toggleGhostModeLock() {
     ghostModeLocked.value = !ghostModeLocked.value;
-    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowController != null) {
+    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowId != null) {
       try {
-        ghostWindowController?.invokeMethod('update', {
-          'locked': ghostModeLocked.value,
-        });
+        WindowManagerPlus.current.invokeMethodToWindow(
+          ghostWindowId!,
+          'update',
+          {
+            'locked': ghostModeLocked.value,
+          },
+        );
       } catch (e) {
         Log.logPrint('更新幽灵窗口锁定状态失败: $e');
       }

@@ -6,8 +6,6 @@ import 'package:simple_live_core/src/common/http_client.dart';
 import 'package:crypto/crypto.dart';
 import 'package:simple_live_core/src/model/tars/get_cdn_token_ex_req.dart';
 import 'package:simple_live_core/src/model/tars/get_cdn_token_ex_resp.dart';
-import 'package:simple_live_core/src/model/tars/get_cdn_token_req.dart';
-import 'package:simple_live_core/src/model/tars/get_cdn_token_resp.dart';
 import 'package:simple_live_core/src/model/tars/huya_user_id.dart';
 import 'package:tars_dart/tars/net/base_tars_http.dart';
 
@@ -16,13 +14,13 @@ class HuyaSite implements LiveSite {
   final String kUserAgent =
       "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36 Edg/117.0.0.0";
 
-  static const String HYSDK_UA =
+  static const String hySdkUa =
       "HYSDK(Windows, 30000002)_APP(pc_exe&7060000&official)_SDK(trans&2.32.3.5646)";
 
   static Map<String, String> requestHeaders =  {
       'Origin': baseUrl,
       'Referer': baseUrl,
-      'User-Agent': HYSDK_UA,
+      'User-Agent': hySdkUa,
   };
 
   final BaseTarsHttp tupClient =
@@ -204,7 +202,7 @@ class HuyaSite implements LiveSite {
     } catch (e) {
       CoreLog.error(e);
     }
-    return playUserAgent ?? HYSDK_UA;
+    return playUserAgent ?? hySdkUa;
   }
 
   @override
@@ -221,14 +219,14 @@ class HuyaSite implements LiveSite {
     // var ua = await getHuYaUA();
     return LivePlayUrl(
       urls: ls,
-      headers: {"user-agent": HYSDK_UA},
+      headers: {"user-agent": hySdkUa},
     );
   }
 
   Future<String> getPlayUrl(HuyaLineModel line, int bitRate) async {
     var antiCode = await getCndTokenInfoEx(line.streamName);
     antiCode = buildAntiCode(line.streamName, line.presenterUid, antiCode);
-    var url = '${line.line}/${line.streamName}.flv?${antiCode}&codec=264';
+    var url = '${line.line}/${line.streamName}.flv?$antiCode&codec=264';
     if (bitRate > 0) {
       url += "&ratio=$bitRate";
     }
@@ -252,7 +250,7 @@ class HuyaSite implements LiveSite {
     var clacStartTime = DateTime.now().millisecondsSinceEpoch;
 
     CoreLog.i(
-        "using $presenterUid | ctype-{$ctype} | platformId - {$platformId} | isWap - {$isWap} | $clacStartTime");
+        "using $presenterUid | ctype-$ctype | platformId - $platformId | isWap - $isWap | $clacStartTime");
 
     var seqId = presenterUid + clacStartTime;
     final secretHash =

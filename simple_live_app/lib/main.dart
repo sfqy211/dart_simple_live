@@ -69,29 +69,8 @@ void main(List<String> args) async {
     runApp(const MyApp());
   } else {
     // 新创建的窗口：运行幽灵窗口
-    runGhostWindow();
+    await runGhostWindow();
   }
-}
-
-enum WindowType { main, ghost }
-
-WindowType _parseWindowArgs(List<String> args) {
-  // 解析参数，例如：--window-type=ghost
-  for (final arg in args) {
-    if (arg.startsWith('--window-type=')) {
-      final type = arg.split('=')[1];
-      switch (type) {
-        case 'ghost':
-          return WindowType.ghost;
-        default:
-          return WindowType.main;
-      }
-    }
-  }
-  
-  // 对于通过 WindowManagerPlus.createWindow 创建的窗口，默认作为幽灵窗口
-  // 这里我们假设非主窗口都是幽灵窗口
-  return WindowType.ghost;
 }
 
 /// 将Hive数据迁移到Application Support

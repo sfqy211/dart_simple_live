@@ -1104,7 +1104,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         onChanged: controller.audioOnlyMode.value ? (value) {
                           controller.toggleGhostMode();
                         } : null,
-                        activeColor: controller.audioOnlyMode.value ? null : Colors.grey,
+                        activeThumbColor: controller.audioOnlyMode.value ? null : Colors.grey,
                         inactiveTrackColor: Colors.grey,
                       ),
                     ),
