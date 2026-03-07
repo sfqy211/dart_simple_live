@@ -116,6 +116,7 @@ mixin PlayerStateMixin on PlayerMixin {
   double? _mainWindowOpacityBeforeGhost;
   bool? _mainWindowSkipTaskbarBeforeGhost;
   bool? _mainWindowAlwaysOnTopBeforeGhost;
+  bool _ghostModeTransitioning = false;
   Future<void> _resetMainWindowStyles() async {
     final channel =
         MethodChannel('window_manager_plus_${WindowManagerPlus.current.id}');
@@ -528,6 +529,10 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 进入透明“幽灵”模式
   void enterGhostMode() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
+      if (_ghostModeTransitioning) {
+        return;
+      }
+      _ghostModeTransitioning = true;
       try {
         if (ghostWindowController != null && ghostWindowId != null) {
           Log.d('复用幽灵窗口: $ghostWindowController');
@@ -543,6 +548,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
             ?.setBounds(const Offset(0, 0) & const Size(400, 300));
         await ghostWindowController?.center();
         await ghostWindowController?.show();
+        await ghostWindowController?.setIgnoreMouseEvents(false);
         await ghostWindowController?.setAlwaysOnTop(true);
         await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
         await ghostWindowController?.setBackgroundColor(Colors.transparent);
@@ -568,6 +574,8 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       } catch (e, stackTrace) {
         Log.e('创建幽灵窗口失败: $e', stackTrace);
         SmartDialog.showToast('创建透明模式窗口失败: $e');
+      } finally {
+        _ghostModeTransitioning = false;
       }
     }
   }
@@ -575,13 +583,17 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 退出透明“幽灵”模式
   void exitGhostMode() async {
     if (!(Platform.isAndroid || Platform.isIOS)) {
+      if (_ghostModeTransitioning) {
+        return;
+      }
+      _ghostModeTransitioning = true;
       final controller = ghostWindowController;
       Log.logPrint(
         '退出透明模式 start ghostId=$ghostWindowId controller=$controller',
       );
       ghostModeState.value = false;
-      await _restoreMainWindowAfterGhost();
       try {
+        await _restoreMainWindowAfterGhost();
         await controller?.setAlwaysOnTop(false);
         await controller?.setIgnoreMouseEvents(true, forward: true);
         await controller?.setOpacity(0.0);
@@ -589,6 +601,8 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
         Log.logPrint('退出透明模式 隐藏幽灵窗口 ok');
       } catch (e) {
         Log.logPrint('关闭幽灵窗口失败: $e');
+      } finally {
+        _ghostModeTransitioning = false;
       }
       _mainWindowOpacityBeforeGhost = null;
       _mainWindowSkipTaskbarBeforeGhost = null;
@@ -601,6 +615,9 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   void toggleGhostMode() {
     // 只有在黑听模式下才能开启透明模式
     if (!ghostModeState.value && !audioOnlyMode.value) {
+      return;
+    }
+    if (_ghostModeTransitioning) {
       return;
     }
 
