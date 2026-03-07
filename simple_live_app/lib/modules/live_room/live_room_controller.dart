@@ -26,6 +26,7 @@ import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
+import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -160,8 +161,50 @@ class LiveRoomController extends PlayerController
     }
   }
 
-  /// 显示表情包选择界面
-  Future<dynamic> getEmoticons() async {
+  String _getEmoticonPackageId(dynamic pkg, int index) {
+    if (pkg is Map) {
+      final id = pkg['pkg_id'] ?? pkg['pkg_name'] ?? '';
+      final value = id.toString();
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return "index_$index";
+  }
+
+  String _getEmoticonPackageName(dynamic pkg) {
+    if (pkg is Map) {
+      final name = pkg['pkg_name'];
+      if (name != null) {
+        return name.toString();
+      }
+    }
+    return "未知";
+  }
+
+  String _getEmoticonPackageCover(dynamic pkg) {
+    if (pkg is Map) {
+      final cover = pkg['current_cover'];
+      if (cover != null) {
+        return cover.toString();
+      }
+    }
+    return "";
+  }
+
+  List<dynamic> _filterEmoticonPackages(List<dynamic> packages) {
+    final filtered = <dynamic>[];
+    for (var i = 0; i < packages.length; i++) {
+      final pkg = packages[i];
+      final id = _getEmoticonPackageId(pkg, i);
+      if (AppSettingsController.instance.isEmoticonPackageEnabled(id)) {
+        filtered.add(pkg);
+      }
+    }
+    return filtered;
+  }
+
+  Future<List<dynamic>?> getEmoticons({bool applyFilter = true}) async {
     if (site.id != Constant.kBiliBili) {
       SmartDialog.showToast("当前平台暂不支持发送表情包");
       return null;
@@ -188,16 +231,19 @@ class LiveRoomController extends PlayerController
       return null;
     }
 
-    return emoticons;
+    final packages =
+        applyFilter ? _filterEmoticonPackages(emoticons) : emoticons;
+    if (packages.isEmpty) {
+      SmartDialog.showToast("暂无可用表情包");
+      return null;
+    }
+
+    return packages;
   }
 
   Future<void> showEmotionPanel() async {
     var emoticonPackages = await getEmoticons();
     if (emoticonPackages == null) {
-      return;
-    }
-
-    if (emoticonPackages is! List) {
       return;
     }
 
@@ -214,7 +260,7 @@ class LiveRoomController extends PlayerController
             TabBar(
               isScrollable: true,
               tabs: emoticonPackages.map((pkg) {
-                var cover = pkg['current_cover'] ?? '';
+                var cover = _getEmoticonPackageCover(pkg);
                 return Tab(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -225,7 +271,7 @@ class LiveRoomController extends PlayerController
                             height: 32,
                             borderRadius: 4,
                           )
-                        : Text(pkg['pkg_name'] ?? '未知'),
+                        : Text(_getEmoticonPackageName(pkg)),
                   ),
                 );
               }).toList(),
@@ -233,10 +279,12 @@ class LiveRoomController extends PlayerController
             Expanded(
               child: TabBarView(
                 children: emoticonPackages.map((pkg) {
-                  var emoticons = pkg['emoticons'] ?? [];
-                  if (emoticons is! List) {
-                    emoticons = [];
+                  dynamic emoticons;
+                  if (pkg is Map) {
+                    emoticons = pkg['emoticons'];
                   }
+                  final emoticonList =
+                      emoticons is List ? emoticons : <dynamic>[];
 
                   return GridView.builder(
                     gridDelegate:
@@ -246,12 +294,17 @@ class LiveRoomController extends PlayerController
                       crossAxisSpacing: 12,
                     ),
                     padding: AppStyle.edgeInsetsA12,
-                    itemCount: emoticons.length,
+                    itemCount: emoticonList.length,
                     itemBuilder: (context, index) {
-                      var emoticon = emoticons[index];
-                      var url = emoticon['url'] ?? '';
-                      var text =
-                          emoticon['emoticon_unique'] ?? emoticon['text'] ?? '';
+                      var emoticon = emoticonList[index];
+                      var url = '';
+                      var text = '';
+                      if (emoticon is Map) {
+                        url = emoticon['url'] ?? '';
+                        text = emoticon['emoticon_unique'] ??
+                            emoticon['text'] ??
+                            '';
+                      }
 
                       return GestureDetector(
                         onTap: () {
@@ -277,6 +330,44 @@ class LiveRoomController extends PlayerController
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> showEmoticonPackageSettingsSheet() async {
+    var emoticonPackages = await getEmoticons(applyFilter: false);
+    if (emoticonPackages == null) {
+      return;
+    }
+
+    if (emoticonPackages.isEmpty) {
+      SmartDialog.showToast("暂无可用表情包");
+      return;
+    }
+
+    Utils.showBottomSheet(
+      title: "表情包筛选",
+      child: ListView.builder(
+        padding: AppStyle.edgeInsetsV12,
+        itemCount: emoticonPackages.length,
+        itemBuilder: (context, index) {
+          final pkg = emoticonPackages[index];
+          final id = _getEmoticonPackageId(pkg, index);
+          final title = _getEmoticonPackageName(pkg);
+          final subtitle = id == title ? null : "ID: $id";
+          return Obx(
+            () => SettingsSwitch(
+              value:
+                  AppSettingsController.instance.isEmoticonPackageEnabled(id),
+              title: title,
+              subtitle: subtitle,
+              onChanged: (value) {
+                AppSettingsController.instance
+                    .setEmoticonPackageEnabled(id, value);
+              },
+            ),
+          );
+        },
       ),
     );
   }

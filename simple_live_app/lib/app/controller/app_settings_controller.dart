@@ -151,7 +151,7 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kUpdateFollowDuration, 10);
 
     updateFollowThreadCount.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kUpdateFollowThreadCount, 0);  // 默认 0 = 自动
+        .getValue(LocalStorageService.kUpdateFollowThreadCount, 0); // 默认 0 = 自动
 
     audioOnlyMode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kAudioOnlyMode, false);
@@ -166,6 +166,10 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kGhostMode, false);
     ghostPanelColor.value = LocalStorageService.instance
         .getValue(LocalStorageService.kGhostPanelColor, 0xBFD0D0D0);
+    final disabledPackages = LocalStorageService.instance
+        .getValue(LocalStorageService.kEmoticonPackageDisabled, <String>[]);
+    emoticonPackageDisabled
+        .assignAll(disabledPackages.map((e) => e.toString()));
 
     initSiteSort();
     initHomeSort();
@@ -570,8 +574,7 @@ class AppSettingsController extends GetxController {
   var ghostMode = false.obs;
   void setGhostMode(bool e) {
     ghostMode.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kGhostMode, e);
+    LocalStorageService.instance.setValue(LocalStorageService.kGhostMode, e);
   }
 
   var ghostPanelColor = 0xBFD0D0D0.obs;
@@ -579,5 +582,28 @@ class AppSettingsController extends GetxController {
     ghostPanelColor.value = value;
     LocalStorageService.instance
         .setValue(LocalStorageService.kGhostPanelColor, value);
+  }
+
+  RxSet<String> emoticonPackageDisabled = <String>{}.obs;
+  bool isEmoticonPackageEnabled(String id) {
+    if (id.isEmpty) {
+      return true;
+    }
+    return !emoticonPackageDisabled.contains(id);
+  }
+
+  void setEmoticonPackageEnabled(String id, bool enabled) {
+    if (id.isEmpty) {
+      return;
+    }
+    if (enabled) {
+      emoticonPackageDisabled.remove(id);
+    } else {
+      emoticonPackageDisabled.add(id);
+    }
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kEmoticonPackageDisabled,
+      emoticonPackageDisabled.toList(),
+    );
   }
 }

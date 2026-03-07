@@ -1040,6 +1040,15 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     },
                   ),
                   ListTile(
+                    leading: const Icon(Icons.emoji_emotions_outlined),
+                    title: const Text("表情包筛选"),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Get.back();
+                      controller.showEmoticonPackageSettingsSheet();
+                    },
+                  ),
+                  ListTile(
                     leading: const Icon(Icons.switch_video_outlined),
                     title: const Text("切换线路"),
                     trailing: const Icon(Icons.chevron_right),
