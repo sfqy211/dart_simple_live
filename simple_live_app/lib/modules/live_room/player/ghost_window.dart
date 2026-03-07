@@ -69,17 +69,23 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
         if (message.containsKey('opacity')) {
-          setState(() {
-            _opacity = message['opacity'];
-            if (!(Platform.isAndroid || Platform.isIOS)) {
-              WindowManagerPlus.current.setOpacity(_opacity);
-            }
-          });
+          final value = message['opacity'];
+          if (value is num) {
+            setState(() {
+              _opacity = value.toDouble();
+              if (!(Platform.isAndroid || Platform.isIOS)) {
+                WindowManagerPlus.current.setOpacity(_opacity);
+              }
+            });
+          }
         }
         if (message.containsKey('locked')) {
-          setState(() {
-            _locked = message['locked'];
-          });
+          final value = message['locked'];
+          if (value is bool) {
+            setState(() {
+              _locked = value;
+            });
+          }
         }
         if (message.containsKey('danmaku')) {
           final danmaku = message['danmaku'];
@@ -134,6 +140,15 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     return null;
   }
 
+  @override
+  void onWindowClose([int? windowId]) async {
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'ghost_closed',
+      {},
+    );
+  }
+
   void _appendItem(DanmakuContentItem item) {
     setState(() {
       _items.add(item);
@@ -167,6 +182,223 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     ));
   }
 
+  void _sendGhostSettings(Map<String, dynamic> settings) {
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'ghost_settings',
+      settings,
+    );
+  }
+
+  void _updateOpacity(double value) {
+    setState(() {
+      _opacity = value;
+    });
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      WindowManagerPlus.current.setOpacity(_opacity);
+    }
+    _sendGhostSettings({'opacity': value});
+  }
+
+  void _updateLocked(bool value) {
+    setState(() {
+      _locked = value;
+    });
+    _sendGhostSettings({'locked': value});
+  }
+
+  void _updatePanelColor(int value) {
+    setState(() {
+      _panelColor = value;
+    });
+    _sendGhostSettings({'panelColor': value});
+  }
+
+  void _requestExitGhostMode() {
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'ghost_exit',
+      {},
+    );
+  }
+
+  void _showSettingsSheet() {
+    int alpha = (_panelColor >> 24) & 0xFF;
+    int red = (_panelColor >> 16) & 0xFF;
+    int green = (_panelColor >> 8) & 0xFF;
+    int blue = _panelColor & 0xFF;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return StatefulBuilder(
+              builder: (context, setSheetState) {
+                void updateColor({
+                  int? a,
+                  int? r,
+                  int? g,
+                  int? b,
+                }) {
+                  alpha = a ?? alpha;
+                  red = r ?? red;
+                  green = g ?? green;
+                  blue = b ?? blue;
+                  final value =
+                      (alpha << 24) | (red << 16) | (green << 8) | blue;
+                  _updatePanelColor(value);
+                  setSheetState(() {});
+                }
+
+                return SafeArea(
+                    child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    const Text(
+                      "透明浮窗设置",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const SizedBox(width: 64, child: Text("透明度")),
+                        Expanded(
+                          child: Slider(
+                            value: _opacity,
+                            min: 0.2,
+                            max: 1.0,
+                            divisions: 8,
+                            label: "${(_opacity * 100).toInt()}%",
+                            onChanged: (value) {
+                              _updateOpacity(value);
+                              setSheetState(() {});
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: 48,
+                          child: Text("${(_opacity * 100).toInt()}%"),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const SizedBox(width: 64, child: Text("锁定")),
+                        Expanded(child: Container()),
+                        Switch(
+                          value: _locked,
+                          onChanged: (value) {
+                            _updateLocked(value);
+                            setSheetState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Color(_panelColor),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(8)),
+                        border: Border.all(color: Colors.grey.withAlpha(60)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const SizedBox(width: 24, child: Text("A")),
+                        Expanded(
+                          child: Slider(
+                            value: alpha.toDouble(),
+                            min: 40,
+                            max: 255,
+                            onChanged: (value) {
+                              updateColor(a: value.round());
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 36, child: Text("$alpha")),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(width: 24, child: Text("R")),
+                        Expanded(
+                          child: Slider(
+                            value: red.toDouble(),
+                            min: 0,
+                            max: 255,
+                            onChanged: (value) {
+                              updateColor(r: value.round());
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 36, child: Text("$red")),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(width: 24, child: Text("G")),
+                        Expanded(
+                          child: Slider(
+                            value: green.toDouble(),
+                            min: 0,
+                            max: 255,
+                            onChanged: (value) {
+                              updateColor(g: value.round());
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 36, child: Text("$green")),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(width: 24, child: Text("B")),
+                        Expanded(
+                          child: Slider(
+                            value: blue.toDouble(),
+                            min: 0,
+                            max: 255,
+                            onChanged: (value) {
+                              updateColor(b: value.round());
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 36, child: Text("$blue")),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _requestExitGhostMode();
+                      },
+                      child: const Text("退出透明模式"),
+                    ),
+                  ],
+                ));
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final weightIndex =
@@ -180,16 +412,41 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         child: Column(
           children: [
             Container(
-              height: 24,
+              height: 28,
               decoration: BoxDecoration(
                 color: panelColor,
                 borderRadius: const BorderRadius.all(Radius.circular(12)),
               ),
-              child: _locked
-                  ? const SizedBox.expand()
-                  : const DragToMoveArea(
-                      child: SizedBox.expand(),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _locked
+                        ? const SizedBox.expand()
+                        : const DragToMoveArea(
+                            child: SizedBox.expand(),
+                          ),
+                  ),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
                     ),
+                    icon: const Icon(Icons.settings, size: 18),
+                    onPressed: _showSettingsSheet,
+                  ),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: _requestExitGhostMode,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
             Expanded(

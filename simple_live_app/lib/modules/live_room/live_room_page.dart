@@ -684,120 +684,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     );
   }
 
-  void _showGhostPanelColorSheet() {
-    final colorValue = AppSettingsController.instance.ghostPanelColor.value;
-    int alpha = (colorValue >> 24) & 0xFF;
-    int red = (colorValue >> 16) & 0xFF;
-    int green = (colorValue >> 8) & 0xFF;
-    int blue = colorValue & 0xFF;
-    Utils.showBottomSheet(
-      title: "透明浮窗背景色",
-      child: StatefulBuilder(
-        builder: (context, setState) {
-          void updateColor({
-            int? a,
-            int? r,
-            int? g,
-            int? b,
-          }) {
-            alpha = a ?? alpha;
-            red = r ?? red;
-            green = g ?? green;
-            blue = b ?? blue;
-            final value = (alpha << 24) | (red << 16) | (green << 8) | blue;
-            AppSettingsController.instance.setGhostPanelColor(value);
-            controller.sendGhostConfig();
-            setState(() {});
-          }
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Color(
-                        AppSettingsController.instance.ghostPanelColor.value),
-                    borderRadius: AppStyle.radius8,
-                    border: Border.all(
-                      color: Colors.grey.withAlpha(60),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const SizedBox(width: 40, child: Text("A")),
-                    Expanded(
-                      child: Slider(
-                        value: alpha.toDouble(),
-                        min: 40,
-                        max: 255,
-                        onChanged: (value) {
-                          updateColor(a: value.round());
-                        },
-                      ),
-                    ),
-                    SizedBox(width: 36, child: Text("$alpha")),
-                  ],
-                ),
-                Row(
-                  children: [
-                    const SizedBox(width: 40, child: Text("R")),
-                    Expanded(
-                      child: Slider(
-                        value: red.toDouble(),
-                        min: 0,
-                        max: 255,
-                        onChanged: (value) {
-                          updateColor(r: value.round());
-                        },
-                      ),
-                    ),
-                    SizedBox(width: 36, child: Text("$red")),
-                  ],
-                ),
-                Row(
-                  children: [
-                    const SizedBox(width: 40, child: Text("G")),
-                    Expanded(
-                      child: Slider(
-                        value: green.toDouble(),
-                        min: 0,
-                        max: 255,
-                        onChanged: (value) {
-                          updateColor(g: value.round());
-                        },
-                      ),
-                    ),
-                    SizedBox(width: 36, child: Text("$green")),
-                  ],
-                ),
-                Row(
-                  children: [
-                    const SizedBox(width: 40, child: Text("B")),
-                    Expanded(
-                      child: Slider(
-                        value: blue.toDouble(),
-                        min: 0,
-                        max: 255,
-                        onChanged: (value) {
-                          updateColor(b: value.round());
-                        },
-                      ),
-                    ),
-                    SizedBox(width: 36, child: Text("$blue")),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   /// 显示表情包选择界面
   void showEmotionPanel() async {
     // 获取表情包列表
@@ -1176,6 +1062,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 Navigator.of(context).pop();
               }
             }
+
             return Container(
               padding: EdgeInsets.only(
                 bottom: AppStyle.bottomBarHeight,
@@ -1234,70 +1121,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                   ? null
                                   : Colors.grey,
                               inactiveTrackColor: Colors.grey,
-                            ),
-                          ),
-                          Obx(
-                            () => Visibility(
-                              visible: controller.ghostModeState.value,
-                              child: Column(
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(Icons.opacity),
-                                    title: const Text("透明度"),
-                                    trailing: SizedBox(
-                                      width: 150,
-                                      child: Slider(
-                                        value:
-                                            controller.ghostModeOpacity.value,
-                                        min: 0.2,
-                                        max: 1.0,
-                                        divisions: 8,
-                                        label:
-                                            "${(controller.ghostModeOpacity.value * 100).toInt()}%",
-                                        onChanged: (value) {
-                                          controller.setGhostModeOpacity(value);
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    leading:
-                                        const Icon(Icons.format_color_fill),
-                                    title: const Text("背景颜色"),
-                                    trailing: InkWell(
-                                      onTap: () {
-                                        _showGhostPanelColorSheet();
-                                      },
-                                      child: Container(
-                                        width: 36,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          color: Color(
-                                            AppSettingsController
-                                                .instance.ghostPanelColor.value,
-                                          ),
-                                          borderRadius: AppStyle.radius8,
-                                          border: Border.all(
-                                            color: Colors.grey.withAlpha(80),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.lock),
-                                    title: Text(controller.ghostModeLocked.value
-                                        ? "解锁浮窗"
-                                        : "锁定浮窗"),
-                                    trailing: Switch(
-                                      value: controller.ghostModeLocked.value,
-                                      onChanged: (value) {
-                                        controller.toggleGhostModeLock();
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ],

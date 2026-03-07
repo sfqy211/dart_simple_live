@@ -435,6 +435,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
         await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
         await ghostWindowController?.setBackgroundColor(Colors.transparent);
         await ghostWindowController?.setOpacity(ghostModeOpacity.value);
+        await WindowManagerPlus.current.hide();
 
         ghostModeState.value = true;
         sendGhostConfig();
@@ -506,7 +507,11 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   /// 切换透明模式锁定状态
   void toggleGhostModeLock() {
-    ghostModeLocked.value = !ghostModeLocked.value;
+    setGhostModeLocked(!ghostModeLocked.value);
+  }
+
+  void setGhostModeLocked(bool locked) {
+    ghostModeLocked.value = locked;
     if (ghostModeState.value &&
         !(Platform.isAndroid || Platform.isIOS) &&
         ghostWindowId != null) {

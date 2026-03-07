@@ -1166,6 +1166,33 @@ ${error?.stackTrace}''');
       if (message.isNotEmpty) {
         await sendChatMessage(message);
       }
+    } else if (eventName == 'ghost_settings') {
+      if (arguments is Map) {
+        final message = Map<String, dynamic>.from(arguments);
+        if (message.containsKey('opacity')) {
+          final value = message['opacity'];
+          if (value is num) {
+            setGhostModeOpacity(value.toDouble());
+          }
+        }
+        if (message.containsKey('locked')) {
+          final value = message['locked'];
+          if (value is bool) {
+            setGhostModeLocked(value);
+          }
+        }
+        if (message.containsKey('panelColor')) {
+          final value = message['panelColor'];
+          if (value is int) {
+            AppSettingsController.instance.setGhostPanelColor(value);
+            sendGhostConfig();
+          }
+        }
+      }
+    } else if (eventName == 'ghost_exit' || eventName == 'ghost_closed') {
+      if (ghostModeState.value) {
+        exitGhostMode();
+      }
     }
     return null;
   }
