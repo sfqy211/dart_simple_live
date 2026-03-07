@@ -106,7 +106,8 @@ class LiveRoomController extends PlayerController
 
   /// 直播间加载失败
   var loadError = false.obs;
-  Error? error;
+  Object? error;
+  StackTrace? errorStackTrace;
 
   // 开播时长状态变量
   var liveDuration = "00:00:00".obs;
@@ -551,6 +552,7 @@ class LiveRoomController extends PlayerController
       SmartDialog.showLoading(msg: "");
       loadError.value = false;
       error = null;
+      errorStackTrace = null;
       update();
       addSysMsg("正在读取直播间信息");
       detail.value = await site.liveSite.getRoomDetail(roomId: roomId);
@@ -599,11 +601,12 @@ class LiveRoomController extends PlayerController
       initDanmau();
       liveDanmaku.start(detail.value?.danmakuData);
       startLiveDurationTimer(); // 启动开播时长定时器
-    } catch (e) {
+    } catch (e, stackTrace) {
       Log.logPrint(e);
       //SmartDialog.showToast(e.toString());
       loadError.value = true;
-      error = e as Error;
+      error = e;
+      errorStackTrace = stackTrace;
     } finally {
       SmartDialog.dismiss(status: SmartStatus.loading);
     }
@@ -698,6 +701,11 @@ class LiveRoomController extends PlayerController
 
     // 初始化播放器并设置 ao 参数
     await initializePlayer();
+    if (Platform.isAndroid) {
+      if (audioOnlyMode.value) {
+        await applyAudioMode();
+      }
+    }
 
     await player.open(Playlist(mediaList));
   }
@@ -1267,7 +1275,7 @@ class LiveRoomController extends PlayerController
 错误信息：
 ${error?.toString()}
 ----------------
-${error?.stackTrace}''');
+${errorStackTrace?.toString()}''');
     SmartDialog.showToast("已复制错误信息");
   }
 

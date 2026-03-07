@@ -55,6 +55,32 @@ mixin PlayerMixin {
     }
   }
 
+  String _sanitizeAndroidVo(String vo) {
+    if (Platform.isAndroid && vo == 'mediacodec_embed') {
+      Log.d('Android vo mediacodec_embed -> gpu');
+      return 'gpu';
+    }
+    return vo;
+  }
+
+  Future<void> waitForVideoViewReady({
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    final start = DateTime.now();
+    while (globalPlayerKey.currentContext == null ||
+        globalPlayerKey.currentState == null) {
+      if (DateTime.now().difference(start) > timeout) {
+        Log.d('Video view not ready within timeout');
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 16));
+    }
+    Log.d('Video view ready');
+  }
+
   /// 视频控制器
   late final videoController = VideoController(
     player,
@@ -989,18 +1015,12 @@ class PlayerController extends BaseController
         PlayerGestureControlMixin {
   @override
   void onInit() {
+    // 初始化黑听模式状态
+    audioOnlyMode.value = AppSettingsController.instance.audioOnlyMode.value;
     initSystem();
-    //初始化播放器
-    initializePlayer();
     initStream();
     //设置音量
     player.setVolume(AppSettingsController.instance.playerVolume.value);
-    // 初始化黑听模式状态
-    audioOnlyMode.value = AppSettingsController.instance.audioOnlyMode.value;
-    // 应用黑听模式
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await applyAudioMode();
-    });
 
     // 初始化后台服务
     initializeBackgroundService();
@@ -1100,19 +1120,35 @@ class PlayerController extends BaseController
     // 设置 mpv 的 vo 参数
     if (player.platform is NativePlayer) {
       if (audioOnlyMode.value) {
+        Log.d('AudioOnly on, vo=null');
         // 禁用视频轨道
         await (player.platform as dynamic).setProperty('vo', 'null');
       } else {
-        // 恢复视频轨道
-        // 无论是否为自定义播放器输出模式，都显式设置 vo 属性为默认值
-        // 这样可以确保视频轨道被正确重新启用
-        await (player.platform as dynamic).setProperty('vo', '');
-        // 如果是自定义播放器输出模式，使用用户设置的值
-        if (AppSettingsController.instance.customPlayerOutput.value) {
-          await (player.platform as dynamic).setProperty(
-            'vo',
-            AppSettingsController.instance.videoOutputDriver.value,
-          );
+        Log.d('AudioOnly off, vo reset');
+        if (Platform.isAndroid) {
+          if (AppSettingsController.instance.customPlayerOutput.value) {
+            final vo = _sanitizeAndroidVo(
+              AppSettingsController.instance.videoOutputDriver.value,
+            );
+            Log.d('AudioOnly off, android custom vo=$vo');
+            await (player.platform as dynamic).setProperty('vo', vo);
+          } else {
+            Log.d('AudioOnly off, android vo=gpu');
+            await (player.platform as dynamic).setProperty('vo', 'gpu');
+          }
+        } else {
+          await (player.platform as dynamic).setProperty('vo', '');
+          if (AppSettingsController.instance.customPlayerOutput.value) {
+            Log.d(
+              'AudioOnly off, custom vo=${AppSettingsController.instance.videoOutputDriver.value}',
+            );
+            await (player.platform as dynamic).setProperty(
+              'vo',
+              _sanitizeAndroidVo(
+                AppSettingsController.instance.videoOutputDriver.value,
+              ),
+            );
+          }
         }
         // 重新加载当前媒体，确保视频轨道被正确初始化
         if (player.state.playlist.medias.isNotEmpty) {

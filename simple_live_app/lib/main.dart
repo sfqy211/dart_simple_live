@@ -41,10 +41,13 @@ void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // 初始化 window_manager_plus
-  await WindowManagerPlus.ensureInitialized(args.isEmpty ? 0 : int.tryParse(args[0]) ?? 0);
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    await WindowManagerPlus.ensureInitialized(
+        args.isEmpty ? 0 : int.tryParse(args[0]) ?? 0);
+  }
   
   // 检查是否是主窗口（通过参数判断）
-  bool isMainWindow = args.isEmpty;
+  bool isMainWindow = args.isEmpty || (Platform.isAndroid || Platform.isIOS);
   
   if (isMainWindow) {
     // 主窗口：运行完整应用

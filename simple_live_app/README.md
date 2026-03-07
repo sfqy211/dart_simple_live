@@ -12,7 +12,7 @@
 ## 运行
 
 ```powershell
-cd d:\AHEU\code\dart_simple_live\simple_live_app
+cd simple_live_app
 # 运行分析
 flutter analyze
 # 安装依赖
@@ -26,9 +26,10 @@ flutter build windows --release
 如需 Android 构建：
 
 ```powershell
-cd d:\AHEU\code\dart_simple_live\simple_live_app
+cd simple_live_app\android
 # 运行应用
 flutter run -d android
+flutter run -d V2364A
 # 构建 Android 应用
 flutter build apk --release
 ```
