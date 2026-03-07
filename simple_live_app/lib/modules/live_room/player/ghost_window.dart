@@ -282,8 +282,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                     const Expanded(
                       child: Text(
                         "表情包",
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600),
+                        style:
+                            TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                     ),
                     IconButton(

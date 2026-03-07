@@ -151,7 +151,7 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kUpdateFollowDuration, 10);
 
     updateFollowThreadCount.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kUpdateFollowThreadCount, 0); // 默认 0 = 自动
+        .getValue(LocalStorageService.kUpdateFollowThreadCount, 0);  // 默认 0 = 自动
 
     audioOnlyMode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kAudioOnlyMode, false);
@@ -574,7 +574,8 @@ class AppSettingsController extends GetxController {
   var ghostMode = false.obs;
   void setGhostMode(bool e) {
     ghostMode.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kGhostMode, e);
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kGhostMode, e);
   }
 
   var ghostPanelColor = 0xBFD0D0D0.obs;

@@ -20,7 +20,7 @@ flutter pub get
 # 运行应用
 flutter run -d windows
 # 构建 Windows 应用
-flutter build apk --release
+flutter build windows --release
 ```
 
 如需 Android 构建：
