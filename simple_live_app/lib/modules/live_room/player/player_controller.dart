@@ -50,7 +50,7 @@ mixin PlayerMixin {
       }
     }
     // media_kit 仓库更新导致的问题，临时解决办法
-    if(Platform.isAndroid){
+    if (Platform.isAndroid) {
       await pp.setProperty('force-seekable', 'yes');
     }
   }
@@ -182,7 +182,7 @@ mixin PlayerStateMixin on PlayerMixin {
     if (audioOnlyMode.value) {
       return;
     }
-    
+
     var boxFit = BoxFit.contain;
     double? aspectRatio;
     if (player.state.width != null && player.state.height != null) {
@@ -242,24 +242,52 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
     }
     for (var item in items) {
       danmakuController?.addDanmaku(item);
-      // 同时发送到幽灵窗口
-      sendDanmakuToGhostWindow(item);
     }
   }
 
   /// 发送弹幕到幽灵窗口
   void sendDanmakuToGhostWindow(DanmakuContentItem item) {
-    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowId != null) {
+    if (ghostModeState.value &&
+        !(Platform.isAndroid || Platform.isIOS) &&
+        ghostWindowId != null) {
       try {
         WindowManagerPlus.current.invokeMethodToWindow(
           ghostWindowId!,
           'danmaku',
           {
-            'text': item,
+            'text': item.text,
+            'color': item.color.toARGB32(),
+            'type': item.type.index,
+            'selfSend': item.selfSend,
           },
         );
       } catch (e) {
         Log.logPrint('发送弹幕到幽灵窗口失败: $e');
+      }
+    }
+  }
+
+  void sendGhostConfig() {
+    if (ghostModeState.value &&
+        !(Platform.isAndroid || Platform.isIOS) &&
+        ghostWindowId != null) {
+      try {
+        WindowManagerPlus.current.invokeMethodToWindow(
+          ghostWindowId!,
+          'config',
+          {
+            'opacity': ghostModeOpacity.value,
+            'locked': ghostModeLocked.value,
+            'danmaku': {
+              'fontSize': AppSettingsController.instance.danmuSize.value,
+              'opacity': AppSettingsController.instance.danmuOpacity.value,
+              'fontWeight':
+                  AppSettingsController.instance.danmuFontWeight.value,
+            },
+          },
+        );
+      } catch (e) {
+        Log.logPrint('发送幽灵窗口配置失败: $e');
       }
     }
   }
@@ -395,16 +423,19 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
         ghostWindowController = await WindowManagerPlus.createWindow();
         ghostWindowId = ghostWindowController?.id;
         Log.d('幽灵窗口创建成功: $ghostWindowController');
-        
+
         // 设置窗口属性
-        await ghostWindowController?.setBounds(const Offset(0, 0) & const Size(400, 300));
+        await ghostWindowController
+            ?.setBounds(const Offset(0, 0) & const Size(400, 300));
         await ghostWindowController?.center();
         await ghostWindowController?.show();
         await ghostWindowController?.setAlwaysOnTop(true);
         await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
-        await ghostWindowController?.setBackgroundColor(Colors.black.withAlpha((ghostModeOpacity.value * 255).toInt()));
-        
+        await ghostWindowController?.setBackgroundColor(Colors.transparent);
+        await ghostWindowController?.setOpacity(ghostModeOpacity.value);
+
         ghostModeState.value = true;
+        sendGhostConfig();
         Log.d('幽灵窗口显示成功');
       } catch (e, stackTrace) {
         Log.e('创建幽灵窗口失败: $e', stackTrace);
@@ -430,7 +461,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     if (!ghostModeState.value && !audioOnlyMode.value) {
       return;
     }
-    
+
     if (ghostModeState.value) {
       exitGhostMode();
     } else {
@@ -441,7 +472,9 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 调整透明模式透明度
   void setGhostModeOpacity(double opacity) {
     ghostModeOpacity.value = opacity;
-    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowId != null) {
+    if (ghostModeState.value &&
+        !(Platform.isAndroid || Platform.isIOS) &&
+        ghostWindowId != null) {
       try {
         WindowManagerPlus.current.invokeMethodToWindow(
           ghostWindowId!,
@@ -450,8 +483,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
             'opacity': opacity,
           },
         );
-        // 同时更新窗口背景色
-        ghostWindowController?.setBackgroundColor(Colors.black.withAlpha((opacity * 255).toInt()));
+        ghostWindowController?.setOpacity(opacity);
       } catch (e) {
         Log.logPrint('更新幽灵窗口透明度失败: $e');
       }
@@ -461,7 +493,9 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 切换透明模式锁定状态
   void toggleGhostModeLock() {
     ghostModeLocked.value = !ghostModeLocked.value;
-    if (ghostModeState.value && !(Platform.isAndroid || Platform.isIOS) && ghostWindowId != null) {
+    if (ghostModeState.value &&
+        !(Platform.isAndroid || Platform.isIOS) &&
+        ghostWindowId != null) {
       try {
         WindowManagerPlus.current.invokeMethodToWindow(
           ghostWindowId!,
@@ -475,8 +509,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       }
     }
   }
-
-
 
   /// 设置横屏
   Future setLandscapeOrientation() async {
@@ -806,13 +838,13 @@ class PlayerController extends BaseController
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await applyAudioMode();
     });
-    
+
     // 初始化后台服务
     initializeBackgroundService();
-    
+
     // 监听应用生命周期
     WidgetsBinding.instance.addObserver(_appLifecycleObserver);
-    
+
     super.onInit();
   }
 
@@ -822,9 +854,9 @@ class PlayerController extends BaseController
   StreamSubscription? _heightSubscription;
   StreamSubscription? _logSubscription;
   StreamSubscription? _playingSubscription;
-  
+
   final _appLifecycleObserver = _AppLifecycleObserver();
-  
+
   void initializeBackgroundService() async {
     await BackgroundServiceManager().initialize();
     await BackgroundServiceManager().setupAudioSession();
@@ -1036,13 +1068,13 @@ class PlayerController extends BaseController
     disposeDanmakuController();
     await resetSystem();
     await player.dispose();
-    
+
     // 移除生命周期观察者
     WidgetsBinding.instance.removeObserver(_appLifecycleObserver);
-    
+
     // 停止后台服务
     await BackgroundServiceManager().stopService();
-    
+
     super.onClose();
   }
 }
@@ -1051,7 +1083,7 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
+
     switch (state) {
       case AppLifecycleState.inactive:
         // 应用处于非活动状态
@@ -1060,7 +1092,8 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
         // 应用进入后台
         if (Get.isRegistered<PlayerController>()) {
           final controller = Get.find<PlayerController>();
-          if (controller.player.state.playing && controller.audioOnlyMode.value) {
+          if (controller.player.state.playing &&
+              controller.audioOnlyMode.value) {
             // 在黑听模式下且正在播放时启动后台服务
             BackgroundServiceManager().startService();
           }

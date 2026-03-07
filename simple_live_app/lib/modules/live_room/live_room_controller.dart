@@ -28,8 +28,10 @@ import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:window_manager_plus/window_manager_plus.dart';
 
-class LiveRoomController extends PlayerController with WidgetsBindingObserver {
+class LiveRoomController extends PlayerController
+    with WidgetsBindingObserver, WindowListener {
   final Site pSite;
   final String pRoomId;
   late LiveDanmaku liveDanmaku;
@@ -199,6 +201,9 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
     loadData();
 
     scrollController.addListener(scrollListener);
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      WindowManagerPlus.current.addListener(this);
+    }
 
     super.onInit();
   }
@@ -317,17 +322,17 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
         return;
       }
 
-      addDanmaku([
-        DanmakuContentItem(
-          msg.message,
-          color: Color.fromARGB(
-            255,
-            msg.color.r,
-            msg.color.g,
-            msg.color.b,
-          ),
+      final item = DanmakuContentItem(
+        msg.message,
+        color: Color.fromARGB(
+          255,
+          msg.color.r,
+          msg.color.g,
+          msg.color.b,
         ),
-      ]);
+      );
+      sendDanmakuToGhostWindow(item);
+      addDanmaku([item]);
     } else if (msg.type == LiveMessageType.online) {
       online.value = msg.data;
     } else if (msg.type == LiveMessageType.superChat) {
@@ -1135,11 +1140,32 @@ ${error?.stackTrace}''');
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
     scrollController.removeListener(scrollListener);
+    if (!(Platform.isAndroid || Platform.isIOS)) {
+      WindowManagerPlus.current.removeListener(this);
+    }
     autoExitTimer?.cancel();
 
     liveDanmaku.stop();
     danmakuController = null;
     _liveDurationTimer?.cancel(); // 页面关闭时取消定时器
     super.onClose();
+  }
+
+  @override
+  Future<dynamic> onEventFromWindow(
+      String eventName, int fromWindowId, dynamic arguments) async {
+    if (eventName == 'send_chat') {
+      String text = '';
+      if (arguments is Map) {
+        text = arguments['text']?.toString() ?? '';
+      } else if (arguments is String) {
+        text = arguments;
+      }
+      final message = text.trim();
+      if (message.isNotEmpty) {
+        await sendChatMessage(message);
+      }
+    }
+    return null;
   }
 }
