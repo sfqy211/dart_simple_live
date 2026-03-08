@@ -15,6 +15,9 @@ class RoutePath {
   /// 弹幕设置
   static const kSettingsDanmu = "/settings/danmu";
 
+  /// 字幕设置
+  static const kSettingsSubtitle = "/settings/subtitle";
+
   /// 定时关闭设置
   static const kSettingsAutoExit = "/settings/auto_exit";
 

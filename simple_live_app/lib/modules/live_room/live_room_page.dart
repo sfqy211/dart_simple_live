@@ -15,6 +15,7 @@ import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controls.dart';
 import 'package:simple_live_app/modules/live_room/player/audio_mode_cover.dart';
 import 'package:simple_live_app/services/follow_service.dart';
+import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/keep_alive_wrapper.dart';
@@ -180,6 +181,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               aspectRatio: 16 / 9,
               child: buildMediaPlayer(),
             ),
+            buildSubtitleBar(context),
             buildUserProfile(context),
             buildMessageArea(),
             buildBottomActions(context),
@@ -238,7 +240,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               return Row(
                 children: [
                   Expanded(
-                    child: buildMediaPlayer(),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: buildMediaPlayer(),
+                        ),
+                        buildSubtitleBar(context),
+                      ],
+                    ),
                   ),
                   SizedBox(
                     width: 300,
@@ -372,6 +381,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             fit: boxFit,
             wakelock: false,
           ),
+          buildSubtitleOverlay(),
           Obx(
             () => Visibility(
               visible: !controller.liveStatus.value,
@@ -386,6 +396,81 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         ],
       );
     });
+  }
+
+  Widget buildSubtitleOverlay() {
+    return Obx(
+      () {
+        if (!controller.subtitleEnabled.value) {
+          return const SizedBox.shrink();
+        }
+        if (controller.subtitleText.value.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        if (!controller.fullScreenState.value &&
+            !controller.smallWindowState.value) {
+          return const SizedBox.shrink();
+        }
+        return Positioned(
+          left: 16,
+          right: 16,
+          bottom: 24,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha(180),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              controller.subtitleText.value,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: AppSettingsController.instance.subtitleFontSize.value,
+                fontWeight: controller.subtitleIsPartial.value
+                    ? FontWeight.normal
+                    : FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildSubtitleBar(BuildContext context) {
+    return Obx(
+      () {
+        if (controller.fullScreenState.value ||
+            controller.smallWindowState.value) {
+          return const SizedBox.shrink();
+        }
+        if (!controller.subtitleEnabled.value ||
+            controller.subtitleText.value.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          width: double.infinity,
+          margin: AppStyle.edgeInsetsH12,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.withAlpha(40)),
+          ),
+          child: Text(
+            controller.subtitleText.value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: AppSettingsController.instance.subtitleFontSize.value,
+              fontWeight: controller.subtitleIsPartial.value
+                  ? FontWeight.normal
+                  : FontWeight.w600,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget buildUserProfile(BuildContext context) {
@@ -878,6 +963,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               ),
               AppStyle.divider,
               SettingsAction(
+                title: "字幕设置",
+                onTap: () => Get.toNamed(RoutePath.kSettingsSubtitle),
+              ),
+              AppStyle.divider,
+              SettingsAction(
                 title: "定时关闭",
                 onTap: controller.showAutoExitSheet,
               ),
@@ -885,9 +975,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               Obx(
                 () => ListTile(
                   leading: const Icon(Icons.audiotrack),
-                  title: Text(controller.audioOnlyMode.value
-                      ? "切换到视频模式"
-                      : "切换到黑听模式"),
+                  title: Text(
+                      controller.audioOnlyMode.value ? "切换到视频模式" : "切换到黑听模式"),
                   trailing: Switch(
                     value: controller.audioOnlyMode.value,
                     onChanged: (value) {
@@ -914,8 +1003,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                   controller.toggleGhostMode();
                                 }
                               : null,
-                          activeThumbColor:
-                              controller.audioOnlyMode.value ? null : Colors.grey,
+                          activeThumbColor: controller.audioOnlyMode.value
+                              ? null
+                              : Colors.grey,
                           inactiveTrackColor: Colors.grey,
                         ),
                       ),

@@ -62,6 +62,15 @@ class LocalStorageService extends GetxService {
   /// 弹幕字重
   static const String kDanmuFontWeight = "DanmuFontWeight";
 
+  /// 字幕开关
+  static const String kSubtitleEnable = "SubtitleEnable";
+
+  /// 字幕字体大小
+  static const String kSubtitleFontSize = "SubtitleFontSize";
+
+  /// 字幕模型名称
+  static const String kSubtitleModelName = "SubtitleModelName";
+
   /// 硬件解码
   static const String kHardwareDecode = "HardwareDecode";
 

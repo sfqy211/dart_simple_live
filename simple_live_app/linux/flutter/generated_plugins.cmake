@@ -10,6 +10,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   system_tray
   url_launcher_linux
   volume_controller
+  vosk_flutter
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/bilibili_account_service.dart';
 import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/services/follow_service.dart';
+import 'package:simple_live_app/services/voice_recognition_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
@@ -62,6 +64,20 @@ class LiveRoomController extends PlayerController
   var followed = false.obs;
   var liveStatus = false.obs;
   RxList<LiveSuperChatMessage> superChats = RxList<LiveSuperChatMessage>();
+  final VoiceRecognitionService _voiceRecognitionService =
+      VoiceRecognitionService();
+  final RxString subtitleText = "".obs;
+  final RxBool subtitleIsPartial = false.obs;
+  final RxBool subtitleEnabled = false.obs;
+  Timer? _subtitleClearTimer;
+  final List<Worker> _subtitleWorkers = [];
+  final Player _subtitleAudioPlayer = Player();
+  StreamController<Uint8List>? _subtitleAudioStreamController;
+  RandomAccessFile? _subtitleAudioReader;
+  Timer? _subtitleAudioReadTimer;
+  File? _subtitleAudioDumpFile;
+  int _subtitleAudioOffset = 0;
+  bool _subtitleAudioHeaderSkipped = false;
 
   /// 滚动控制
   final ScrollController scrollController = ScrollController();
@@ -1280,6 +1296,7 @@ class LiveRoomController extends PlayerController
     }
     initAutoExit();
     showDanmakuState.value = AppSettingsController.instance.danmuEnable.value;
+    subtitleEnabled.value = AppSettingsController.instance.subtitleEnable.value;
     followed.value = DBService.instance.getFollowExist("${site.id}_$roomId");
     loadData();
 
@@ -1287,8 +1304,195 @@ class LiveRoomController extends PlayerController
     if (!(Platform.isAndroid || Platform.isIOS)) {
       WindowManagerPlus.current.addListener(this);
     }
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.subtitleEnable, (value) {
+        subtitleEnabled.value = value;
+        if (value) {
+          startVoiceRecognition();
+        } else {
+          stopVoiceRecognition();
+        }
+      }),
+    );
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.subtitleModelName, (value) {
+        if (subtitleEnabled.value) {
+          restartVoiceRecognition();
+        }
+      }),
+    );
+    _subtitleWorkers.add(
+      ever(liveStatus, (value) {
+        if (!value) {
+          stopVoiceRecognition();
+        } else if (subtitleEnabled.value) {
+          startVoiceRecognition();
+        }
+      }),
+    );
+    if (subtitleEnabled.value) {
+      startVoiceRecognition();
+    }
 
     super.onInit();
+  }
+
+  String? _resolveSubtitlePlayUrl() {
+    if (currentLineIndex < 0 || currentLineIndex >= playUrls.length) {
+      return null;
+    }
+    var url = playUrls[currentLineIndex];
+    if (AppSettingsController.instance.playerForceHttps.value) {
+      url = url.replaceAll("http://", "https://");
+    }
+    return url;
+  }
+
+  Future<void> _readSubtitleAudioDump() async {
+    if (_subtitleAudioReader == null ||
+        _subtitleAudioStreamController == null) {
+      return;
+    }
+    final length = await _subtitleAudioReader!.length();
+    if (length <= _subtitleAudioOffset) {
+      return;
+    }
+    await _subtitleAudioReader!.setPosition(_subtitleAudioOffset);
+    final bytes =
+        await _subtitleAudioReader!.read(length - _subtitleAudioOffset);
+    _subtitleAudioOffset = length;
+    if (bytes.isEmpty) {
+      return;
+    }
+    var data = bytes;
+    if (!_subtitleAudioHeaderSkipped && data.length >= 12) {
+      if (data[0] == 0x52 &&
+          data[1] == 0x49 &&
+          data[2] == 0x46 &&
+          data[3] == 0x46 &&
+          data[8] == 0x57 &&
+          data[9] == 0x41 &&
+          data[10] == 0x56 &&
+          data[11] == 0x45) {
+        if (data.length <= 44) {
+          _subtitleAudioHeaderSkipped = true;
+          return;
+        }
+        data = data.sublist(44);
+        _subtitleAudioHeaderSkipped = true;
+      }
+    }
+    _subtitleAudioStreamController!.add(Uint8List.fromList(data));
+  }
+
+  Future<Stream<Uint8List>?> _startSubtitleAudioCapture() async {
+    final url = _resolveSubtitlePlayUrl();
+    if (url == null) {
+      return null;
+    }
+    await _stopSubtitleAudioCapture();
+    final tempPath = Directory.systemTemp.path;
+    final dumpFile = File(
+      "$tempPath${Platform.pathSeparator}simple_live_subtitle_audio.pcm",
+    );
+    if (await dumpFile.exists()) {
+      await dumpFile.writeAsBytes(const [], flush: true);
+    } else {
+      await dumpFile.create(recursive: true);
+    }
+    _subtitleAudioDumpFile = dumpFile;
+    _subtitleAudioOffset = 0;
+    _subtitleAudioHeaderSkipped = false;
+    _subtitleAudioReader = await dumpFile.open(mode: FileMode.read);
+    _subtitleAudioStreamController = StreamController<Uint8List>();
+    _subtitleAudioReadTimer = Timer.periodic(
+      const Duration(milliseconds: 80),
+      (_) => _readSubtitleAudioDump(),
+    );
+    final native = _subtitleAudioPlayer.platform as NativePlayer;
+    await native.setProperty('vid', 'no');
+    await native.setProperty('sid', 'no');
+    await native.setProperty('audio-format', 's16');
+    await native.setProperty('audio-samplerate', '16000');
+    await native.setProperty('audio-channels', 'mono');
+    await native.setProperty('ao', 'pcm');
+    await native.setProperty('ao-pcm-file', dumpFile.path);
+    await native.setProperty('ao-pcm-waveheader', 'no');
+    await _subtitleAudioPlayer.open(
+      Media(url, httpHeaders: playHeaders),
+    );
+    return _subtitleAudioStreamController!.stream;
+  }
+
+  Future<void> _stopSubtitleAudioCapture() async {
+    _subtitleAudioReadTimer?.cancel();
+    _subtitleAudioReadTimer = null;
+    await _subtitleAudioStreamController?.close();
+    _subtitleAudioStreamController = null;
+    await _subtitleAudioReader?.close();
+    _subtitleAudioReader = null;
+    _subtitleAudioOffset = 0;
+    _subtitleAudioHeaderSkipped = false;
+    await _subtitleAudioPlayer.stop();
+    if (_subtitleAudioDumpFile != null &&
+        await _subtitleAudioDumpFile!.exists()) {
+      await _subtitleAudioDumpFile!.delete();
+    }
+    _subtitleAudioDumpFile = null;
+  }
+
+  Future<void> startVoiceRecognition() async {
+    if (!liveStatus.value) {
+      return;
+    }
+    if (_voiceRecognitionService.isRunning) {
+      return;
+    }
+    final audioStream = await _startSubtitleAudioCapture();
+    if (audioStream == null) {
+      return;
+    }
+    try {
+      await _voiceRecognitionService.startFromAudioStream(
+        modelName: AppSettingsController.instance.subtitleModelName.value,
+        audioStream: audioStream,
+        onResult: _handleSubtitleResult,
+        onError: (error) {
+          SmartDialog.showToast("语音识别错误: $error");
+        },
+      );
+    } catch (e) {
+      SmartDialog.showToast("启动语音识别失败: $e");
+    }
+  }
+
+  Future<void> stopVoiceRecognition() async {
+    _subtitleClearTimer?.cancel();
+    subtitleText.value = "";
+    subtitleIsPartial.value = false;
+    await _stopSubtitleAudioCapture();
+    await _voiceRecognitionService.stop();
+  }
+
+  Future<void> restartVoiceRecognition() async {
+    await stopVoiceRecognition();
+    await startVoiceRecognition();
+  }
+
+  void _handleSubtitleResult(VoiceRecognitionResult result) {
+    subtitleText.value = result.text;
+    subtitleIsPartial.value = !result.isFinal;
+    if (result.isFinal) {
+      _subtitleClearTimer?.cancel();
+      _subtitleClearTimer = Timer(
+        const Duration(seconds: 4),
+        () {
+          if (!subtitleIsPartial.value) {
+            subtitleText.value = "";
+          }
+        },
+      );
+    }
   }
 
   void scrollListener() {
@@ -1607,6 +1811,9 @@ class LiveRoomController extends PlayerController
     }
 
     await player.open(Playlist(mediaList));
+    if (subtitleEnabled.value && liveStatus.value) {
+      restartVoiceRecognition();
+    }
   }
 
   void setPlayer() async {
@@ -1614,6 +1821,9 @@ class LiveRoomController extends PlayerController
     errorMsg.value = "";
 
     await player.jump(currentLineIndex);
+    if (subtitleEnabled.value && liveStatus.value) {
+      restartVoiceRecognition();
+    }
   }
 
   @override
@@ -2189,11 +2399,15 @@ ${errorStackTrace?.toString()}''');
       danmakuController?.clear();
       isBackground = true;
       stopAllAutoSpam();
+      stopVoiceRecognition();
     } else
     //返回前台
     if (state == AppLifecycleState.resumed) {
       Log.d("返回前台");
       isBackground = false;
+      if (subtitleEnabled.value) {
+        startVoiceRecognition();
+      }
     }
   }
 
@@ -2238,11 +2452,18 @@ ${errorStackTrace?.toString()}''');
       WindowManagerPlus.current.removeListener(this);
     }
     autoExitTimer?.cancel();
+    _subtitleClearTimer?.cancel();
+    for (final worker in _subtitleWorkers) {
+      worker.dispose();
+    }
 
     stopAllAutoSpam();
     liveDanmaku.stop();
     danmakuController = null;
     _liveDurationTimer?.cancel(); // 页面关闭时取消定时器
+    _stopSubtitleAudioCapture();
+    _subtitleAudioPlayer.dispose();
+    _voiceRecognitionService.dispose();
     super.onClose();
   }
 

@@ -43,6 +43,12 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kDanmuBottomMargin, 0.0);
     danmuFontWeight.value = LocalStorageService.instance
         .getValue(LocalStorageService.kDanmuFontWeight, 4);
+    subtitleEnable.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kSubtitleEnable, false);
+    subtitleFontSize.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kSubtitleFontSize, 16.0);
+    subtitleModelName.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kSubtitleModelName, _defaultSubtitleModel);
 
     hardwareDecode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kHardwareDecode, true);
@@ -360,6 +366,28 @@ class AppSettingsController extends GetxController {
     danmuFontWeight.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kDanmuFontWeight, e);
+  }
+
+  static const String _defaultSubtitleModel = "vosk-model-small-en-us-0.15";
+  var subtitleEnable = false.obs;
+  void setSubtitleEnable(bool e) {
+    subtitleEnable.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleEnable, e);
+  }
+
+  var subtitleFontSize = 16.0.obs;
+  void setSubtitleFontSize(double e) {
+    subtitleFontSize.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleFontSize, e);
+  }
+
+  var subtitleModelName = _defaultSubtitleModel.obs;
+  void setSubtitleModelName(String e) {
+    subtitleModelName.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleModelName, e);
   }
 
   var qualityLevel = 1.obs;

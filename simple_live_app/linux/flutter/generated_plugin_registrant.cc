@@ -13,6 +13,7 @@
 #include <system_tray/system_tray_plugin.h>
 #include <url_launcher_linux/url_launcher_plugin.h>
 #include <volume_controller/volume_controller_plugin.h>
+#include <vosk_flutter/vosk_flutter_plugin.h>
 
 void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) dynamic_color_registrar =
@@ -36,4 +37,7 @@ void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) volume_controller_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "VolumeControllerPlugin");
   volume_controller_plugin_register_with_registrar(volume_controller_registrar);
+  g_autoptr(FlPluginRegistrar) vosk_flutter_registrar =
+      fl_plugin_registry_get_registrar_for_plugin(registry, "VoskFlutterPlugin");
+  vosk_flutter_plugin_register_with_registrar(vosk_flutter_registrar);
 }

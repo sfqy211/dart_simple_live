@@ -43,6 +43,7 @@ import 'package:simple_live_app/modules/settings/indexed_settings/indexed_settin
 import 'package:simple_live_app/modules/settings/other/other_settings_controller.dart';
 import 'package:simple_live_app/modules/settings/other/other_settings_page.dart';
 import 'package:simple_live_app/modules/settings/play_settings_page.dart';
+import 'package:simple_live_app/modules/settings/voice_recognition_settings_page.dart';
 
 import '../modules/indexed/indexed_page.dart';
 import 'route_path.dart';
@@ -109,6 +110,11 @@ class AppPages {
     GetPage(
       name: RoutePath.kSettingsDanmu,
       page: () => const DanmuSettingsPage(),
+    ),
+    //字幕设置
+    GetPage(
+      name: RoutePath.kSettingsSubtitle,
+      page: () => const VoiceRecognitionSettingsPage(),
     ),
     //外观设置
     GetPage(
