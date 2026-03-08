@@ -733,10 +733,395 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   }
 
   void _showAutoSpamPanel() {
+    _showAutoSpamBottomSheet(
+      title: "自动发送",
+      child: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          Row(
+            children: [
+              _buildAutoSpamEntry(
+                icon: Icons.message_outlined,
+                title: "文字弹幕",
+                running: _autoSpamTextRunning,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showAutoSpamTextPanel();
+                },
+              ),
+              Container(
+                width: 1,
+                height: 52,
+                color: Colors.grey.withAlpha(40),
+              ),
+              _buildAutoSpamEntry(
+                icon: Icons.emoji_emotions_outlined,
+                title: "表情包",
+                running: _autoSpamEmotionRunning,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showAutoSpamEmotionPanel();
+                },
+              ),
+              Container(
+                width: 1,
+                height: 52,
+                color: Colors.grey.withAlpha(40),
+              ),
+              _buildAutoSpamEntry(
+                icon: Icons.bookmarks_outlined,
+                title: "收藏夹",
+                running: _autoSpamFavoritesRunning,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showAutoSpamFavoritesPanel();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAutoSpamTextPanel() {
     _autoSpamTextController.text = _autoSpamTextMsg;
+    _showAutoSpamBottomSheet(
+      title: "文字弹幕",
+      child: StatefulBuilder(
+        builder: (context, setSheetState) {
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              _buildAutoSpamSectionHeader(
+                "文字弹幕",
+                _autoSpamTextRunning,
+                () {
+                  setState(() {
+                    _autoSpamTextRunning = true;
+                  });
+                  _sendAutoSpamAction('text', true);
+                  setSheetState(() {});
+                },
+                () {
+                  setState(() {
+                    _autoSpamTextRunning = false;
+                  });
+                  _sendAutoSpamAction('text', false);
+                  setSheetState(() {});
+                },
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _autoSpamTextController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: "输入自动发送弹幕内容",
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamTextMsg = value;
+                  });
+                  _setAutoSpamState({'textMsg': value});
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildNumberRow(
+                label: "发送间隔(秒)",
+                value: _autoSpamTextInterval,
+                min: 1,
+                max: 300,
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamTextInterval = value;
+                  });
+                  _setAutoSpamState({'textInterval': value});
+                  setSheetState(() {});
+                },
+              ),
+              _buildNumberRow(
+                label: "单条长度",
+                value: _autoSpamTextChunkSize,
+                min: 5,
+                max: 60,
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamTextChunkSize = value;
+                  });
+                  _setAutoSpamState({'textChunkSize': value});
+                  setSheetState(() {});
+                },
+              ),
+              _buildNumberRow(
+                label: "持续时长(秒)",
+                value: _autoSpamTextDuration,
+                min: 0,
+                max: 3600,
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamTextDuration = value;
+                  });
+                  _setAutoSpamState({'textDuration': value});
+                  setSheetState(() {});
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAutoSpamEmotionPanel() {
+    _showAutoSpamBottomSheet(
+      title: "表情包",
+      child: StatefulBuilder(
+        builder: (context, setSheetState) {
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              _buildAutoSpamSectionHeader(
+                "表情包",
+                _autoSpamEmotionRunning,
+                () {
+                  setState(() {
+                    _autoSpamEmotionRunning = true;
+                  });
+                  _sendAutoSpamAction('emotion', true);
+                  setSheetState(() {});
+                },
+                () {
+                  setState(() {
+                    _autoSpamEmotionRunning = false;
+                  });
+                  _sendAutoSpamAction('emotion', false);
+                  setSheetState(() {});
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text("已选 ${_autoSpamEmotions.length} 个"),
+                trailing: TextButton(
+                  onPressed: () {
+                    _autoSpamEmotionsMode = true;
+                    _requestShowEmotions();
+                  },
+                  child: const Text("选择表情"),
+                ),
+              ),
+              _buildNumberRow(
+                label: "发送间隔(秒)",
+                value: _autoSpamEmotionInterval,
+                min: 1,
+                max: 300,
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamEmotionInterval = value;
+                  });
+                  _setAutoSpamState({'emotionInterval': value});
+                  setSheetState(() {});
+                },
+              ),
+              _buildNumberRow(
+                label: "持续时长(秒)",
+                value: _autoSpamEmotionDuration,
+                min: 0,
+                max: 3600,
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamEmotionDuration = value;
+                  });
+                  _setAutoSpamState({'emotionDuration': value});
+                  setSheetState(() {});
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAutoSpamFavoritesPanel() {
     final currentMsg =
         _autoSpamFavorites[_autoSpamFavoritesIndex]['msg']?.toString() ?? '';
     _autoSpamFavoriteController.text = currentMsg;
+    _showAutoSpamBottomSheet(
+      title: "收藏夹",
+      child: StatefulBuilder(
+        builder: (context, setSheetState) {
+          void updateFavoritesIndex(int index) {
+            if (index < 0 || index >= _autoSpamFavorites.length) {
+              return;
+            }
+            setState(() {
+              _autoSpamFavoritesIndex = index;
+            });
+            _autoSpamFavoriteController.text =
+                _autoSpamFavorites[index]['msg']?.toString() ?? '';
+            _setAutoSpamState({'favoritesIndex': index});
+            setSheetState(() {});
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              _buildAutoSpamSectionHeader(
+                "收藏夹",
+                _autoSpamFavoritesRunning,
+                () {
+                  setState(() {
+                    _autoSpamFavoritesRunning = true;
+                  });
+                  _sendAutoSpamAction('favorites', true);
+                  setSheetState(() {});
+                },
+                () {
+                  setState(() {
+                    _autoSpamFavoritesRunning = false;
+                  });
+                  _sendAutoSpamAction('favorites', false);
+                  setSheetState(() {});
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      final nextId = _autoSpamFavorites.isEmpty
+                          ? 1
+                          : (_autoSpamFavorites
+                                  .map((e) => e['id'] as int? ?? 0)
+                                  .reduce((a, b) => a > b ? a : b) +
+                              1);
+                      setState(() {
+                        _autoSpamFavorites.add({
+                          'id': nextId,
+                          'name': '第${_autoSpamFavorites.length + 1}组',
+                          'msg': '',
+                        });
+                        _autoSpamFavoritesIndex = _autoSpamFavorites.length - 1;
+                      });
+                      _autoSpamFavoriteController.text = '';
+                      _setAutoSpamState({
+                        'favorites': _autoSpamFavorites,
+                        'favoritesIndex': _autoSpamFavoritesIndex,
+                      });
+                      setSheetState(() {});
+                    },
+                    child: const Text("新增分组"),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      if (_autoSpamFavorites.length <= 1) {
+                        return;
+                      }
+                      setState(() {
+                        _autoSpamFavorites.removeAt(_autoSpamFavoritesIndex);
+                        if (_autoSpamFavoritesIndex >=
+                            _autoSpamFavorites.length) {
+                          _autoSpamFavoritesIndex =
+                              _autoSpamFavorites.length - 1;
+                        }
+                      });
+                      _autoSpamFavoriteController.text =
+                          _autoSpamFavorites[_autoSpamFavoritesIndex]['msg']
+                                  ?.toString() ??
+                              '';
+                      _setAutoSpamState({
+                        'favorites': _autoSpamFavorites,
+                        'favoritesIndex': _autoSpamFavoritesIndex,
+                      });
+                      setSheetState(() {});
+                    },
+                    child: const Text("删除分组"),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 40,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _autoSpamFavorites.length,
+                  itemBuilder: (context, index) {
+                    final selected = index == _autoSpamFavoritesIndex;
+                    final name =
+                        _autoSpamFavorites[index]['name']?.toString() ??
+                            '第${index + 1}组';
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        selected: selected,
+                        label: Text(name),
+                        onSelected: (_) {
+                          updateFavoritesIndex(index);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _autoSpamFavoriteController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: "输入当前分组弹幕内容",
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamFavorites[_autoSpamFavoritesIndex]['msg'] = value;
+                  });
+                  _setAutoSpamState({'favorites': _autoSpamFavorites});
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildNumberRow(
+                label: "发送间隔(秒)",
+                value: _autoSpamFavoritesInterval,
+                min: 1,
+                max: 300,
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamFavoritesInterval = value;
+                  });
+                  _setAutoSpamState({'favoritesInterval': value});
+                  setSheetState(() {});
+                },
+              ),
+              _buildNumberRow(
+                label: "持续时长(秒)",
+                value: _autoSpamFavoritesDuration,
+                min: 0,
+                max: 3600,
+                onChanged: (value) {
+                  setState(() {
+                    _autoSpamFavoritesDuration = value;
+                  });
+                  _setAutoSpamState({'favoritesDuration': value});
+                  setSheetState(() {});
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAutoSpamBottomSheet({
+    required String title,
+    required Widget child,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -745,343 +1130,81 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            void updateFavoritesIndex(int index) {
-              if (index < 0 || index >= _autoSpamFavorites.length) {
-                return;
-              }
-              setState(() {
-                _autoSpamFavoritesIndex = index;
-              });
-              _autoSpamFavoriteController.text =
-                  _autoSpamFavorites[index]['msg']?.toString() ?? '';
-              _setAutoSpamState({'favoritesIndex': index});
-              setSheetState(() {});
-            }
-
-            return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.85,
-              minChildSize: 0.5,
-              maxChildSize: 0.95,
-              builder: (context, scrollController) {
-                return ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(12),
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            "自动发送",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          icon: const Icon(Icons.close, size: 18),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _buildAutoSpamSectionHeader(
-                      "文字弹幕",
-                      _autoSpamTextRunning,
-                      () {
-                        setState(() {
-                          _autoSpamTextRunning = true;
-                        });
-                        _sendAutoSpamAction('text', true);
-                        setSheetState(() {});
-                      },
-                      () {
-                        setState(() {
-                          _autoSpamTextRunning = false;
-                        });
-                        _sendAutoSpamAction('text', false);
-                        setSheetState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _autoSpamTextController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        hintText: "输入自动发送弹幕内容",
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamTextMsg = value;
-                        });
-                        _setAutoSpamState({'textMsg': value});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    _buildNumberRow(
-                      label: "发送间隔(秒)",
-                      value: _autoSpamTextInterval,
-                      min: 1,
-                      max: 300,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamTextInterval = value;
-                        });
-                        _setAutoSpamState({'textInterval': value});
-                        setSheetState(() {});
-                      },
-                    ),
-                    _buildNumberRow(
-                      label: "单条长度",
-                      value: _autoSpamTextChunkSize,
-                      min: 5,
-                      max: 60,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamTextChunkSize = value;
-                        });
-                        _setAutoSpamState({'textChunkSize': value});
-                        setSheetState(() {});
-                      },
-                    ),
-                    _buildNumberRow(
-                      label: "持续时长(秒)",
-                      value: _autoSpamTextDuration,
-                      min: 0,
-                      max: 3600,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamTextDuration = value;
-                        });
-                        _setAutoSpamState({'textDuration': value});
-                        setSheetState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAutoSpamSectionHeader(
-                      "表情包",
-                      _autoSpamEmotionRunning,
-                      () {
-                        setState(() {
-                          _autoSpamEmotionRunning = true;
-                        });
-                        _sendAutoSpamAction('emotion', true);
-                        setSheetState(() {});
-                      },
-                      () {
-                        setState(() {
-                          _autoSpamEmotionRunning = false;
-                        });
-                        _sendAutoSpamAction('emotion', false);
-                        setSheetState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text("已选 ${_autoSpamEmotions.length} 个"),
-                      trailing: TextButton(
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                         onPressed: () {
-                          _autoSpamEmotionsMode = true;
-                          _requestShowEmotions();
+                          Navigator.of(context).pop();
                         },
-                        child: const Text("选择表情"),
+                        icon: const Icon(Icons.close, size: 18),
                       ),
-                    ),
-                    _buildNumberRow(
-                      label: "发送间隔(秒)",
-                      value: _autoSpamEmotionInterval,
-                      min: 1,
-                      max: 300,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamEmotionInterval = value;
-                        });
-                        _setAutoSpamState({'emotionInterval': value});
-                        setSheetState(() {});
-                      },
-                    ),
-                    _buildNumberRow(
-                      label: "持续时长(秒)",
-                      value: _autoSpamEmotionDuration,
-                      min: 0,
-                      max: 3600,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamEmotionDuration = value;
-                        });
-                        _setAutoSpamState({'emotionDuration': value});
-                        setSheetState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAutoSpamSectionHeader(
-                      "收藏夹",
-                      _autoSpamFavoritesRunning,
-                      () {
-                        setState(() {
-                          _autoSpamFavoritesRunning = true;
-                        });
-                        _sendAutoSpamAction('favorites', true);
-                        setSheetState(() {});
-                      },
-                      () {
-                        setState(() {
-                          _autoSpamFavoritesRunning = false;
-                        });
-                        _sendAutoSpamAction('favorites', false);
-                        setSheetState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            final nextId = _autoSpamFavorites.isEmpty
-                                ? 1
-                                : (_autoSpamFavorites
-                                        .map((e) => e['id'] as int? ?? 0)
-                                        .reduce((a, b) => a > b ? a : b) +
-                                    1);
-                            setState(() {
-                              _autoSpamFavorites.add({
-                                'id': nextId,
-                                'name': '第${_autoSpamFavorites.length + 1}组',
-                                'msg': '',
-                              });
-                              _autoSpamFavoritesIndex =
-                                  _autoSpamFavorites.length - 1;
-                            });
-                            _autoSpamFavoriteController.text = '';
-                            _setAutoSpamState({
-                              'favorites': _autoSpamFavorites,
-                              'favoritesIndex': _autoSpamFavoritesIndex,
-                            });
-                            setSheetState(() {});
-                          },
-                          child: const Text("新增分组"),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: () {
-                            if (_autoSpamFavorites.length <= 1) {
-                              return;
-                            }
-                            setState(() {
-                              _autoSpamFavorites
-                                  .removeAt(_autoSpamFavoritesIndex);
-                              if (_autoSpamFavoritesIndex >=
-                                  _autoSpamFavorites.length) {
-                                _autoSpamFavoritesIndex =
-                                    _autoSpamFavorites.length - 1;
-                              }
-                            });
-                            _autoSpamFavoriteController.text =
-                                _autoSpamFavorites[_autoSpamFavoritesIndex]
-                                            ['msg']
-                                        ?.toString() ??
-                                    '';
-                            _setAutoSpamState({
-                              'favorites': _autoSpamFavorites,
-                              'favoritesIndex': _autoSpamFavoritesIndex,
-                            });
-                            setSheetState(() {});
-                          },
-                          child: const Text("删除分组"),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 40,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _autoSpamFavorites.length,
-                        itemBuilder: (context, index) {
-                          final selected = index == _autoSpamFavoritesIndex;
-                          final name =
-                              _autoSpamFavorites[index]['name']?.toString() ??
-                                  '第${index + 1}组';
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              selected: selected,
-                              label: Text(name),
-                              onSelected: (_) {
-                                updateFavoritesIndex(index);
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _autoSpamFavoriteController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        hintText: "输入当前分组弹幕内容",
-                        border: OutlineInputBorder(),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamFavorites[_autoSpamFavoritesIndex]['msg'] =
-                              value;
-                        });
-                        _setAutoSpamState({'favorites': _autoSpamFavorites});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    _buildNumberRow(
-                      label: "发送间隔(秒)",
-                      value: _autoSpamFavoritesInterval,
-                      min: 1,
-                      max: 300,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamFavoritesInterval = value;
-                        });
-                        _setAutoSpamState({'favoritesInterval': value});
-                        setSheetState(() {});
-                      },
-                    ),
-                    _buildNumberRow(
-                      label: "持续时长(秒)",
-                      value: _autoSpamFavoritesDuration,
-                      min: 0,
-                      max: 3600,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSpamFavoritesDuration = value;
-                        });
-                        _setAutoSpamState({'favoritesDuration': value});
-                        setSheetState(() {});
-                      },
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: child,
+                ),
+              ],
             );
           },
         );
       },
     );
   }
+
+  Widget _buildAutoSpamEntry({
+    required IconData icon,
+    required String title,
+    required bool running,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon),
+              const SizedBox(height: 8),
+              Text(title),
+              const SizedBox(height: 4),
+              Text(
+                running ? "运行中" : "已停止",
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildAutoSpamSectionHeader(
     String title,

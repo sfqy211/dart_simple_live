@@ -882,6 +882,54 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 onTap: controller.showAutoExitSheet,
               ),
               AppStyle.divider,
+              Obx(
+                () => ListTile(
+                  leading: const Icon(Icons.audiotrack),
+                  title: Text(controller.audioOnlyMode.value
+                      ? "切换到视频模式"
+                      : "切换到黑听模式"),
+                  trailing: Switch(
+                    value: controller.audioOnlyMode.value,
+                    onChanged: (value) {
+                      controller.toggleAudioMode();
+                    },
+                  ),
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => Visibility(
+                  visible: !Platform.isAndroid && !Platform.isIOS,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.visibility),
+                        title: Text(controller.ghostModeState.value
+                            ? "关闭透明模式"
+                            : "开启透明模式"),
+                        trailing: Switch(
+                          value: controller.ghostModeState.value,
+                          onChanged: controller.audioOnlyMode.value
+                              ? (value) {
+                                  controller.toggleGhostMode();
+                                }
+                              : null,
+                          activeThumbColor:
+                              controller.audioOnlyMode.value ? null : Colors.grey,
+                          inactiveTrackColor: Colors.grey,
+                        ),
+                      ),
+                      AppStyle.divider,
+                    ],
+                  ),
+                ),
+              ),
+              if (controller.site.id == Constant.kBiliBili)
+                SettingsAction(
+                  title: "自动发送",
+                  onTap: controller.showAutoSpamSheet,
+                ),
+              if (controller.site.id == Constant.kBiliBili) AppStyle.divider,
               SettingsAction(
                 title: "画面尺寸",
                 onTap: controller.showPlayerSettingsSheet,
@@ -988,48 +1036,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       controller.refreshRoom();
                     },
                   ),
-                  Obx(
-                    () => ListTile(
-                      leading: const Icon(Icons.audiotrack),
-                      title: Text(controller.audioOnlyMode.value
-                          ? "切换到视频模式"
-                          : "切换到黑听模式"),
-                      trailing: Switch(
-                        value: controller.audioOnlyMode.value,
-                        onChanged: (value) {
-                          controller.toggleAudioMode();
-                        },
-                      ),
-                    ),
-                  ),
-                  Obx(
-                    () => Visibility(
-                      visible: !Platform.isAndroid && !Platform.isIOS,
-                      child: Column(
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.visibility),
-                            title: Text(controller.ghostModeState.value
-                                ? "关闭透明模式"
-                                : "开启透明模式"),
-                            trailing: Switch(
-                              value: controller.ghostModeState.value,
-                              onChanged: controller.audioOnlyMode.value
-                                  ? (value) {
-                                      closeSheet();
-                                      controller.toggleGhostMode();
-                                    }
-                                  : null,
-                              activeThumbColor: controller.audioOnlyMode.value
-                                  ? null
-                                  : Colors.grey,
-                              inactiveTrackColor: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                   ListTile(
                     leading: const Icon(Icons.play_circle_outline),
                     trailing: const Icon(Icons.chevron_right),
@@ -1048,16 +1054,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       controller.showEmoticonPackageSettingsSheet();
                     },
                   ),
-                  if (controller.site.id == Constant.kBiliBili)
-                    ListTile(
-                      leading: const Icon(Icons.auto_mode),
-                      title: const Text("自动发送"),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Get.back();
-                        controller.showAutoSpamSheet();
-                      },
-                    ),
                   ListTile(
                     leading: const Icon(Icons.switch_video_outlined),
                     title: const Text("切换线路"),

@@ -831,24 +831,114 @@ class LiveRoomController extends PlayerController
     );
   }
 
-  Future<void> showAutoSpamSheet() async {
-    final settings = AppSettingsController.instance;
-    final textController =
-        TextEditingController(text: settings.autoSpamTextMsg.value);
-    final favoriteController = TextEditingController(
-      text: settings.autoSpamFavorites.isNotEmpty
-          ? settings.autoSpamFavorites[settings.autoSpamFavoritesIndex.value]
-                      ['msg']
-                  ?.toString() ??
-              ''
-          : '',
-    );
+  Future<void> _showAutoSpamBottomSheet({
+    required String title,
+    required Widget child,
+  }) async {
     final shouldRestoreGhost = ghostModeState.value;
     if (shouldRestoreGhost) {
       await allowMainWindowInteractionForGhost();
     }
     await Utils.showBottomSheet(
+      title: title,
+      child: child,
+    );
+    if (shouldRestoreGhost) {
+      await restoreGhostInteractionAfterMainWindow();
+    }
+  }
+
+  Widget _buildAutoSpamEntry({
+    required IconData icon,
+    required String title,
+    required RxBool running,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: AppStyle.edgeInsetsV12,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon),
+              AppStyle.vGap8,
+              Text(title),
+              AppStyle.vGap4,
+              Obx(
+                () => Text(
+                  running.value ? "运行中" : "已停止",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> showAutoSpamSheet() async {
+    await _showAutoSpamBottomSheet(
       title: "自动发送",
+      child: ListView(
+        padding: AppStyle.edgeInsetsA12,
+        children: [
+          SettingsCard(
+            child: Row(
+              children: [
+                _buildAutoSpamEntry(
+                  icon: Icons.message_outlined,
+                  title: "文字弹幕",
+                  running: autoSpamTextRunning,
+                  onTap: () {
+                    Get.back();
+                    showAutoSpamTextSheet();
+                  },
+                ),
+                Container(
+                  width: 1,
+                  height: 52,
+                  color: Colors.grey.withAlpha(40),
+                ),
+                _buildAutoSpamEntry(
+                  icon: Icons.emoji_emotions_outlined,
+                  title: "表情包",
+                  running: autoSpamEmotionRunning,
+                  onTap: () {
+                    Get.back();
+                    showAutoSpamEmotionSheet();
+                  },
+                ),
+                Container(
+                  width: 1,
+                  height: 52,
+                  color: Colors.grey.withAlpha(40),
+                ),
+                _buildAutoSpamEntry(
+                  icon: Icons.bookmarks_outlined,
+                  title: "收藏夹",
+                  running: autoSpamFavoritesRunning,
+                  onTap: () {
+                    Get.back();
+                    showAutoSpamFavoritesSheet();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> showAutoSpamTextSheet() async {
+    final settings = AppSettingsController.instance;
+    final textController =
+        TextEditingController(text: settings.autoSpamTextMsg.value);
+    await _showAutoSpamBottomSheet(
+      title: "文字弹幕",
       child: ListView(
         padding: AppStyle.edgeInsetsA12,
         children: [
@@ -934,7 +1024,18 @@ class LiveRoomController extends PlayerController
               ],
             ),
           ),
-          AppStyle.vGap12,
+        ],
+      ),
+    );
+  }
+
+  Future<void> showAutoSpamEmotionSheet() async {
+    final settings = AppSettingsController.instance;
+    await _showAutoSpamBottomSheet(
+      title: "表情包",
+      child: ListView(
+        padding: AppStyle.edgeInsetsA12,
+        children: [
           SettingsCard(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -999,7 +1100,26 @@ class LiveRoomController extends PlayerController
               ],
             ),
           ),
-          AppStyle.vGap12,
+        ],
+      ),
+    );
+  }
+
+  Future<void> showAutoSpamFavoritesSheet() async {
+    final settings = AppSettingsController.instance;
+    final favoriteController = TextEditingController(
+      text: settings.autoSpamFavorites.isNotEmpty
+          ? settings.autoSpamFavorites[settings.autoSpamFavoritesIndex.value]
+                      ['msg']
+                  ?.toString() ??
+              ''
+          : '',
+    );
+    await _showAutoSpamBottomSheet(
+      title: "收藏夹",
+      child: ListView(
+        padding: AppStyle.edgeInsetsA12,
+        children: [
           SettingsCard(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1150,9 +1270,6 @@ class LiveRoomController extends PlayerController
         ],
       ),
     );
-    if (shouldRestoreGhost) {
-      await restoreGhostInteractionAfterMainWindow();
-    }
   }
 
   @override
