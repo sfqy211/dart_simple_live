@@ -71,6 +71,22 @@ class LocalStorageService extends GetxService {
   /// 字幕模型名称
   static const String kSubtitleModelName = "SubtitleModelName";
 
+  /// 字幕识别模式
+  static const String kSubtitleRecognitionMode = "SubtitleRecognitionMode";
+
+  /// 在线识别服务商
+  static const String kSubtitleOnlineProvider = "SubtitleOnlineProvider";
+
+  /// 在线识别地址
+  static const String kSubtitleOnlineApiUrl = "SubtitleOnlineApiUrl";
+
+  /// 在线识别密钥
+  static const String kSubtitleOnlineApiKey = "SubtitleOnlineApiKey";
+
+  /// 在线识别密钥Header
+  static const String kSubtitleOnlineApiKeyHeader =
+      "SubtitleOnlineApiKeyHeader";
+
   /// 硬件解码
   static const String kHardwareDecode = "HardwareDecode";
 

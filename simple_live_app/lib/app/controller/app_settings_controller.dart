@@ -8,6 +8,15 @@ import 'package:simple_live_app/services/local_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+enum SubtitleRecognitionMode {
+  online,
+  local,
+}
+
+enum SubtitleOnlineProvider {
+  customWebSocket,
+}
+
 class AppSettingsController extends GetxController {
   static AppSettingsController get instance =>
       Get.find<AppSettingsController>();
@@ -47,8 +56,31 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kSubtitleEnable, false);
     subtitleFontSize.value = LocalStorageService.instance
         .getValue(LocalStorageService.kSubtitleFontSize, 16.0);
-    subtitleModelName.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kSubtitleModelName, _defaultSubtitleModel);
+    subtitleModelName.value = LocalStorageService.instance.getValue(
+        LocalStorageService.kSubtitleModelName, _defaultSubtitleModel);
+    final modeIndex = LocalStorageService.instance.getValue(
+      LocalStorageService.kSubtitleRecognitionMode,
+      SubtitleRecognitionMode.local.index,
+    );
+    subtitleRecognitionMode.value = SubtitleRecognitionMode.values[
+        modeIndex >= 0 && modeIndex < SubtitleRecognitionMode.values.length
+            ? modeIndex
+            : SubtitleRecognitionMode.local.index];
+    final providerIndex = LocalStorageService.instance.getValue(
+      LocalStorageService.kSubtitleOnlineProvider,
+      SubtitleOnlineProvider.customWebSocket.index,
+    );
+    subtitleOnlineProvider.value = SubtitleOnlineProvider.values[
+        providerIndex >= 0 &&
+                providerIndex < SubtitleOnlineProvider.values.length
+            ? providerIndex
+            : SubtitleOnlineProvider.customWebSocket.index];
+    subtitleOnlineApiUrl.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kSubtitleOnlineApiUrl, "");
+    subtitleOnlineApiKey.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kSubtitleOnlineApiKey, "");
+    subtitleOnlineApiKeyHeader.value = LocalStorageService.instance.getValue(
+        LocalStorageService.kSubtitleOnlineApiKeyHeader, "Authorization");
 
     hardwareDecode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kHardwareDecode, true);
@@ -388,6 +420,45 @@ class AppSettingsController extends GetxController {
     subtitleModelName.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kSubtitleModelName, e);
+  }
+
+  var subtitleRecognitionMode = SubtitleRecognitionMode.local.obs;
+  void setSubtitleRecognitionMode(SubtitleRecognitionMode mode) {
+    subtitleRecognitionMode.value = mode;
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kSubtitleRecognitionMode,
+      mode.index,
+    );
+  }
+
+  var subtitleOnlineProvider = SubtitleOnlineProvider.customWebSocket.obs;
+  void setSubtitleOnlineProvider(SubtitleOnlineProvider provider) {
+    subtitleOnlineProvider.value = provider;
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kSubtitleOnlineProvider,
+      provider.index,
+    );
+  }
+
+  var subtitleOnlineApiUrl = "".obs;
+  void setSubtitleOnlineApiUrl(String value) {
+    subtitleOnlineApiUrl.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleOnlineApiUrl, value);
+  }
+
+  var subtitleOnlineApiKey = "".obs;
+  void setSubtitleOnlineApiKey(String value) {
+    subtitleOnlineApiKey.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleOnlineApiKey, value);
+  }
+
+  var subtitleOnlineApiKeyHeader = "Authorization".obs;
+  void setSubtitleOnlineApiKeyHeader(String value) {
+    subtitleOnlineApiKeyHeader.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleOnlineApiKeyHeader, value);
   }
 
   var qualityLevel = 1.obs;

@@ -1318,7 +1318,52 @@ class LiveRoomController extends PlayerController
     );
     _subtitleWorkers.add(
       ever(AppSettingsController.instance.subtitleModelName, (value) {
+        if (subtitleEnabled.value &&
+            AppSettingsController.instance.subtitleRecognitionMode.value ==
+                SubtitleRecognitionMode.local) {
+          restartVoiceRecognition();
+        }
+      }),
+    );
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.subtitleRecognitionMode, (value) {
         if (subtitleEnabled.value) {
+          restartVoiceRecognition();
+        }
+      }),
+    );
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.subtitleOnlineProvider, (value) {
+        if (subtitleEnabled.value &&
+            AppSettingsController.instance.subtitleRecognitionMode.value ==
+                SubtitleRecognitionMode.online) {
+          restartVoiceRecognition();
+        }
+      }),
+    );
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.subtitleOnlineApiUrl, (value) {
+        if (subtitleEnabled.value &&
+            AppSettingsController.instance.subtitleRecognitionMode.value ==
+                SubtitleRecognitionMode.online) {
+          restartVoiceRecognition();
+        }
+      }),
+    );
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.subtitleOnlineApiKey, (value) {
+        if (subtitleEnabled.value &&
+            AppSettingsController.instance.subtitleRecognitionMode.value ==
+                SubtitleRecognitionMode.online) {
+          restartVoiceRecognition();
+        }
+      }),
+    );
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.subtitleOnlineApiKeyHeader, (value) {
+        if (subtitleEnabled.value &&
+            AppSettingsController.instance.subtitleRecognitionMode.value ==
+                SubtitleRecognitionMode.online) {
           restartVoiceRecognition();
         }
       }),
