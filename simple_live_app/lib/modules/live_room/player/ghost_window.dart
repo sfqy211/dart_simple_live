@@ -21,6 +21,27 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   final List<DanmakuContentItem> _items = [];
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
+  final TextEditingController _autoSpamTextController = TextEditingController();
+  final TextEditingController _autoSpamFavoriteController =
+      TextEditingController();
+  bool _pendingAutoSpamPanelOpen = false;
+  bool _autoSpamTextRunning = false;
+  bool _autoSpamEmotionRunning = false;
+  bool _autoSpamFavoritesRunning = false;
+  String _autoSpamTextMsg = '';
+  int _autoSpamTextInterval = 5;
+  int _autoSpamTextChunkSize = 20;
+  int _autoSpamTextDuration = 0;
+  int _autoSpamEmotionInterval = 5;
+  int _autoSpamEmotionDuration = 0;
+  int _autoSpamFavoritesInterval = 5;
+  int _autoSpamFavoritesDuration = 0;
+  int _autoSpamFavoritesIndex = 0;
+  List<Map<String, dynamic>> _autoSpamEmotions = [];
+  List<Map<String, dynamic>> _autoSpamFavorites = [
+    {'id': 1, 'name': '第1组', 'msg': ''}
+  ];
+  bool _autoSpamEmotionsMode = false;
 
   @override
   void initState() {
@@ -34,6 +55,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     WindowManagerPlus.current.removeListener(this);
     _scrollController.dispose();
     _inputController.dispose();
+    _autoSpamTextController.dispose();
+    _autoSpamFavoriteController.dispose();
     super.dispose();
   }
 
@@ -138,6 +161,73 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       } else if (arguments is String) {
         _appendItem(DanmakuContentItem(arguments));
       }
+    } else if (eventName == 'auto_spam_state') {
+      if (arguments is Map) {
+        final message = Map<String, dynamic>.from(arguments);
+        setState(() {
+          _autoSpamTextMsg = message['textMsg']?.toString() ?? _autoSpamTextMsg;
+          _autoSpamTextInterval = (message['textInterval'] as num?)?.toInt() ??
+              _autoSpamTextInterval;
+          _autoSpamTextChunkSize =
+              (message['textChunkSize'] as num?)?.toInt() ??
+                  _autoSpamTextChunkSize;
+          _autoSpamTextDuration = (message['textDuration'] as num?)?.toInt() ??
+              _autoSpamTextDuration;
+          _autoSpamEmotionInterval =
+              (message['emotionInterval'] as num?)?.toInt() ??
+                  _autoSpamEmotionInterval;
+          _autoSpamEmotionDuration =
+              (message['emotionDuration'] as num?)?.toInt() ??
+                  _autoSpamEmotionDuration;
+          _autoSpamFavoritesInterval =
+              (message['favoritesInterval'] as num?)?.toInt() ??
+                  _autoSpamFavoritesInterval;
+          _autoSpamFavoritesDuration =
+              (message['favoritesDuration'] as num?)?.toInt() ??
+                  _autoSpamFavoritesDuration;
+          _autoSpamFavoritesIndex =
+              (message['favoritesIndex'] as num?)?.toInt() ??
+                  _autoSpamFavoritesIndex;
+          _autoSpamTextRunning = message['textRunning'] == true;
+          _autoSpamEmotionRunning = message['emotionRunning'] == true;
+          _autoSpamFavoritesRunning = message['favoritesRunning'] == true;
+          final emotions = message['emotions'];
+          if (emotions is List) {
+            _autoSpamEmotions = emotions
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+          }
+          final favorites = message['favorites'];
+          if (favorites is List) {
+            _autoSpamFavorites = favorites
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+          }
+          if (_autoSpamFavorites.isEmpty) {
+            _autoSpamFavorites = [
+              {'id': 1, 'name': '第1组', 'msg': ''}
+            ];
+          }
+          if (_autoSpamFavoritesIndex >= _autoSpamFavorites.length) {
+            _autoSpamFavoritesIndex = 0;
+          }
+          if (_autoSpamTextController.text != _autoSpamTextMsg) {
+            _autoSpamTextController.text = _autoSpamTextMsg;
+          }
+          final currentMsg =
+              _autoSpamFavorites[_autoSpamFavoritesIndex]['msg']?.toString() ??
+                  '';
+          if (_autoSpamFavoriteController.text != currentMsg) {
+            _autoSpamFavoriteController.text = currentMsg;
+          }
+        });
+        if (_pendingAutoSpamPanelOpen) {
+          _pendingAutoSpamPanelOpen = false;
+          _showAutoSpamPanel();
+        }
+      }
     } else if (eventName == 'emoticons') {
       List<dynamic>? emoticonPackages;
       if (arguments is Map) {
@@ -150,7 +240,12 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         emoticonPackages = arguments;
       }
       if (emoticonPackages != null && emoticonPackages.isNotEmpty) {
-        _showEmotionPanel(emoticonPackages);
+        if (_autoSpamEmotionsMode) {
+          _autoSpamEmotionsMode = false;
+          _showAutoSpamEmotionsPanel(emoticonPackages);
+        } else {
+          _showEmotionPanel(emoticonPackages);
+        }
       }
     }
     return null;
@@ -207,6 +302,31 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     );
   }
 
+  void _requestAutoSpamState() {
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'get_auto_spam_state',
+      {},
+    );
+  }
+
+  void _setAutoSpamState(Map<String, dynamic> settings) {
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'set_auto_spam_state',
+      settings,
+    );
+  }
+
+  void _sendAutoSpamAction(String type, bool start) {
+    WindowManagerPlus.current.invokeMethodToWindow(
+      0,
+      'auto_spam_action',
+      {'type': type, 'start': start},
+    );
+    _requestAutoSpamState();
+  }
+
   void _updateOpacity(double value) {
     setState(() {
       _opacity = value;
@@ -247,6 +367,11 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     );
   }
 
+  void _requestAutoSpam() {
+    _pendingAutoSpamPanelOpen = true;
+    _requestAutoSpamState();
+  }
+
   void _sendEmotion(String emotion, {Map<String, dynamic>? emoticonOptions}) {
     if (emotion.isEmpty) {
       return;
@@ -282,8 +407,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                     const Expanded(
                       child: Text(
                         "表情包",
-                        style:
-                            TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                     ),
                     IconButton(
@@ -336,7 +461,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                     return GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 6,
+                        crossAxisCount: 3,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
                       ),
@@ -385,6 +510,625 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           ),
         );
       },
+    );
+  }
+
+  void _showAutoSpamEmotionsPanel(List<dynamic> emoticonPackages) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return DefaultTabController(
+              length: emoticonPackages.length,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "自动发送表情（${_autoSpamEmotions.length}）",
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _autoSpamEmotions = [];
+                            });
+                            _setAutoSpamState({'emotions': []});
+                            setSheetState(() {});
+                          },
+                          child: const Text("清空"),
+                        ),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.close, size: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TabBar(
+                    isScrollable: true,
+                    tabs: emoticonPackages.map((pkg) {
+                      var cover = '';
+                      if (pkg is Map) {
+                        cover = pkg['current_cover'] ?? '';
+                      }
+                      return Tab(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: cover.isNotEmpty
+                              ? NetImage(
+                                  cover,
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 4,
+                                )
+                              : const Icon(
+                                  Icons.emoji_emotions_outlined,
+                                  size: 20,
+                                ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: emoticonPackages.map((pkg) {
+                        dynamic emoticons;
+                        if (pkg is Map) {
+                          emoticons = pkg['emoticons'];
+                        }
+                        final emoticonList =
+                            emoticons is List ? emoticons : <dynamic>[];
+                        return GridView.builder(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          itemCount: emoticonList.length,
+                          itemBuilder: (context, index) {
+                            final emoticon = emoticonList[index];
+                            final id = _getAutoSpamEmoticonId(emoticon, index);
+                            final text =
+                                _getAutoSpamEmoticonText(emoticon).toString();
+                            final url =
+                                _getAutoSpamEmoticonUrl(emoticon).toString();
+                            final options =
+                                _getAutoSpamEmoticonOptions(emoticon);
+                            final selected = _autoSpamEmotions
+                                .any((item) => item['id']?.toString() == id);
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  final list = List<Map<String, dynamic>>.from(
+                                    _autoSpamEmotions,
+                                  );
+                                  final idx = list.indexWhere(
+                                      (item) => item['id']?.toString() == id);
+                                  if (idx >= 0) {
+                                    list.removeAt(idx);
+                                  } else {
+                                    list.add({
+                                      'id': id,
+                                      'text': text,
+                                      'url': url,
+                                      if (options != null)
+                                        'emoticonOptions': options,
+                                    });
+                                  }
+                                  _autoSpamEmotions = list;
+                                });
+                                _setAutoSpamState(
+                                    {'emotions': _autoSpamEmotions});
+                                setSheetState(() {});
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(8)),
+                                  border: Border.all(
+                                    color: selected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.grey.withAlpha(60),
+                                  ),
+                                  color: selected
+                                      ? Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withAlpha(24)
+                                      : Colors.transparent,
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: Stack(
+                                  children: [
+                                    Align(
+                                      child: NetImage(
+                                        url,
+                                        width: 40,
+                                        height: 40,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                    if (selected)
+                                      const Positioned(
+                                        right: 0,
+                                        top: 0,
+                                        child: Icon(
+                                          Icons.check_circle,
+                                          size: 16,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _getAutoSpamEmoticonId(dynamic emoticon, int index) {
+    if (emoticon is Map) {
+      final id =
+          emoticon['emoticon_unique'] ?? emoticon['text'] ?? emoticon['id'];
+      final value = id?.toString() ?? '';
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return "index_$index";
+  }
+
+  String _getAutoSpamEmoticonText(dynamic emoticon) {
+    if (emoticon is Map) {
+      return (emoticon['emoticon_unique'] ?? emoticon['text'] ?? '').toString();
+    }
+    return "";
+  }
+
+  String _getAutoSpamEmoticonUrl(dynamic emoticon) {
+    if (emoticon is Map) {
+      return (emoticon['url'] ?? '').toString();
+    }
+    return "";
+  }
+
+  Map<String, dynamic>? _getAutoSpamEmoticonOptions(dynamic emoticon) {
+    if (emoticon is Map && emoticon['emoticon_options'] is Map) {
+      return Map<String, dynamic>.from(emoticon['emoticon_options']);
+    }
+    return null;
+  }
+
+  void _showAutoSpamPanel() {
+    _autoSpamTextController.text = _autoSpamTextMsg;
+    final currentMsg =
+        _autoSpamFavorites[_autoSpamFavoritesIndex]['msg']?.toString() ?? '';
+    _autoSpamFavoriteController.text = currentMsg;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void updateFavoritesIndex(int index) {
+              if (index < 0 || index >= _autoSpamFavorites.length) {
+                return;
+              }
+              setState(() {
+                _autoSpamFavoritesIndex = index;
+              });
+              _autoSpamFavoriteController.text =
+                  _autoSpamFavorites[index]['msg']?.toString() ?? '';
+              _setAutoSpamState({'favoritesIndex': index});
+              setSheetState(() {});
+            }
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.85,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              builder: (context, scrollController) {
+                return ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(12),
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            "自动发送",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.close, size: 18),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildAutoSpamSectionHeader(
+                      "文字弹幕",
+                      _autoSpamTextRunning,
+                      () {
+                        setState(() {
+                          _autoSpamTextRunning = true;
+                        });
+                        _sendAutoSpamAction('text', true);
+                        setSheetState(() {});
+                      },
+                      () {
+                        setState(() {
+                          _autoSpamTextRunning = false;
+                        });
+                        _sendAutoSpamAction('text', false);
+                        setSheetState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _autoSpamTextController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        hintText: "输入自动发送弹幕内容",
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamTextMsg = value;
+                        });
+                        _setAutoSpamState({'textMsg': value});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _buildNumberRow(
+                      label: "发送间隔(秒)",
+                      value: _autoSpamTextInterval,
+                      min: 1,
+                      max: 300,
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamTextInterval = value;
+                        });
+                        _setAutoSpamState({'textInterval': value});
+                        setSheetState(() {});
+                      },
+                    ),
+                    _buildNumberRow(
+                      label: "单条长度",
+                      value: _autoSpamTextChunkSize,
+                      min: 5,
+                      max: 60,
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamTextChunkSize = value;
+                        });
+                        _setAutoSpamState({'textChunkSize': value});
+                        setSheetState(() {});
+                      },
+                    ),
+                    _buildNumberRow(
+                      label: "持续时长(秒)",
+                      value: _autoSpamTextDuration,
+                      min: 0,
+                      max: 3600,
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamTextDuration = value;
+                        });
+                        _setAutoSpamState({'textDuration': value});
+                        setSheetState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAutoSpamSectionHeader(
+                      "表情包",
+                      _autoSpamEmotionRunning,
+                      () {
+                        setState(() {
+                          _autoSpamEmotionRunning = true;
+                        });
+                        _sendAutoSpamAction('emotion', true);
+                        setSheetState(() {});
+                      },
+                      () {
+                        setState(() {
+                          _autoSpamEmotionRunning = false;
+                        });
+                        _sendAutoSpamAction('emotion', false);
+                        setSheetState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text("已选 ${_autoSpamEmotions.length} 个"),
+                      trailing: TextButton(
+                        onPressed: () {
+                          _autoSpamEmotionsMode = true;
+                          _requestShowEmotions();
+                        },
+                        child: const Text("选择表情"),
+                      ),
+                    ),
+                    _buildNumberRow(
+                      label: "发送间隔(秒)",
+                      value: _autoSpamEmotionInterval,
+                      min: 1,
+                      max: 300,
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamEmotionInterval = value;
+                        });
+                        _setAutoSpamState({'emotionInterval': value});
+                        setSheetState(() {});
+                      },
+                    ),
+                    _buildNumberRow(
+                      label: "持续时长(秒)",
+                      value: _autoSpamEmotionDuration,
+                      min: 0,
+                      max: 3600,
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamEmotionDuration = value;
+                        });
+                        _setAutoSpamState({'emotionDuration': value});
+                        setSheetState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAutoSpamSectionHeader(
+                      "收藏夹",
+                      _autoSpamFavoritesRunning,
+                      () {
+                        setState(() {
+                          _autoSpamFavoritesRunning = true;
+                        });
+                        _sendAutoSpamAction('favorites', true);
+                        setSheetState(() {});
+                      },
+                      () {
+                        setState(() {
+                          _autoSpamFavoritesRunning = false;
+                        });
+                        _sendAutoSpamAction('favorites', false);
+                        setSheetState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            final nextId = _autoSpamFavorites.isEmpty
+                                ? 1
+                                : (_autoSpamFavorites
+                                        .map((e) => e['id'] as int? ?? 0)
+                                        .reduce((a, b) => a > b ? a : b) +
+                                    1);
+                            setState(() {
+                              _autoSpamFavorites.add({
+                                'id': nextId,
+                                'name': '第${_autoSpamFavorites.length + 1}组',
+                                'msg': '',
+                              });
+                              _autoSpamFavoritesIndex =
+                                  _autoSpamFavorites.length - 1;
+                            });
+                            _autoSpamFavoriteController.text = '';
+                            _setAutoSpamState({
+                              'favorites': _autoSpamFavorites,
+                              'favoritesIndex': _autoSpamFavoritesIndex,
+                            });
+                            setSheetState(() {});
+                          },
+                          child: const Text("新增分组"),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () {
+                            if (_autoSpamFavorites.length <= 1) {
+                              return;
+                            }
+                            setState(() {
+                              _autoSpamFavorites
+                                  .removeAt(_autoSpamFavoritesIndex);
+                              if (_autoSpamFavoritesIndex >=
+                                  _autoSpamFavorites.length) {
+                                _autoSpamFavoritesIndex =
+                                    _autoSpamFavorites.length - 1;
+                              }
+                            });
+                            _autoSpamFavoriteController.text =
+                                _autoSpamFavorites[_autoSpamFavoritesIndex]
+                                            ['msg']
+                                        ?.toString() ??
+                                    '';
+                            _setAutoSpamState({
+                              'favorites': _autoSpamFavorites,
+                              'favoritesIndex': _autoSpamFavoritesIndex,
+                            });
+                            setSheetState(() {});
+                          },
+                          child: const Text("删除分组"),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 40,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _autoSpamFavorites.length,
+                        itemBuilder: (context, index) {
+                          final selected = index == _autoSpamFavoritesIndex;
+                          final name =
+                              _autoSpamFavorites[index]['name']?.toString() ??
+                                  '第${index + 1}组';
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              selected: selected,
+                              label: Text(name),
+                              onSelected: (_) {
+                                updateFavoritesIndex(index);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _autoSpamFavoriteController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        hintText: "输入当前分组弹幕内容",
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamFavorites[_autoSpamFavoritesIndex]['msg'] =
+                              value;
+                        });
+                        _setAutoSpamState({'favorites': _autoSpamFavorites});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _buildNumberRow(
+                      label: "发送间隔(秒)",
+                      value: _autoSpamFavoritesInterval,
+                      min: 1,
+                      max: 300,
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamFavoritesInterval = value;
+                        });
+                        _setAutoSpamState({'favoritesInterval': value});
+                        setSheetState(() {});
+                      },
+                    ),
+                    _buildNumberRow(
+                      label: "持续时长(秒)",
+                      value: _autoSpamFavoritesDuration,
+                      min: 0,
+                      max: 3600,
+                      onChanged: (value) {
+                        setState(() {
+                          _autoSpamFavoritesDuration = value;
+                        });
+                        _setAutoSpamState({'favoritesDuration': value});
+                        setSheetState(() {});
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAutoSpamSectionHeader(
+    String title,
+    bool running,
+    VoidCallback onStart,
+    VoidCallback onStop,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            "$title（${running ? '运行中' : '已停止'}）",
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        TextButton(
+          onPressed: running ? null : onStart,
+          child: const Text("开始"),
+        ),
+        TextButton(
+          onPressed: running ? onStop : null,
+          child: const Text("停止"),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNumberRow({
+    required String label,
+    required int value,
+    required int min,
+    required int max,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Row(
+      children: [
+        Expanded(child: Text(label)),
+        IconButton(
+          onPressed: value <= min ? null : () => onChanged(value - 1),
+          icon: const Icon(Icons.remove_circle_outline, size: 18),
+        ),
+        SizedBox(width: 36, child: Text(value.toString())),
+        IconButton(
+          onPressed: value >= max ? null : () => onChanged(value + 1),
+          icon: const Icon(Icons.add_circle_outline, size: 18),
+        ),
+      ],
     );
   }
 
@@ -656,6 +1400,11 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                     onPressed: _requestShowEmotions,
                     icon: const Icon(Icons.emoji_emotions_outlined, size: 18),
                     tooltip: "表情包",
+                  ),
+                  IconButton(
+                    onPressed: _requestAutoSpam,
+                    icon: const Icon(Icons.auto_mode, size: 18),
+                    tooltip: "自动发送",
                   ),
                   Expanded(
                     child: TextField(

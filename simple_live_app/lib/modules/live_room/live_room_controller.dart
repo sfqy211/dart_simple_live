@@ -831,7 +831,7 @@ class LiveRoomController extends PlayerController
     );
   }
 
-  void showAutoSpamSheet() {
+  Future<void> showAutoSpamSheet() async {
     final settings = AppSettingsController.instance;
     final textController =
         TextEditingController(text: settings.autoSpamTextMsg.value);
@@ -843,7 +843,11 @@ class LiveRoomController extends PlayerController
               ''
           : '',
     );
-    Utils.showBottomSheet(
+    final shouldRestoreGhost = ghostModeState.value;
+    if (shouldRestoreGhost) {
+      await allowMainWindowInteractionForGhost();
+    }
+    await Utils.showBottomSheet(
       title: "自动发送",
       child: ListView(
         padding: AppStyle.edgeInsetsA12,
@@ -1146,6 +1150,9 @@ class LiveRoomController extends PlayerController
         ],
       ),
     );
+    if (shouldRestoreGhost) {
+      await restoreGhostInteractionAfterMainWindow();
+    }
   }
 
   @override
@@ -2163,6 +2170,113 @@ ${errorStackTrace?.toString()}''');
       }
     } else if (eventName == 'show_emotions') {
       await showEmotionPanel();
+    } else if (eventName == 'show_auto_spam') {
+      await showAutoSpamSheet();
+    } else if (eventName == 'get_auto_spam_state') {
+      if (ghostWindowId != null) {
+        final settings = AppSettingsController.instance;
+        WindowManagerPlus.current.invokeMethodToWindow(
+          ghostWindowId!,
+          'auto_spam_state',
+          {
+            'textMsg': settings.autoSpamTextMsg.value,
+            'textInterval': settings.autoSpamTextInterval.value,
+            'textChunkSize': settings.autoSpamTextChunkSize.value,
+            'textDuration': settings.autoSpamTextDuration.value,
+            'emotionInterval': settings.autoSpamEmotionInterval.value,
+            'emotionDuration': settings.autoSpamEmotionDuration.value,
+            'favoritesInterval': settings.autoSpamFavoritesInterval.value,
+            'favoritesDuration': settings.autoSpamFavoritesDuration.value,
+            'favoritesIndex': settings.autoSpamFavoritesIndex.value,
+            'emotions': settings.autoSpamEmotions.toList(),
+            'favorites': settings.autoSpamFavorites.toList(),
+            'textRunning': autoSpamTextRunning.value,
+            'emotionRunning': autoSpamEmotionRunning.value,
+            'favoritesRunning': autoSpamFavoritesRunning.value,
+          },
+        );
+      }
+    } else if (eventName == 'set_auto_spam_state') {
+      if (arguments is Map) {
+        final message = Map<String, dynamic>.from(arguments);
+        final settings = AppSettingsController.instance;
+        if (message.containsKey('textMsg')) {
+          settings.setAutoSpamTextMsg(message['textMsg']?.toString() ?? '');
+        }
+        if (message['textInterval'] is num) {
+          settings.setAutoSpamTextInterval(
+              (message['textInterval'] as num).toInt());
+        }
+        if (message['textChunkSize'] is num) {
+          settings.setAutoSpamTextChunkSize(
+              (message['textChunkSize'] as num).toInt());
+        }
+        if (message['textDuration'] is num) {
+          settings.setAutoSpamTextDuration(
+              (message['textDuration'] as num).toInt());
+        }
+        if (message['emotionInterval'] is num) {
+          settings.setAutoSpamEmotionInterval(
+              (message['emotionInterval'] as num).toInt());
+        }
+        if (message['emotionDuration'] is num) {
+          settings.setAutoSpamEmotionDuration(
+              (message['emotionDuration'] as num).toInt());
+        }
+        if (message['favoritesInterval'] is num) {
+          settings.setAutoSpamFavoritesInterval(
+              (message['favoritesInterval'] as num).toInt());
+        }
+        if (message['favoritesDuration'] is num) {
+          settings.setAutoSpamFavoritesDuration(
+              (message['favoritesDuration'] as num).toInt());
+        }
+        if (message['favoritesIndex'] is num) {
+          settings.setAutoSpamFavoritesIndex(
+              (message['favoritesIndex'] as num).toInt());
+        }
+        if (message['emotions'] is List) {
+          settings.setAutoSpamEmotions(
+            (message['emotions'] as List)
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList(),
+          );
+        }
+        if (message['favorites'] is List) {
+          settings.setAutoSpamFavorites(
+            (message['favorites'] as List)
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList(),
+          );
+        }
+      }
+    } else if (eventName == 'auto_spam_action') {
+      if (arguments is Map) {
+        final message = Map<String, dynamic>.from(arguments);
+        final type = message['type']?.toString() ?? '';
+        final start = message['start'] == true;
+        if (type == 'text') {
+          if (start) {
+            await startAutoSpamText();
+          } else {
+            stopAutoSpamText();
+          }
+        } else if (type == 'emotion') {
+          if (start) {
+            await startAutoSpamEmotion();
+          } else {
+            stopAutoSpamEmotion();
+          }
+        } else if (type == 'favorites') {
+          if (start) {
+            await startAutoSpamFavorites();
+          } else {
+            stopAutoSpamFavorites();
+          }
+        }
+      }
     } else if (eventName == 'ghost_settings') {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);

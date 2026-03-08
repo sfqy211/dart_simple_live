@@ -637,6 +637,44 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     }
   }
 
+  Future<void> allowMainWindowInteractionForGhost() async {
+    if (!ghostModeState.value || Platform.isAndroid || Platform.isIOS) {
+      return;
+    }
+    await _restoreMainWindowAfterGhost();
+    try {
+      await ghostWindowController?.setIgnoreMouseEvents(true, forward: true);
+    } catch (e) {
+      Log.logPrint('临时关闭幽灵窗口交互失败: $e');
+    }
+    try {
+      await ghostWindowController?.setAlwaysOnTop(false);
+    } catch (e) {
+      Log.logPrint('临时取消幽灵窗口置顶失败: $e');
+    }
+  }
+
+  Future<void> restoreGhostInteractionAfterMainWindow() async {
+    if (!ghostModeState.value || Platform.isAndroid || Platform.isIOS) {
+      return;
+    }
+    try {
+      await WindowManagerPlus.current
+          .setIgnoreMouseEvents(true, forward: true);
+      await WindowManagerPlus.current.setSkipTaskbar(true);
+      await WindowManagerPlus.current.setOpacity(0);
+    } catch (e) {
+      Log.logPrint('恢复主窗口隐藏失败: $e');
+    }
+    try {
+      await ghostWindowController?.setAlwaysOnTop(true);
+      await ghostWindowController?.setIgnoreMouseEvents(false);
+      await ghostWindowController?.setOpacity(ghostModeOpacity.value);
+    } catch (e) {
+      Log.logPrint('恢复幽灵窗口交互失败: $e');
+    }
+  }
+
   /// 切换透明“幽灵”模式
   void toggleGhostMode() {
     // 只有在黑听模式下才能开启透明模式
