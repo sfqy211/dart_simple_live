@@ -151,7 +151,7 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kUpdateFollowDuration, 10);
 
     updateFollowThreadCount.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kUpdateFollowThreadCount, 0);  // 默认 0 = 自动
+        .getValue(LocalStorageService.kUpdateFollowThreadCount, 0); // 默认 0 = 自动
 
     audioOnlyMode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kAudioOnlyMode, false);
@@ -170,6 +170,40 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kEmoticonPackageDisabled, <String>[]);
     emoticonPackageDisabled
         .assignAll(disabledPackages.map((e) => e.toString()));
+    autoSpamTextMsg.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamTextMsg, "");
+    autoSpamTextInterval.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamTextInterval, 5);
+    autoSpamTextChunkSize.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamTextChunkSize, 20);
+    autoSpamTextDuration.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamTextDuration, 0);
+    autoSpamEmotionInterval.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamEmotionInterval, 5);
+    autoSpamEmotionDuration.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamEmotionDuration, 0);
+    final storedEmotions = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamEmotions, <dynamic>[]);
+    autoSpamEmotions.assignAll(
+      storedEmotions.whereType<Map>().map((e) => Map<String, dynamic>.from(e)),
+    );
+    autoSpamFavoritesInterval.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamFavoritesInterval, 5);
+    autoSpamFavoritesDuration.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamFavoritesDuration, 0);
+    final storedFavorites = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamFavorites, <dynamic>[]);
+    autoSpamFavorites.assignAll(
+      storedFavorites.whereType<Map>().map((e) => Map<String, dynamic>.from(e)),
+    );
+    if (autoSpamFavorites.isEmpty) {
+      autoSpamFavorites.add({'id': 1, 'name': '第1组', 'msg': ''});
+    }
+    autoSpamFavoritesIndex.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kAutoSpamFavoritesIndex, 0);
+    if (autoSpamFavoritesIndex.value >= autoSpamFavorites.length) {
+      autoSpamFavoritesIndex.value = 0;
+    }
 
     initSiteSort();
     initHomeSort();
@@ -574,8 +608,7 @@ class AppSettingsController extends GetxController {
   var ghostMode = false.obs;
   void setGhostMode(bool e) {
     ghostMode.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kGhostMode, e);
+    LocalStorageService.instance.setValue(LocalStorageService.kGhostMode, e);
   }
 
   var ghostPanelColor = 0xBFD0D0D0.obs;
@@ -583,6 +616,154 @@ class AppSettingsController extends GetxController {
     ghostPanelColor.value = value;
     LocalStorageService.instance
         .setValue(LocalStorageService.kGhostPanelColor, value);
+  }
+
+  var autoSpamTextMsg = "".obs;
+  void setAutoSpamTextMsg(String value) {
+    autoSpamTextMsg.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamTextMsg, value);
+  }
+
+  var autoSpamTextInterval = 5.obs;
+  void setAutoSpamTextInterval(int value) {
+    autoSpamTextInterval.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamTextInterval, value);
+  }
+
+  var autoSpamTextChunkSize = 20.obs;
+  void setAutoSpamTextChunkSize(int value) {
+    autoSpamTextChunkSize.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamTextChunkSize, value);
+  }
+
+  var autoSpamTextDuration = 0.obs;
+  void setAutoSpamTextDuration(int value) {
+    autoSpamTextDuration.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamTextDuration, value);
+  }
+
+  var autoSpamEmotionInterval = 5.obs;
+  void setAutoSpamEmotionInterval(int value) {
+    autoSpamEmotionInterval.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamEmotionInterval, value);
+  }
+
+  var autoSpamEmotionDuration = 0.obs;
+  void setAutoSpamEmotionDuration(int value) {
+    autoSpamEmotionDuration.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamEmotionDuration, value);
+  }
+
+  RxList<Map<String, dynamic>> autoSpamEmotions = <Map<String, dynamic>>[].obs;
+  void setAutoSpamEmotions(List<Map<String, dynamic>> values) {
+    autoSpamEmotions.assignAll(values);
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kAutoSpamEmotions,
+      values,
+    );
+  }
+
+  void toggleAutoSpamEmotion(Map<String, dynamic> value) {
+    final id = value['id']?.toString() ?? '';
+    if (id.isEmpty) {
+      return;
+    }
+    final list = List<Map<String, dynamic>>.from(autoSpamEmotions);
+    final index = list.indexWhere((item) => item['id']?.toString() == id);
+    if (index >= 0) {
+      list.removeAt(index);
+    } else {
+      list.add(value);
+    }
+    setAutoSpamEmotions(list);
+  }
+
+  void clearAutoSpamEmotions() {
+    setAutoSpamEmotions([]);
+  }
+
+  RxList<Map<String, dynamic>> autoSpamFavorites = <Map<String, dynamic>>[].obs;
+  var autoSpamFavoritesIndex = 0.obs;
+  var autoSpamFavoritesInterval = 5.obs;
+  var autoSpamFavoritesDuration = 0.obs;
+
+  void setAutoSpamFavorites(List<Map<String, dynamic>> values) {
+    autoSpamFavorites.assignAll(values);
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kAutoSpamFavorites,
+      values,
+    );
+  }
+
+  void setAutoSpamFavoritesIndex(int value) {
+    autoSpamFavoritesIndex.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamFavoritesIndex, value);
+  }
+
+  void setAutoSpamFavoritesInterval(int value) {
+    autoSpamFavoritesInterval.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamFavoritesInterval, value);
+  }
+
+  void setAutoSpamFavoritesDuration(int value) {
+    autoSpamFavoritesDuration.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kAutoSpamFavoritesDuration, value);
+  }
+
+  void addAutoSpamFavorite() {
+    final list = List<Map<String, dynamic>>.from(autoSpamFavorites);
+    final nextId = list.isEmpty
+        ? 1
+        : (list
+                .map((e) => e['id'] as int? ?? 0)
+                .reduce((a, b) => a > b ? a : b) +
+            1);
+    list.add({
+      'id': nextId,
+      'name': '第${list.length + 1}组',
+      'msg': '',
+    });
+    setAutoSpamFavorites(list);
+    setAutoSpamFavoritesIndex(list.length - 1);
+  }
+
+  void removeAutoSpamFavorite(int index) {
+    final list = List<Map<String, dynamic>>.from(autoSpamFavorites);
+    if (index < 0 || index >= list.length) {
+      return;
+    }
+    list.removeAt(index);
+    if (list.isEmpty) {
+      list.add({'id': 1, 'name': '第1组', 'msg': ''});
+      setAutoSpamFavorites(list);
+      setAutoSpamFavoritesIndex(0);
+      return;
+    }
+    setAutoSpamFavorites(list);
+    if (autoSpamFavoritesIndex.value >= list.length) {
+      setAutoSpamFavoritesIndex(list.length - 1);
+    }
+  }
+
+  void updateAutoSpamFavoriteMessage(int index, String value) {
+    final list = List<Map<String, dynamic>>.from(autoSpamFavorites);
+    if (index < 0 || index >= list.length) {
+      return;
+    }
+    list[index] = {
+      ...list[index],
+      'msg': value,
+    };
+    setAutoSpamFavorites(list);
   }
 
   RxSet<String> emoticonPackageDisabled = <String>{}.obs;

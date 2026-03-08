@@ -1048,6 +1048,16 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       controller.showEmoticonPackageSettingsSheet();
                     },
                   ),
+                  if (controller.site.id == Constant.kBiliBili)
+                    ListTile(
+                      leading: const Icon(Icons.auto_mode),
+                      title: const Text("自动发送"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Get.back();
+                        controller.showAutoSpamSheet();
+                      },
+                    ),
                   ListTile(
                     leading: const Icon(Icons.switch_video_outlined),
                     title: const Text("切换线路"),

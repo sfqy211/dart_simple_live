@@ -26,6 +26,8 @@ import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
+import 'package:simple_live_app/widgets/settings/settings_card.dart';
+import 'package:simple_live_app/widgets/settings/settings_number.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -116,6 +118,23 @@ class LiveRoomController extends PlayerController
   /// 弹幕输入控制器
   final TextEditingController chatInputController = TextEditingController();
 
+  final RxBool autoSpamTextRunning = false.obs;
+  final RxBool autoSpamEmotionRunning = false.obs;
+  final RxBool autoSpamFavoritesRunning = false.obs;
+  Timer? _autoSpamTextTimer;
+  Timer? _autoSpamTextLimitTimer;
+  Timer? _autoSpamEmotionTimer;
+  Timer? _autoSpamEmotionLimitTimer;
+  Timer? _autoSpamFavoritesTimer;
+  Timer? _autoSpamFavoritesLimitTimer;
+  int _autoSpamTextIndex = 0;
+  int _autoSpamEmotionIndex = 0;
+  int _autoSpamFavoritesIndex = 0;
+  int _autoSpamTextFailCount = 0;
+  int _autoSpamEmotionFailCount = 0;
+  int _autoSpamFavoritesFailCount = 0;
+  static const int _autoSpamFailLimit = 3;
+
   /// 发送弹幕
   Future<void> sendChatMessage(String message) async {
     if (message.isEmpty) return;
@@ -162,6 +181,260 @@ class LiveRoomController extends PlayerController
     }
   }
 
+  bool get _isBiliRoom => site.id == Constant.kBiliBili;
+
+  List<String> _splitAutoSpamText(String message, int chunkSize) {
+    final cleaned = message.replaceAll('\n', '');
+    if (cleaned.isEmpty) {
+      return [];
+    }
+    if (chunkSize <= 0 || cleaned.length <= chunkSize) {
+      return [cleaned];
+    }
+    final reg = RegExp('.{1,$chunkSize}');
+    return reg.allMatches(cleaned).map((e) => e.group(0) ?? '').toList();
+  }
+
+  Future<bool> _sendAutoText(String message) {
+    return BiliBiliAccountService.instance
+        .sendMsg(detail.value?.roomId ?? roomId, message);
+  }
+
+  Future<bool> _sendAutoEmotion(String message,
+      {Map<String, dynamic>? emoticonOptions}) {
+    return BiliBiliAccountService.instance.sendEmotion(
+      detail.value?.roomId ?? roomId,
+      message,
+      emoticonOptions: emoticonOptions,
+    );
+  }
+
+  void _stopAutoSpamTimer(Timer? timer) {
+    timer?.cancel();
+  }
+
+  void stopAutoSpamText() {
+    autoSpamTextRunning.value = false;
+    _autoSpamTextIndex = 0;
+    _autoSpamTextFailCount = 0;
+    _stopAutoSpamTimer(_autoSpamTextTimer);
+    _autoSpamTextTimer = null;
+    _stopAutoSpamTimer(_autoSpamTextLimitTimer);
+    _autoSpamTextLimitTimer = null;
+  }
+
+  void stopAutoSpamEmotion() {
+    autoSpamEmotionRunning.value = false;
+    _autoSpamEmotionIndex = 0;
+    _autoSpamEmotionFailCount = 0;
+    _stopAutoSpamTimer(_autoSpamEmotionTimer);
+    _autoSpamEmotionTimer = null;
+    _stopAutoSpamTimer(_autoSpamEmotionLimitTimer);
+    _autoSpamEmotionLimitTimer = null;
+  }
+
+  void stopAutoSpamFavorites() {
+    autoSpamFavoritesRunning.value = false;
+    _autoSpamFavoritesIndex = 0;
+    _autoSpamFavoritesFailCount = 0;
+    _stopAutoSpamTimer(_autoSpamFavoritesTimer);
+    _autoSpamFavoritesTimer = null;
+    _stopAutoSpamTimer(_autoSpamFavoritesLimitTimer);
+    _autoSpamFavoritesLimitTimer = null;
+  }
+
+  void stopAllAutoSpam() {
+    stopAutoSpamText();
+    stopAutoSpamEmotion();
+    stopAutoSpamFavorites();
+  }
+
+  Future<void> startAutoSpamText() async {
+    if (!_isBiliRoom) {
+      SmartDialog.showToast("当前平台暂不支持自动发送");
+      return;
+    }
+    final settings = AppSettingsController.instance;
+    final message = settings.autoSpamTextMsg.value.trim();
+    if (message.isEmpty) {
+      SmartDialog.showToast("请输入自动发送内容");
+      return;
+    }
+    final interval = settings.autoSpamTextInterval.value;
+    if (interval <= 0) {
+      SmartDialog.showToast("发送间隔需大于 0 秒");
+      return;
+    }
+    final chunkSize = settings.autoSpamTextChunkSize.value;
+    final messages = _splitAutoSpamText(message, chunkSize);
+    if (messages.isEmpty) {
+      SmartDialog.showToast("自动发送内容为空");
+      return;
+    }
+    stopAutoSpamText();
+    autoSpamTextRunning.value = true;
+    _autoSpamTextIndex = 0;
+    _autoSpamTextFailCount = 0;
+    final duration = settings.autoSpamTextDuration.value;
+    Future<void> sendNext() async {
+      if (!autoSpamTextRunning.value) {
+        return;
+      }
+      final text = messages[_autoSpamTextIndex];
+      final success = await _sendAutoText(text);
+      if (!success) {
+        _autoSpamTextFailCount += 1;
+        if (_autoSpamTextFailCount >= _autoSpamFailLimit) {
+          stopAutoSpamText();
+          SmartDialog.showToast("自动发送失败次数过多，已停止");
+          return;
+        }
+      } else {
+        _autoSpamTextFailCount = 0;
+      }
+      _autoSpamTextIndex = (_autoSpamTextIndex + 1) % messages.length;
+    }
+
+    await sendNext();
+    _autoSpamTextTimer =
+        Timer.periodic(Duration(seconds: interval), (_) => sendNext());
+    if (duration > 0) {
+      _autoSpamTextLimitTimer = Timer(
+        Duration(seconds: duration),
+        () {
+          stopAutoSpamText();
+        },
+      );
+    }
+  }
+
+  Future<void> startAutoSpamEmotion() async {
+    if (!_isBiliRoom) {
+      SmartDialog.showToast("当前平台暂不支持自动发送");
+      return;
+    }
+    final settings = AppSettingsController.instance;
+    final emotions = settings.autoSpamEmotions;
+    if (emotions.isEmpty) {
+      SmartDialog.showToast("请先选择表情包");
+      return;
+    }
+    final interval = settings.autoSpamEmotionInterval.value;
+    if (interval <= 0) {
+      SmartDialog.showToast("发送间隔需大于 0 秒");
+      return;
+    }
+    stopAutoSpamEmotion();
+    autoSpamEmotionRunning.value = true;
+    _autoSpamEmotionIndex = 0;
+    _autoSpamEmotionFailCount = 0;
+    final duration = settings.autoSpamEmotionDuration.value;
+    Future<void> sendNext() async {
+      if (!autoSpamEmotionRunning.value) {
+        return;
+      }
+      final item = emotions[_autoSpamEmotionIndex];
+      final text = item['text']?.toString() ?? '';
+      final options = item['emoticonOptions'] is Map
+          ? Map<String, dynamic>.from(item['emoticonOptions'])
+          : null;
+      if (text.isEmpty) {
+        _autoSpamEmotionIndex = (_autoSpamEmotionIndex + 1) % emotions.length;
+        return;
+      }
+      final success = await _sendAutoEmotion(text, emoticonOptions: options);
+      if (!success) {
+        _autoSpamEmotionFailCount += 1;
+        if (_autoSpamEmotionFailCount >= _autoSpamFailLimit) {
+          stopAutoSpamEmotion();
+          SmartDialog.showToast("自动发送失败次数过多，已停止");
+          return;
+        }
+      } else {
+        _autoSpamEmotionFailCount = 0;
+      }
+      _autoSpamEmotionIndex = (_autoSpamEmotionIndex + 1) % emotions.length;
+    }
+
+    await sendNext();
+    _autoSpamEmotionTimer =
+        Timer.periodic(Duration(seconds: interval), (_) => sendNext());
+    if (duration > 0) {
+      _autoSpamEmotionLimitTimer = Timer(
+        Duration(seconds: duration),
+        () {
+          stopAutoSpamEmotion();
+        },
+      );
+    }
+  }
+
+  Future<void> startAutoSpamFavorites() async {
+    if (!_isBiliRoom) {
+      SmartDialog.showToast("当前平台暂不支持自动发送");
+      return;
+    }
+    final settings = AppSettingsController.instance;
+    final favorites = settings.autoSpamFavorites;
+    if (favorites.isEmpty) {
+      SmartDialog.showToast("请先添加收藏夹弹幕");
+      return;
+    }
+    final interval = settings.autoSpamFavoritesInterval.value;
+    if (interval <= 0) {
+      SmartDialog.showToast("发送间隔需大于 0 秒");
+      return;
+    }
+    final chunkSize = settings.autoSpamTextChunkSize.value;
+    final messages = <String>[];
+    for (final item in favorites) {
+      final msg = item['msg']?.toString() ?? '';
+      if (msg.trim().isEmpty) {
+        continue;
+      }
+      messages.addAll(_splitAutoSpamText(msg, chunkSize));
+    }
+    if (messages.isEmpty) {
+      SmartDialog.showToast("收藏夹弹幕为空");
+      return;
+    }
+    stopAutoSpamFavorites();
+    autoSpamFavoritesRunning.value = true;
+    _autoSpamFavoritesIndex = 0;
+    _autoSpamFavoritesFailCount = 0;
+    final duration = settings.autoSpamFavoritesDuration.value;
+    Future<void> sendNext() async {
+      if (!autoSpamFavoritesRunning.value) {
+        return;
+      }
+      final text = messages[_autoSpamFavoritesIndex];
+      final success = await _sendAutoText(text);
+      if (!success) {
+        _autoSpamFavoritesFailCount += 1;
+        if (_autoSpamFavoritesFailCount >= _autoSpamFailLimit) {
+          stopAutoSpamFavorites();
+          SmartDialog.showToast("自动发送失败次数过多，已停止");
+          return;
+        }
+      } else {
+        _autoSpamFavoritesFailCount = 0;
+      }
+      _autoSpamFavoritesIndex = (_autoSpamFavoritesIndex + 1) % messages.length;
+    }
+
+    await sendNext();
+    _autoSpamFavoritesTimer =
+        Timer.periodic(Duration(seconds: interval), (_) => sendNext());
+    if (duration > 0) {
+      _autoSpamFavoritesLimitTimer = Timer(
+        Duration(seconds: duration),
+        () {
+          stopAutoSpamFavorites();
+        },
+      );
+    }
+  }
+
   String _getEmoticonPackageId(dynamic pkg, int index) {
     if (pkg is Map) {
       final id = pkg['pkg_id'] ?? pkg['pkg_name'] ?? '';
@@ -191,6 +464,41 @@ class LiveRoomController extends PlayerController
       }
     }
     return "";
+  }
+
+  String _getEmoticonId(dynamic emoticon, int index) {
+    if (emoticon is Map) {
+      final id =
+          emoticon['emoticon_unique'] ?? emoticon['text'] ?? emoticon['id'];
+      final value = id?.toString() ?? '';
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+    return "index_$index";
+  }
+
+  String _getEmoticonText(dynamic emoticon) {
+    if (emoticon is Map) {
+      final text = emoticon['emoticon_unique'] ?? emoticon['text'] ?? '';
+      return text.toString();
+    }
+    return "";
+  }
+
+  String _getEmoticonUrl(dynamic emoticon) {
+    if (emoticon is Map) {
+      final url = emoticon['url'] ?? '';
+      return url.toString();
+    }
+    return "";
+  }
+
+  Map<String, dynamic>? _getEmoticonOptions(dynamic emoticon) {
+    if (emoticon is Map && emoticon['emoticon_options'] is Map) {
+      return Map<String, dynamic>.from(emoticon['emoticon_options']);
+    }
+    return null;
   }
 
   List<dynamic> _filterEmoticonPackages(List<dynamic> packages) {
@@ -369,6 +677,473 @@ class LiveRoomController extends PlayerController
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<void> showAutoSpamEmotionsSheet() async {
+    var emoticonPackages = await getEmoticons();
+    if (emoticonPackages == null || emoticonPackages.isEmpty) {
+      SmartDialog.showToast("暂无可用表情包");
+      return;
+    }
+    Utils.showBottomSheet(
+      title: "选择自动发送表情",
+      child: DefaultTabController(
+        length: emoticonPackages.length,
+        child: Column(
+          children: [
+            TabBar(
+              isScrollable: true,
+              tabs: emoticonPackages.map((pkg) {
+                var cover = _getEmoticonPackageCover(pkg);
+                return Tab(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: cover.isNotEmpty
+                        ? NetImage(
+                            cover,
+                            width: 32,
+                            height: 32,
+                            borderRadius: 4,
+                          )
+                        : Text(_getEmoticonPackageName(pkg)),
+                  ),
+                );
+              }).toList(),
+            ),
+            Padding(
+              padding: AppStyle.edgeInsetsA12,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Obx(
+                    () => Text(
+                      "已选 ${AppSettingsController.instance.autoSpamEmotions.length} 个",
+                      style: Get.textTheme.bodySmall,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed:
+                        AppSettingsController.instance.clearAutoSpamEmotions,
+                    child: const Text("清空"),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: emoticonPackages.map((pkg) {
+                  dynamic emoticons;
+                  if (pkg is Map) {
+                    emoticons = pkg['emoticons'];
+                  }
+                  final emoticonList =
+                      emoticons is List ? emoticons : <dynamic>[];
+                  return Obx(
+                    () {
+                      final selectedIds = AppSettingsController
+                          .instance.autoSpamEmotions
+                          .map((e) => e['id']?.toString() ?? '')
+                          .where((e) => e.isNotEmpty)
+                          .toSet();
+                      return GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                        ),
+                        padding: AppStyle.edgeInsetsA12,
+                        itemCount: emoticonList.length,
+                        itemBuilder: (context, index) {
+                          final emoticon = emoticonList[index];
+                          final id = _getEmoticonId(emoticon, index);
+                          final text = _getEmoticonText(emoticon);
+                          final url = _getEmoticonUrl(emoticon);
+                          final options = _getEmoticonOptions(emoticon);
+                          final selected = selectedIds.contains(id);
+                          return GestureDetector(
+                            onTap: () {
+                              AppSettingsController.instance
+                                  .toggleAutoSpamEmotion(
+                                {
+                                  'id': id,
+                                  'text': text,
+                                  'url': url,
+                                  if (options != null)
+                                    'emoticonOptions': options,
+                                },
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: AppStyle.radius8,
+                                border: Border.all(
+                                  color: selected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.grey.withAlpha(60),
+                                ),
+                                color: selected
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withAlpha(24)
+                                    : Colors.transparent,
+                              ),
+                              padding: AppStyle.edgeInsetsA4,
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    child: NetImage(
+                                      url,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                  if (selected)
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        size: 16,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void showAutoSpamSheet() {
+    final settings = AppSettingsController.instance;
+    final textController =
+        TextEditingController(text: settings.autoSpamTextMsg.value);
+    final favoriteController = TextEditingController(
+      text: settings.autoSpamFavorites.isNotEmpty
+          ? settings.autoSpamFavorites[settings.autoSpamFavoritesIndex.value]
+                      ['msg']
+                  ?.toString() ??
+              ''
+          : '',
+    );
+    Utils.showBottomSheet(
+      title: "自动发送",
+      child: ListView(
+        padding: AppStyle.edgeInsetsA12,
+        children: [
+          SettingsCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Obx(
+                  () => ListTile(
+                    title: const Text("文字弹幕"),
+                    subtitle: Text(
+                      autoSpamTextRunning.value ? "运行中" : "已停止",
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: autoSpamTextRunning.value
+                              ? null
+                              : startAutoSpamText,
+                          child: const Text("开始"),
+                        ),
+                        TextButton(
+                          onPressed: autoSpamTextRunning.value
+                              ? stopAutoSpamText
+                              : null,
+                          child: const Text("停止"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: AppStyle.edgeInsetsH12,
+                  child: TextField(
+                    controller: textController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: "输入自动发送弹幕内容",
+                      border: OutlineInputBorder(
+                        borderRadius: AppStyle.radius12,
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.withAlpha(25),
+                      contentPadding: AppStyle.edgeInsetsH12,
+                    ),
+                    onChanged: settings.setAutoSpamTextMsg,
+                  ),
+                ),
+                AppStyle.vGap8,
+                Obx(
+                  () => SettingsNumber(
+                    title: "发送间隔",
+                    value: settings.autoSpamTextInterval.value,
+                    min: 1,
+                    max: 300,
+                    unit: "秒",
+                    onChanged: settings.setAutoSpamTextInterval,
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
+                  () => SettingsNumber(
+                    title: "单条长度",
+                    value: settings.autoSpamTextChunkSize.value,
+                    min: 5,
+                    max: 60,
+                    onChanged: settings.setAutoSpamTextChunkSize,
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
+                  () => SettingsNumber(
+                    title: "持续时长",
+                    value: settings.autoSpamTextDuration.value,
+                    min: 0,
+                    max: 3600,
+                    unit: "秒",
+                    onChanged: settings.setAutoSpamTextDuration,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppStyle.vGap12,
+          SettingsCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Obx(
+                  () => ListTile(
+                    title: const Text("表情包"),
+                    subtitle: Text(
+                      autoSpamEmotionRunning.value ? "运行中" : "已停止",
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: autoSpamEmotionRunning.value
+                              ? null
+                              : startAutoSpamEmotion,
+                          child: const Text("开始"),
+                        ),
+                        TextButton(
+                          onPressed: autoSpamEmotionRunning.value
+                              ? stopAutoSpamEmotion
+                              : null,
+                          child: const Text("停止"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                ListTile(
+                  title: const Text("选择表情"),
+                  subtitle: Obx(
+                    () => Text(
+                      "已选 ${settings.autoSpamEmotions.length} 个",
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: showAutoSpamEmotionsSheet,
+                ),
+                AppStyle.divider,
+                Obx(
+                  () => SettingsNumber(
+                    title: "发送间隔",
+                    value: settings.autoSpamEmotionInterval.value,
+                    min: 1,
+                    max: 300,
+                    unit: "秒",
+                    onChanged: settings.setAutoSpamEmotionInterval,
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
+                  () => SettingsNumber(
+                    title: "持续时长",
+                    value: settings.autoSpamEmotionDuration.value,
+                    min: 0,
+                    max: 3600,
+                    unit: "秒",
+                    onChanged: settings.setAutoSpamEmotionDuration,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppStyle.vGap12,
+          SettingsCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Obx(
+                  () => ListTile(
+                    title: const Text("收藏夹"),
+                    subtitle: Text(
+                      autoSpamFavoritesRunning.value ? "运行中" : "已停止",
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: autoSpamFavoritesRunning.value
+                              ? null
+                              : startAutoSpamFavorites,
+                          child: const Text("开始"),
+                        ),
+                        TextButton(
+                          onPressed: autoSpamFavoritesRunning.value
+                              ? stopAutoSpamFavorites
+                              : null,
+                          child: const Text("停止"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                ListTile(
+                  title: const Text("分组管理"),
+                  trailing: TextButton(
+                    onPressed: settings.addAutoSpamFavorite,
+                    child: const Text("新增"),
+                  ),
+                ),
+                Obx(
+                  () => Column(
+                    children: List.generate(
+                      settings.autoSpamFavorites.length,
+                      (index) {
+                        final item = settings.autoSpamFavorites[index];
+                        final name =
+                            item['name']?.toString() ?? "分组${index + 1}";
+                        final selected =
+                            settings.autoSpamFavoritesIndex.value == index;
+                        return ListTile(
+                          dense: true,
+                          leading: Icon(
+                            selected
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_unchecked,
+                            color: selected
+                                ? Theme.of(Get.context!).colorScheme.primary
+                                : null,
+                          ),
+                          title: Text(name),
+                          onTap: () {
+                            settings.setAutoSpamFavoritesIndex(index);
+                            final msg = settings.autoSpamFavorites[index]['msg']
+                                    ?.toString() ??
+                                '';
+                            if (favoriteController.text != msg) {
+                              favoriteController.text = msg;
+                            }
+                          },
+                          trailing: IconButton(
+                            onPressed: () {
+                              settings.removeAutoSpamFavorite(index);
+                              final currentIndex =
+                                  settings.autoSpamFavoritesIndex.value;
+                              final msg = settings
+                                      .autoSpamFavorites[currentIndex]['msg']
+                                      ?.toString() ??
+                                  '';
+                              if (favoriteController.text != msg) {
+                                favoriteController.text = msg;
+                              }
+                            },
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: AppStyle.edgeInsetsH12,
+                  child: Obx(
+                    () {
+                      final currentIndex =
+                          settings.autoSpamFavoritesIndex.value;
+                      final currentMsg = settings
+                              .autoSpamFavorites[currentIndex]['msg']
+                              ?.toString() ??
+                          '';
+                      if (favoriteController.text != currentMsg) {
+                        favoriteController.text = currentMsg;
+                      }
+                      return TextField(
+                        controller: favoriteController,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: "输入当前分组弹幕内容",
+                          border: OutlineInputBorder(
+                            borderRadius: AppStyle.radius12,
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.withAlpha(25),
+                          contentPadding: AppStyle.edgeInsetsH12,
+                        ),
+                        onChanged: (value) {
+                          settings.updateAutoSpamFavoriteMessage(
+                            currentIndex,
+                            value,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                AppStyle.vGap8,
+                Obx(
+                  () => SettingsNumber(
+                    title: "发送间隔",
+                    value: settings.autoSpamFavoritesInterval.value,
+                    min: 1,
+                    max: 300,
+                    unit: "秒",
+                    onChanged: settings.setAutoSpamFavoritesInterval,
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
+                  () => SettingsNumber(
+                    title: "持续时长",
+                    value: settings.autoSpamFavoritesDuration.value,
+                    min: 0,
+                    max: 3600,
+                    unit: "秒",
+                    onChanged: settings.setAutoSpamFavoritesDuration,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1250,6 +2025,7 @@ class LiveRoomController extends PlayerController
       return;
     }
 
+    stopAllAutoSpam();
     rxSite.value = site;
     rxRoomId.value = roomId;
 
@@ -1288,6 +2064,7 @@ ${errorStackTrace?.toString()}''');
       //进入后台，关闭弹幕
       danmakuController?.clear();
       isBackground = true;
+      stopAllAutoSpam();
     } else
     //返回前台
     if (state == AppLifecycleState.resumed) {
@@ -1338,6 +2115,7 @@ ${errorStackTrace?.toString()}''');
     }
     autoExitTimer?.cancel();
 
+    stopAllAutoSpam();
     liveDanmaku.stop();
     danmakuController = null;
     _liveDurationTimer?.cancel(); // 页面关闭时取消定时器
@@ -1409,6 +2187,7 @@ ${errorStackTrace?.toString()}''');
         }
       }
     } else if (eventName == 'ghost_exit' || eventName == 'ghost_closed') {
+      stopAllAutoSpam();
       if (ghostModeState.value) {
         exitGhostMode();
       }

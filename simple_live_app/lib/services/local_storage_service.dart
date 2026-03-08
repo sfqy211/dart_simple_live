@@ -180,6 +180,17 @@ class LocalStorageService extends GetxService {
   /// 透明模式
   static const String kGhostMode = "GhostMode";
   static const String kGhostPanelColor = "GhostPanelColor";
+  static const String kAutoSpamTextMsg = "AutoSpamTextMsg";
+  static const String kAutoSpamTextInterval = "AutoSpamTextInterval";
+  static const String kAutoSpamTextChunkSize = "AutoSpamTextChunkSize";
+  static const String kAutoSpamTextDuration = "AutoSpamTextDuration";
+  static const String kAutoSpamEmotionInterval = "AutoSpamEmotionInterval";
+  static const String kAutoSpamEmotionDuration = "AutoSpamEmotionDuration";
+  static const String kAutoSpamEmotions = "AutoSpamEmotions";
+  static const String kAutoSpamFavorites = "AutoSpamFavorites";
+  static const String kAutoSpamFavoritesIndex = "AutoSpamFavoritesIndex";
+  static const String kAutoSpamFavoritesInterval = "AutoSpamFavoritesInterval";
+  static const String kAutoSpamFavoritesDuration = "AutoSpamFavoritesDuration";
 
   /// 表情包过滤
   static const String kEmoticonPackageDisabled = "EmoticonPackageDisabled";
