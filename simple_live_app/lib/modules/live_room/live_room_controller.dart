@@ -1512,6 +1512,7 @@ class LiveRoomController extends PlayerController
     _subtitleClearTimer?.cancel();
     subtitleText.value = "";
     subtitleIsPartial.value = false;
+    _sendGhostSubtitle("", false);
     await _stopSubtitleAudioCapture();
     await _voiceRecognitionService.stop();
   }
@@ -1524,6 +1525,7 @@ class LiveRoomController extends PlayerController
   void _handleSubtitleResult(VoiceRecognitionResult result) {
     subtitleText.value = result.text;
     subtitleIsPartial.value = !result.isFinal;
+    _sendGhostSubtitle(result.text, !result.isFinal);
     if (result.isFinal) {
       _subtitleClearTimer?.cancel();
       _subtitleClearTimer = Timer(
@@ -1531,10 +1533,30 @@ class LiveRoomController extends PlayerController
         () {
           if (!subtitleIsPartial.value) {
             subtitleText.value = "";
+            _sendGhostSubtitle("", false);
           }
         },
       );
     }
+  }
+
+  void _sendGhostSubtitle(String text, bool partial) {
+    if (!ghostModeState.value ||
+        Platform.isAndroid ||
+        Platform.isIOS ||
+        ghostWindowId == null) {
+      return;
+    }
+    try {
+      WindowManagerPlus.current.invokeMethodToWindow(
+        ghostWindowId!,
+        'subtitle',
+        {
+          'text': text,
+          'partial': partial,
+        },
+      );
+    } catch (_) {}
   }
 
   void scrollListener() {

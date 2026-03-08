@@ -18,6 +18,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   double _danmakuOpacity = 1.0;
   int _fontWeight = 4;
   int _panelColor = 0xBFD0D0D0;
+  String _subtitleText = '';
+  bool _subtitleIsPartial = false;
   final List<DanmakuContentItem> _items = [];
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
@@ -160,6 +162,14 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         ));
       } else if (arguments is String) {
         _appendItem(DanmakuContentItem(arguments));
+      }
+    } else if (eventName == 'subtitle') {
+      if (arguments is Map) {
+        final message = Map<String, dynamic>.from(arguments);
+        setState(() {
+          _subtitleText = message['text']?.toString() ?? '';
+          _subtitleIsPartial = message['partial'] == true;
+        });
       }
     } else if (eventName == 'auto_spam_state') {
       if (arguments is Map) {
@@ -1205,7 +1215,6 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     );
   }
 
-
   Widget _buildAutoSpamSectionHeader(
     String title,
     bool running,
@@ -1454,6 +1463,30 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
                 children: [
+                  if (_subtitleText.isNotEmpty)
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 4,
+                          horizontal: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha(110),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _subtitleText,
+                          softWrap: true,
+                          style: TextStyle(
+                            fontSize: _fontSize,
+                            fontWeight: _subtitleIsPartial
+                                ? FontWeight.normal
+                                : FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: _locked
                         ? const SizedBox.expand()

@@ -4,6 +4,7 @@ simple_live_tv_app/.vscode/settings.json
 # macOS Spotlight Search index file
 *.DS_Store
 .trae/
+.claude/
 
 BLSPAM-main/
 dart_simple_live-master/
