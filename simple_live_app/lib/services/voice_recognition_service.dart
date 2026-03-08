@@ -119,9 +119,9 @@ class VoiceRecognitionService {
     if (_recognizer != null && _currentModelName == modelName) {
       return;
     }
+    final modelPath = await _modelManager.resolveModelPath(modelName);
     final model = await _modelManager.resolveModelByName(modelName);
-    final modelPath = await _modelManager.ensureModel(model);
-    _currentModelName = model.name;
+    _currentModelName = model?.name ?? modelName;
     final voskModel = await _vosk.createModel(modelPath);
     _recognizer = await _vosk.createRecognizer(
       model: voskModel,

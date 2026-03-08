@@ -7,7 +7,7 @@ import 'package:simple_live_app/services/voice_model_manager.dart';
 import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_number.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
-import 'package:vosk_flutter/vosk_flutter.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class VoiceRecognitionSettingsPage extends StatefulWidget {
   const VoiceRecognitionSettingsPage({super.key});
@@ -28,38 +28,33 @@ class _VoiceRecognitionSettingsPageState
     _catalogFuture = _loadCatalog();
   }
 
-  Future<_VoiceModelCatalog> _loadCatalog() async {
-    final models = await _modelManager.loadPreferredModels();
-    final downloaded = <String, bool>{};
-    for (final model in models) {
-      downloaded[model.name] = await _modelManager.isModelAvailable(model.name);
-    }
-    return _VoiceModelCatalog(models: models, downloaded: downloaded);
+  Future<_VoiceModelCatalog> _loadCatalog({bool refresh = false}) async {
+    final models = await _modelManager.loadLocalModels(refresh: refresh);
+    return _VoiceModelCatalog(models: models);
   }
 
   void _refreshCatalog() {
     setState(() {
-      _catalogFuture = _loadCatalog();
+      _catalogFuture = _loadCatalog(refresh: true);
     });
   }
 
-  Future<void> _selectModel(
-    LanguageModelDescription model,
-    bool downloaded,
-  ) async {
-    if (!downloaded) {
-      SmartDialog.showLoading(msg: "模型下载中");
-      try {
-        await _modelManager.ensureModel(model);
-      } catch (e) {
-        SmartDialog.dismiss();
-        SmartDialog.showToast("模型下载失败: $e");
-        return;
-      }
-      SmartDialog.dismiss();
-    }
+  Future<void> _selectModel(LocalVoiceModel model) async {
     AppSettingsController.instance.setSubtitleModelName(model.name);
     _refreshCatalog();
+  }
+
+  String _formatLastModified(DateTime time) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return "${time.year}-${two(time.month)}-${two(time.day)} ${two(time.hour)}:${two(time.minute)}";
+  }
+
+  Future<void> _openUrl(String url) async {
+    try {
+      await launchUrlString(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      SmartDialog.showToast("无法打开链接: $e");
+    }
   }
 
   @override
@@ -78,18 +73,15 @@ class _VoiceRecognitionSettingsPageState
                 Obx(
                   () => SettingsSwitch(
                     title: "字幕开关",
-                    value:
-                        AppSettingsController.instance.subtitleEnable.value,
-                    onChanged:
-                        AppSettingsController.instance.setSubtitleEnable,
+                    value: AppSettingsController.instance.subtitleEnable.value,
+                    onChanged: AppSettingsController.instance.setSubtitleEnable,
                   ),
                 ),
                 AppStyle.divider,
                 Obx(
                   () => SettingsNumber(
                     title: "字体大小",
-                    value: AppSettingsController.instance.subtitleFontSize
-                        .value
+                    value: AppSettingsController.instance.subtitleFontSize.value
                         .toInt(),
                     min: 10,
                     max: 32,
@@ -104,9 +96,19 @@ class _VoiceRecognitionSettingsPageState
           ),
           Padding(
             padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-            child: Text(
-              "语言模型",
-              style: Get.textTheme.titleSmall,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "本地模型",
+                  style: Get.textTheme.titleSmall,
+                ),
+                TextButton.icon(
+                  onPressed: _refreshCatalog,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text("重新扫描"),
+                ),
+              ],
             ),
           ),
           FutureBuilder<_VoiceModelCatalog>(
@@ -129,29 +131,73 @@ class _VoiceRecognitionSettingsPageState
                 );
               }
               final catalog = snapshot.data!;
+              if (catalog.models.isEmpty) {
+                return SettingsCard(
+                  child: Padding(
+                    padding: AppStyle.edgeInsetsA12,
+                    child: Text(
+                      "未检测到本地模型，请先下载并放入simple_live_app\\models",
+                      style: Get.textTheme.bodyMedium,
+                    ),
+                  ),
+                );
+              }
               return SettingsCard(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: catalog.models.map((model) {
-                    final downloaded =
-                        catalog.downloaded[model.name] ?? false;
                     return Obx(
                       () => ListTile(
-                        title: Text(model.langText),
-                        subtitle: Text(model.sizeText),
-                        trailing: downloaded
-                            ? const Icon(Icons.check_circle, size: 20)
-                            : const Icon(Icons.cloud_download_outlined, size: 20),
+                        title: Text(model.name),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "${model.sizeText} · ${_formatLastModified(model.lastModified)}",
+                            ),
+                            Text(
+                              "官方下载: ${model.downloadUrl}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                        trailing: const Icon(
+                          Icons.check_circle,
+                          size: 20,
+                          color: Colors.green,
+                        ),
                         selected: AppSettingsController
                                 .instance.subtitleModelName.value ==
                             model.name,
-                        onTap: () => _selectModel(model, downloaded),
+                        onTap: () => _selectModel(model),
+                        onLongPress: () => _openUrl(model.downloadUrl),
                       ),
                     );
                   }).toList(),
                 ),
               );
             },
+          ),
+          Padding(
+            padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
+            child: Text(
+              "下载来源",
+              style: Get.textTheme.titleSmall,
+            ),
+          ),
+          SettingsCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text("Vosk 官方模型下载页"),
+                  subtitle: const Text("https://alphacephei.com/vosk/models"),
+                  trailing: const Icon(Icons.open_in_new, size: 20),
+                  onTap: () => _openUrl("https://alphacephei.com/vosk/models"),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -160,11 +206,9 @@ class _VoiceRecognitionSettingsPageState
 }
 
 class _VoiceModelCatalog {
-  final List<LanguageModelDescription> models;
-  final Map<String, bool> downloaded;
+  final List<LocalVoiceModel> models;
 
   _VoiceModelCatalog({
     required this.models,
-    required this.downloaded,
   });
 }

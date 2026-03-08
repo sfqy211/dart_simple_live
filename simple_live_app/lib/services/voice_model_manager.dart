@@ -1,101 +1,137 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
-import 'package:vosk_flutter/vosk_flutter.dart';
+
+class LocalVoiceModel {
+  final String name;
+  final String version;
+  final int sizeBytes;
+  final String sizeText;
+  final String modelPath;
+  final DateTime lastModified;
+  final String downloadUrl;
+
+  LocalVoiceModel({
+    required this.name,
+    required this.version,
+    required this.sizeBytes,
+    required this.sizeText,
+    required this.modelPath,
+    required this.lastModified,
+    required this.downloadUrl,
+  });
+}
 
 class VoiceModelManager {
-  List<LanguageModelDescription>? _cachedModels;
+  List<LocalVoiceModel>? _cachedModels;
 
-  Future<List<LanguageModelDescription>> loadPreferredModels({
-    bool refresh = false,
-  }) async {
+  Future<List<LocalVoiceModel>> loadLocalModels({bool refresh = false}) async {
     if (!refresh && _cachedModels != null) {
       return _cachedModels!;
     }
-    try {
-      final models = await ModelLoader().loadModelsList();
-      _cachedModels = models
-          .where((model) => !model.obsolete && model.type == "small")
-          .toList();
-      return _cachedModels!;
-    } catch (_) {
-      _cachedModels = _fallbackModels();
+    final modelsPath = _resolveModelsDirectory();
+    final dir = Directory(modelsPath);
+    if (!await dir.exists()) {
+      _cachedModels = [];
       return _cachedModels!;
     }
+    final entities = await dir.list(followLinks: false).toList();
+    final models = <LocalVoiceModel>[];
+    for (final entity in entities) {
+      if (entity is! Directory) {
+        continue;
+      }
+      final name = path.basename(entity.path);
+      if (!_isValidModelName(name)) {
+        continue;
+      }
+      final sizeBytes = await _calculateDirectorySize(entity);
+      final stat = await entity.stat();
+      final version = _extractVersion(name);
+      models.add(
+        LocalVoiceModel(
+          name: name,
+          version: version,
+          sizeBytes: sizeBytes,
+          sizeText: _formatBytes(sizeBytes),
+          modelPath: entity.path,
+          lastModified: stat.modified,
+          downloadUrl: buildOfficialDownloadUrl(name),
+        ),
+      );
+    }
+    models.sort((a, b) => a.name.compareTo(b.name));
+    _cachedModels = models;
+    return _cachedModels!;
   }
 
-  Future<LanguageModelDescription> resolveModelByName(String name) async {
-    final models = await loadPreferredModels();
+  Future<LocalVoiceModel?> resolveModelByName(String name) async {
+    final models = await loadLocalModels();
+    if (models.isEmpty) {
+      return null;
+    }
     return models.firstWhere(
       (model) => model.name == name,
       orElse: () => models.first,
     );
   }
 
-  Future<bool> isModelAvailable(String modelName) async {
-    final loader = await _resolveLoader();
-    return loader.isModelAlreadyLoaded(modelName);
-  }
-
-  Future<String> ensureModel(LanguageModelDescription model) async {
-    final loader = await _resolveLoader();
-    if (await loader.isModelAlreadyLoaded(model.name)) {
-      return loader.modelPath(model.name);
+  Future<String> resolveModelPath(String modelName) async {
+    final model = await resolveModelByName(modelName);
+    if (model == null) {
+      throw Exception("未检测到本地模型");
     }
-    return loader.loadFromNetwork(model.url);
+    return model.modelPath;
   }
 
-  Future<ModelLoader> _resolveLoader() async {
-    final storage = await _resolveModelStorage();
-    if (storage == null) {
-      return ModelLoader();
+  String resolveModelsDirectoryLabel() {
+    return path.join("simple_live_app", "models");
+  }
+
+  String buildOfficialDownloadUrl(String modelName) {
+    if (modelName.startsWith("vosk-model-")) {
+      return "https://alphacephei.com/vosk/models/$modelName.zip";
     }
-    return ModelLoader(modelStorage: storage);
+    return "https://alphacephei.com/vosk/models";
   }
 
-  Future<String?> _resolveModelStorage() async {
-    final candidates = <String>[];
+  String _resolveModelsDirectory() {
     final cwd = Directory.current.path;
-    candidates.add(path.join(cwd, "models"));
-    candidates.add(path.join(cwd, "model"));
-    final documents = await getApplicationDocumentsDirectory();
-    candidates.add(path.join(documents.path, "models"));
-    candidates.add(path.join(documents.path, "model"));
-    for (final candidate in candidates) {
-      if (Directory(candidate).existsSync()) {
-        return candidate;
+    if (path.basename(cwd) == "simple_live_app") {
+      return path.join(cwd, "models");
+    }
+    return path.join(cwd, "simple_live_app", "models");
+  }
+
+  bool _isValidModelName(String name) {
+    return name.startsWith("vosk-model-");
+  }
+
+  String _extractVersion(String name) {
+    final match = RegExp(r'(\d+(?:\.\d+)+)$').firstMatch(name);
+    return match?.group(1) ?? "unknown";
+  }
+
+  Future<int> _calculateDirectorySize(Directory dir) async {
+    var total = 0;
+    await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      if (entity is File) {
+        try {
+          total += await entity.length();
+        } catch (_) {}
       }
     }
-    return null;
+    return total;
   }
 
-  List<LanguageModelDescription> _fallbackModels() {
-    return [
-      LanguageModelDescription(
-        lang: "en-us",
-        langText: "English (US)",
-        md5: "",
-        name: "vosk-model-small-en-us-0.15",
-        obsolete: false,
-        size: 0,
-        sizeText: "unknown",
-        type: "small",
-        url: "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
-        version: "0.15",
-      ),
-      LanguageModelDescription(
-        lang: "zh-cn",
-        langText: "中文",
-        md5: "",
-        name: "vosk-model-small-cn-0.22",
-        obsolete: false,
-        size: 0,
-        sizeText: "unknown",
-        type: "small",
-        url: "https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip",
-        version: "0.22",
-      ),
-    ];
+  String _formatBytes(int bytes) {
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    var size = bytes.toDouble();
+    var unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    return "${size.toStringAsFixed(size >= 100 ? 0 : 1)} ${units[unitIndex]}";
   }
 }
