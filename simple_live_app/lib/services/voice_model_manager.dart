@@ -1,7 +1,10 @@
+import 'dart:io';
+
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:vosk_flutter/vosk_flutter.dart';
 
 class VoiceModelManager {
-  final ModelLoader _modelLoader = ModelLoader();
   List<LanguageModelDescription>? _cachedModels;
 
   Future<List<LanguageModelDescription>> loadPreferredModels({
@@ -11,7 +14,7 @@ class VoiceModelManager {
       return _cachedModels!;
     }
     try {
-      final models = await _modelLoader.loadModelsList();
+      final models = await ModelLoader().loadModelsList();
       _cachedModels = models
           .where((model) => !model.obsolete && model.type == "small")
           .toList();
@@ -31,14 +34,40 @@ class VoiceModelManager {
   }
 
   Future<bool> isModelAvailable(String modelName) async {
-    return _modelLoader.isModelAlreadyLoaded(modelName);
+    final loader = await _resolveLoader();
+    return loader.isModelAlreadyLoaded(modelName);
   }
 
   Future<String> ensureModel(LanguageModelDescription model) async {
-    if (await isModelAvailable(model.name)) {
-      return _modelLoader.modelPath(model.name);
+    final loader = await _resolveLoader();
+    if (await loader.isModelAlreadyLoaded(model.name)) {
+      return loader.modelPath(model.name);
     }
-    return _modelLoader.loadFromNetwork(model.url);
+    return loader.loadFromNetwork(model.url);
+  }
+
+  Future<ModelLoader> _resolveLoader() async {
+    final storage = await _resolveModelStorage();
+    if (storage == null) {
+      return ModelLoader();
+    }
+    return ModelLoader(modelStorage: storage);
+  }
+
+  Future<String?> _resolveModelStorage() async {
+    final candidates = <String>[];
+    final cwd = Directory.current.path;
+    candidates.add(path.join(cwd, "models"));
+    candidates.add(path.join(cwd, "model"));
+    final documents = await getApplicationDocumentsDirectory();
+    candidates.add(path.join(documents.path, "models"));
+    candidates.add(path.join(documents.path, "model"));
+    for (final candidate in candidates) {
+      if (Directory(candidate).existsSync()) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   List<LanguageModelDescription> _fallbackModels() {

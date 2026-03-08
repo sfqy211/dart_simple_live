@@ -40,6 +40,14 @@ mixin PlayerMixin {
   /// 初始化播放器并设置 ao 参数
   Future<void> initializePlayer() async {
     var pp = player.platform as NativePlayer;
+    final tempPath = Directory.systemTemp.path;
+    final cacheDir = Directory(
+      "$tempPath${Platform.pathSeparator}simple_live_cache",
+    );
+    if (!cacheDir.existsSync()) {
+      cacheDir.createSync(recursive: true);
+    }
+    await pp.setProperty('cache-dir', cacheDir.path);
     // 设置音频输出驱动
     if (AppSettingsController.instance.customPlayerOutput.value) {
       if (player.platform is NativePlayer) {

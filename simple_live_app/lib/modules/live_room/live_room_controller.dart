@@ -78,6 +78,8 @@ class LiveRoomController extends PlayerController
   File? _subtitleAudioDumpFile;
   int _subtitleAudioOffset = 0;
   bool _subtitleAudioHeaderSkipped = false;
+  bool _subtitleAudioStopping = false;
+  Future<void>? _subtitleAudioStopTask;
 
   /// 滚动控制
   final ScrollController scrollController = ScrollController();
@@ -1349,40 +1351,50 @@ class LiveRoomController extends PlayerController
   }
 
   Future<void> _readSubtitleAudioDump() async {
+    if (_subtitleAudioStopping) {
+      return;
+    }
     if (_subtitleAudioReader == null ||
         _subtitleAudioStreamController == null) {
       return;
     }
-    final length = await _subtitleAudioReader!.length();
-    if (length <= _subtitleAudioOffset) {
-      return;
-    }
-    await _subtitleAudioReader!.setPosition(_subtitleAudioOffset);
-    final bytes =
-        await _subtitleAudioReader!.read(length - _subtitleAudioOffset);
-    _subtitleAudioOffset = length;
-    if (bytes.isEmpty) {
-      return;
-    }
-    var data = bytes;
-    if (!_subtitleAudioHeaderSkipped && data.length >= 12) {
-      if (data[0] == 0x52 &&
-          data[1] == 0x49 &&
-          data[2] == 0x46 &&
-          data[3] == 0x46 &&
-          data[8] == 0x57 &&
-          data[9] == 0x41 &&
-          data[10] == 0x56 &&
-          data[11] == 0x45) {
-        if (data.length <= 44) {
-          _subtitleAudioHeaderSkipped = true;
-          return;
-        }
-        data = data.sublist(44);
-        _subtitleAudioHeaderSkipped = true;
+    try {
+      final length = await _subtitleAudioReader!.length();
+      if (length <= _subtitleAudioOffset) {
+        return;
       }
+      await _subtitleAudioReader!.setPosition(_subtitleAudioOffset);
+      final bytes =
+          await _subtitleAudioReader!.read(length - _subtitleAudioOffset);
+      _subtitleAudioOffset = length;
+      if (bytes.isEmpty) {
+        return;
+      }
+      var data = bytes;
+      if (!_subtitleAudioHeaderSkipped && data.length >= 12) {
+        if (data[0] == 0x52 &&
+            data[1] == 0x49 &&
+            data[2] == 0x46 &&
+            data[3] == 0x46 &&
+            data[8] == 0x57 &&
+            data[9] == 0x41 &&
+            data[10] == 0x56 &&
+            data[11] == 0x45) {
+          if (data.length <= 44) {
+            _subtitleAudioHeaderSkipped = true;
+            return;
+          }
+          data = data.sublist(44);
+          _subtitleAudioHeaderSkipped = true;
+        }
+      }
+      if (_subtitleAudioStopping) {
+        return;
+      }
+      _subtitleAudioStreamController?.add(Uint8List.fromList(data));
+    } catch (_) {
+      return;
     }
-    _subtitleAudioStreamController!.add(Uint8List.fromList(data));
   }
 
   Future<Stream<Uint8List>?> _startSubtitleAudioCapture() async {
@@ -1391,7 +1403,14 @@ class LiveRoomController extends PlayerController
       return null;
     }
     await _stopSubtitleAudioCapture();
+    _subtitleAudioStopping = false;
     final tempPath = Directory.systemTemp.path;
+    final cacheDir = Directory(
+      "$tempPath${Platform.pathSeparator}simple_live_cache",
+    );
+    if (!cacheDir.existsSync()) {
+      cacheDir.createSync(recursive: true);
+    }
     final dumpFile = File(
       "$tempPath${Platform.pathSeparator}simple_live_subtitle_audio.pcm",
     );
@@ -1418,6 +1437,8 @@ class LiveRoomController extends PlayerController
     await native.setProperty('ao', 'pcm');
     await native.setProperty('ao-pcm-file', dumpFile.path);
     await native.setProperty('ao-pcm-waveheader', 'no');
+    await native.setProperty('cache', 'no');
+    await native.setProperty('cache-dir', cacheDir.path);
     await _subtitleAudioPlayer.open(
       Media(url, httpHeaders: playHeaders),
     );
@@ -1425,18 +1446,39 @@ class LiveRoomController extends PlayerController
   }
 
   Future<void> _stopSubtitleAudioCapture() async {
+    if (_subtitleAudioStopTask != null) {
+      await _subtitleAudioStopTask;
+      return;
+    }
+    _subtitleAudioStopTask = _doStopSubtitleAudioCapture();
+    await _subtitleAudioStopTask;
+    _subtitleAudioStopTask = null;
+  }
+
+  Future<void> _doStopSubtitleAudioCapture() async {
+    _subtitleAudioStopping = true;
     _subtitleAudioReadTimer?.cancel();
     _subtitleAudioReadTimer = null;
-    await _subtitleAudioStreamController?.close();
+    try {
+      await _subtitleAudioStreamController?.close();
+    } catch (_) {}
     _subtitleAudioStreamController = null;
-    await _subtitleAudioReader?.close();
+    try {
+      await _subtitleAudioReader?.close();
+    } catch (_) {}
     _subtitleAudioReader = null;
     _subtitleAudioOffset = 0;
     _subtitleAudioHeaderSkipped = false;
-    await _subtitleAudioPlayer.stop();
-    if (_subtitleAudioDumpFile != null &&
-        await _subtitleAudioDumpFile!.exists()) {
-      await _subtitleAudioDumpFile!.delete();
+    try {
+      await _subtitleAudioPlayer.stop();
+    } catch (_) {}
+    await Future.delayed(const Duration(milliseconds: 80));
+    if (_subtitleAudioDumpFile != null) {
+      try {
+        if (await _subtitleAudioDumpFile!.exists()) {
+          await _subtitleAudioDumpFile!.delete();
+        }
+      } catch (_) {}
     }
     _subtitleAudioDumpFile = null;
   }

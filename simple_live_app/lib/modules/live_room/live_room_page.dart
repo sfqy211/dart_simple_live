@@ -158,6 +158,12 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: buildAudioOnlySubtitleInline(context),
+                    ),
+                  ),
                   ElevatedButton.icon(
                     onPressed: controller.toggleAudioMode,
                     icon: const Icon(Remix.video_line),
@@ -219,6 +225,12 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: buildAudioOnlySubtitleInline(context),
                           ),
                         ),
                         ElevatedButton.icon(
@@ -460,6 +472,37 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           ),
           child: Text(
             controller.subtitleText.value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: AppSettingsController.instance.subtitleFontSize.value,
+              fontWeight: controller.subtitleIsPartial.value
+                  ? FontWeight.normal
+                  : FontWeight.w600,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildAudioOnlySubtitleInline(BuildContext context) {
+    return Obx(
+      () {
+        if (!controller.subtitleEnabled.value ||
+            controller.subtitleText.value.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.withAlpha(40)),
+          ),
+          child: Text(
+            controller.subtitleText.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: AppSettingsController.instance.subtitleFontSize.value,
