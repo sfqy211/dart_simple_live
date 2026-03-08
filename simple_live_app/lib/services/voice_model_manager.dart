@@ -42,7 +42,7 @@ class VoiceModelManager {
         continue;
       }
       final name = path.basename(entity.path);
-      if (!_isValidModelName(name)) {
+      if (!_isValidModelDirectory(entity)) {
         continue;
       }
       final sizeBytes = await _calculateDirectorySize(entity);
@@ -89,10 +89,10 @@ class VoiceModelManager {
   }
 
   String buildOfficialDownloadUrl(String modelName) {
-    if (modelName.startsWith("vosk-model-")) {
-      return "https://alphacephei.com/vosk/models/$modelName.zip";
+    if (modelName.startsWith("sherpa-onnx-")) {
+      return "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/";
     }
-    return "https://alphacephei.com/vosk/models";
+    return "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/";
   }
 
   String _resolveModelsDirectory() {
@@ -103,8 +103,17 @@ class VoiceModelManager {
     return path.join(cwd, "simple_live_app", "models");
   }
 
-  bool _isValidModelName(String name) {
-    return name.startsWith("vosk-model-");
+  bool _isValidModelDirectory(Directory dir) {
+    final tokensTxt = File(path.join(dir.path, "tokens.txt"));
+    final tokensJson = File(path.join(dir.path, "tokens.json"));
+    if (!tokensTxt.existsSync() && !tokensJson.existsSync()) {
+      return false;
+    }
+    final entries = dir.listSync(followLinks: false);
+    final hasOnnx = entries.whereType<File>().any(
+          (file) => path.extension(file.path).toLowerCase() == ".onnx",
+        );
+    return hasOnnx;
   }
 
   String _extractVersion(String name) {

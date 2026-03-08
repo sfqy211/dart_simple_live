@@ -96,8 +96,8 @@ class _VoiceRecognitionSettingsPageState
   void _selectRecognitionMode() {
     Get.dialog(
       RadioGroup(
-        groupValue: AppSettingsController
-            .instance.subtitleRecognitionMode.value.index,
+        groupValue:
+            AppSettingsController.instance.subtitleRecognitionMode.value.index,
         onChanged: (value) {
           Get.back();
           final mode = SubtitleRecognitionMode.values[value ?? 0];
@@ -121,8 +121,8 @@ class _VoiceRecognitionSettingsPageState
   void _selectOnlineProvider() {
     Get.dialog(
       RadioGroup(
-        groupValue: AppSettingsController
-            .instance.subtitleOnlineProvider.value.index,
+        groupValue:
+            AppSettingsController.instance.subtitleOnlineProvider.value.index,
         onChanged: (value) {
           Get.back();
           final provider = SubtitleOnlineProvider.values[value ?? 0];
@@ -172,7 +172,8 @@ class _VoiceRecognitionSettingsPageState
   }
 
   Future<void> _testOnlineConnection() async {
-    final url = AppSettingsController.instance.subtitleOnlineApiUrl.value.trim();
+    final url =
+        AppSettingsController.instance.subtitleOnlineApiUrl.value.trim();
     if (url.isEmpty) {
       SmartDialog.showToast("请先填写在线识别地址");
       return;
@@ -184,7 +185,8 @@ class _VoiceRecognitionSettingsPageState
           AppSettingsController.instance.subtitleOnlineApiKey.value.trim();
       if (apiKey.isNotEmpty) {
         final headerName = AppSettingsController
-            .instance.subtitleOnlineApiKeyHeader.value.trim();
+            .instance.subtitleOnlineApiKeyHeader.value
+            .trim();
         final normalizedHeader =
             headerName.isEmpty ? "Authorization" : headerName;
         if (normalizedHeader == "Authorization" &&
@@ -315,8 +317,7 @@ class _VoiceRecognitionSettingsPageState
                         Align(
                           alignment: Alignment.centerRight,
                           child: Padding(
-                            padding: AppStyle.edgeInsetsH12
-                                .copyWith(bottom: 8),
+                            padding: AppStyle.edgeInsetsH12.copyWith(bottom: 8),
                             child: TextButton.icon(
                               onPressed: _testOnlineConnection,
                               icon: const Icon(Icons.wifi_tethering, size: 18),
@@ -358,8 +359,7 @@ class _VoiceRecognitionSettingsPageState
                   FutureBuilder<_VoiceModelCatalog>(
                     future: _catalogFuture,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(24),
@@ -381,7 +381,7 @@ class _VoiceRecognitionSettingsPageState
                           child: Padding(
                             padding: AppStyle.edgeInsetsA12,
                             child: Text(
-                              "未检测到本地模型，请先下载并放入simple_live_app\\models",
+                              "未检测到本地模型，请先下载 sherpa-onnx 模型并放入simple_live_app\\models",
                               style: Get.textTheme.bodyMedium,
                             ),
                           ),
@@ -436,12 +436,14 @@ class _VoiceRecognitionSettingsPageState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
-                          title: const Text("Vosk 官方模型下载页"),
-                          subtitle:
-                              const Text("https://alphacephei.com/vosk/models"),
+                          title: const Text("sherpa-onnx 模型下载页"),
+                          subtitle: const Text(
+                            "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/",
+                          ),
                           trailing: const Icon(Icons.open_in_new, size: 20),
-                          onTap: () =>
-                              _openUrl("https://alphacephei.com/vosk/models"),
+                          onTap: () => _openUrl(
+                            "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/",
+                          ),
                         ),
                       ],
                     ),

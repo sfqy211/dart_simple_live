@@ -400,7 +400,7 @@ class AppSettingsController extends GetxController {
         .setValue(LocalStorageService.kDanmuFontWeight, e);
   }
 
-  static const String _defaultSubtitleModel = "vosk-model-small-en-us-0.15";
+  static const String _defaultSubtitleModel = "";
   var subtitleEnable = false.obs;
   void setSubtitleEnable(bool e) {
     subtitleEnable.value = e;
