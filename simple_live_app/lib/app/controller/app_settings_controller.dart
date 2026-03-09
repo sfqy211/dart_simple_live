@@ -91,6 +91,8 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kSubtitleOnlineApiKey, "");
     subtitleOnlineApiKeyHeader.value = LocalStorageService.instance.getValue(
         LocalStorageService.kSubtitleOnlineApiKeyHeader, "Authorization");
+    subtitleDelay.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kSubtitleDelay, 800.0);
 
     hardwareDecode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kHardwareDecode, true);
@@ -479,6 +481,13 @@ class AppSettingsController extends GetxController {
     subtitleOnlineApiKeyHeader.value = value;
     LocalStorageService.instance
         .setValue(LocalStorageService.kSubtitleOnlineApiKeyHeader, value);
+  }
+
+  var subtitleDelay = 800.0.obs;
+  void setSubtitleDelay(double value) {
+    subtitleDelay.value = value;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleDelay, value);
   }
 
   var qualityLevel = 1.obs;

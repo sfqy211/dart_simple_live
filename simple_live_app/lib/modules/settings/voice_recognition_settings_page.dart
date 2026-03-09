@@ -290,6 +290,47 @@ class _VoiceRecognitionSettingsPageState
                 ),
                 AppStyle.divider,
                 Obx(
+                  () => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "字幕延迟",
+                                style: Get.textTheme.bodyLarge,
+                              ),
+                              Text(
+                                "${AppSettingsController.instance.subtitleDelay.value.toInt()} ms",
+                                style: Get.textTheme.bodySmall
+                                    ?.copyWith(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Slider(
+                          value: AppSettingsController
+                              .instance.subtitleDelay.value,
+                          min: 0.0,
+                          max: 5000.0,
+                          divisions: 50,
+                          label:
+                              "${AppSettingsController.instance.subtitleDelay.value.toInt()} ms",
+                          onChanged: (value) {
+                            AppSettingsController.instance
+                                .setSubtitleDelay(value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
                   () => ListTile(
                     title: const Text("识别模式"),
                     subtitle: Text(

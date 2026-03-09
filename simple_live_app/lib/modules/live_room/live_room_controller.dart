@@ -71,6 +71,8 @@ class LiveRoomController extends PlayerController
   final RxBool subtitleEnabled = false.obs;
   final Rx<Offset?> subtitlePosition = Rx<Offset?>(null);
   Timer? _subtitleClearTimer;
+  Timer? _subtitleDelayTimer;
+  VoiceRecognitionResult? _pendingSubtitleResult;
   final List<Worker> _subtitleWorkers = [];
   final Player _subtitleAudioPlayer = Player();
   StreamController<Uint8List>? _subtitleAudioStreamController;
@@ -1556,6 +1558,9 @@ class LiveRoomController extends PlayerController
   }
 
   Future<void> stopVoiceRecognition() async {
+    _subtitleDelayTimer?.cancel();
+    _subtitleDelayTimer = null;
+    _pendingSubtitleResult = null;
     _subtitleClearTimer?.cancel();
     subtitleText.value = "";
     subtitleIsPartial.value = false;
@@ -1570,6 +1575,27 @@ class LiveRoomController extends PlayerController
   }
 
   void _handleSubtitleResult(VoiceRecognitionResult result) {
+    final delayMs = AppSettingsController.instance.subtitleDelay.value.toInt();
+    if (delayMs <= 0) {
+      _applySubtitleResult(result);
+      return;
+    }
+    _pendingSubtitleResult = result;
+    if (_subtitleDelayTimer != null) {
+      return;
+    }
+    _subtitleDelayTimer = Timer(Duration(milliseconds: delayMs), () {
+      _subtitleDelayTimer = null;
+      final pending = _pendingSubtitleResult;
+      if (pending == null) {
+        return;
+      }
+      _pendingSubtitleResult = null;
+      _applySubtitleResult(pending);
+    });
+  }
+
+  void _applySubtitleResult(VoiceRecognitionResult result) {
     subtitleText.value = result.text;
     subtitleIsPartial.value = !result.isFinal;
     _sendGhostSubtitle(result.text, !result.isFinal);

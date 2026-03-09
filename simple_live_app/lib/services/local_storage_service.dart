@@ -90,6 +90,9 @@ class LocalStorageService extends GetxService {
   static const String kSubtitleOnlineApiKeyHeader =
       "SubtitleOnlineApiKeyHeader";
 
+  /// 字幕延迟
+  static const String kSubtitleDelay = "SubtitleDelay";
+
   /// 硬件解码
   static const String kHardwareDecode = "HardwareDecode";
 
