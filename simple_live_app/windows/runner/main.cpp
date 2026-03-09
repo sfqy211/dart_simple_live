@@ -3,10 +3,59 @@
 #include <windows.h>
 
 #include <iostream>
+#include <string>
+#include <streambuf>
 
 #include "flutter_window.h"
 #include "utils.h"
 #include "window_manager_plus/window_manager_plus_plugin.h"
+
+class AccessibilityLogFilter : public std::streambuf {
+ public:
+  AccessibilityLogFilter(std::ostream& stream)
+      : stream_(stream), original_buffer_(stream.rdbuf()) {
+    stream_.rdbuf(this);
+  }
+
+  ~AccessibilityLogFilter() {
+    if (!current_line_.empty()) {
+      process_line();
+    }
+    stream_.rdbuf(original_buffer_);
+  }
+
+ protected:
+  int overflow(int c) override {
+    if (c == EOF) {
+      return !EOF;
+    }
+    char ch = static_cast<char>(c);
+    current_line_ += ch;
+    if (ch == '\n') {
+      process_line();
+    }
+    return c;
+  }
+
+  int sync() override { return original_buffer_->pubsync(); }
+
+ private:
+  void process_line() {
+    if (current_line_.find("Failed to update ui::AXTree") ==
+            std::string::npos &&
+        current_line_.find("Problem getting monitor brightness") ==
+            std::string::npos &&
+        current_line_.find("Problem setting monitor brightness") ==
+            std::string::npos) {
+      original_buffer_->sputn(current_line_.c_str(), current_line_.size());
+    }
+    current_line_.clear();
+  }
+
+  std::ostream& stream_;
+  std::streambuf* original_buffer_;
+  std::string current_line_;
+};
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
@@ -15,6 +64,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
     CreateAndAttachConsole();
   }
+
+  AccessibilityLogFilter log_filter(std::cerr);
+  AccessibilityLogFilter log_filter_out(std::cout);
 
   // Initialize COM, so that it is available for use in the library and/or
   // plugins.
