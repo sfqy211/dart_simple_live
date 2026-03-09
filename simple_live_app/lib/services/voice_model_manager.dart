@@ -104,16 +104,49 @@ class VoiceModelManager {
   }
 
   bool _isValidModelDirectory(Directory dir) {
-    final tokensTxt = File(path.join(dir.path, "tokens.txt"));
-    final tokensJson = File(path.join(dir.path, "tokens.json"));
-    if (!tokensTxt.existsSync() && !tokensJson.existsSync()) {
+    final entries = dir.listSync(recursive: true, followLinks: false);
+    final files = entries.whereType<File>().toList();
+    final hasTokens = files.any((file) {
+      final name = path.basename(file.path).toLowerCase();
+      return name == "tokens.txt" || name == "tokens.json";
+    });
+    if (!hasTokens) {
       return false;
     }
-    final entries = dir.listSync(followLinks: false);
-    final hasOnnx = entries.whereType<File>().any(
-          (file) => path.extension(file.path).toLowerCase() == ".onnx",
-        );
-    return hasOnnx;
+    return _hasSupportedOnnxModel(files, dir.path);
+  }
+
+  bool _hasSupportedOnnxModel(List<File> files, String dirPath) {
+    final onnxFiles = files.where((file) {
+      return path.extension(file.path).toLowerCase() == ".onnx";
+    }).toList();
+    if (onnxFiles.isEmpty) {
+      return false;
+    }
+    final lowerNames =
+        onnxFiles.map((file) => path.basename(file.path).toLowerCase());
+    if (lowerNames.any((name) => name.contains("zipformer2"))) {
+      return true;
+    }
+    if (lowerNames.any((name) => name.contains("zipformer"))) {
+      return true;
+    }
+    final hasEncoder = onnxFiles.any(
+      (file) => path.basename(file.path).toLowerCase().contains("encoder"),
+    );
+    final hasDecoder = onnxFiles.any(
+      (file) => path.basename(file.path).toLowerCase().contains("decoder"),
+    );
+    if (hasEncoder && hasDecoder) {
+      return true;
+    }
+
+    // Check directory name if onnx file name is generic (e.g. model.int8.onnx)
+    final dirName = path.basename(dirPath).toLowerCase();
+    if (dirName.contains("zipformer")) {
+      return true;
+    }
+    return false;
   }
 
   String _extractVersion(String name) {

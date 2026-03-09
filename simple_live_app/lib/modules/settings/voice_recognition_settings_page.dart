@@ -52,6 +52,12 @@ class _VoiceRecognitionSettingsPageState
 
   Future<_VoiceModelCatalog> _loadCatalog({bool refresh = false}) async {
     final models = await _modelManager.loadLocalModels(refresh: refresh);
+    final current =
+        AppSettingsController.instance.subtitleModelName.value.trim();
+    if (models.isNotEmpty &&
+        (current.isEmpty || !models.any((model) => model.name == current))) {
+      AppSettingsController.instance.setSubtitleModelName(models.first.name);
+    }
     return _VoiceModelCatalog(models: models);
   }
 

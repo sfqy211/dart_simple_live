@@ -193,7 +193,8 @@ class LocalSherpaOnnxRecognitionEngine implements VoiceRecognitionEngine {
         .where((file) => path.extension(file.path).toLowerCase() == ".onnx")
         .toList()
       ..sort((a, b) => a.path.length.compareTo(b.path.length));
-    final modelType = _resolveModelType(onnxFiles, encoder, decoder, joiner);
+    final modelType =
+        _resolveModelType(onnxFiles, encoder, decoder, joiner, modelPath);
     if (encoder != null && decoder != null) {
       if (joiner != null) {
         return sherpa_onnx.OnlineModelConfig(
@@ -220,6 +221,9 @@ class LocalSherpaOnnxRecognitionEngine implements VoiceRecognitionEngine {
       );
     }
     if (onnxFiles.isNotEmpty) {
+      if (modelType != "zipformer" && modelType != "zipformer2") {
+        throw Exception("当前模型结构不支持流式识别");
+      }
       return sherpa_onnx.OnlineModelConfig(
         zipformer2Ctc: sherpa_onnx.OnlineZipformer2CtcModelConfig(
           model: onnxFiles.first.path,
@@ -274,7 +278,15 @@ class LocalSherpaOnnxRecognitionEngine implements VoiceRecognitionEngine {
     String? encoder,
     String? decoder,
     String? joiner,
+    String modelPath,
   ) {
+    if (encoder != null && decoder != null && joiner != null) {
+      return "transducer";
+    }
+    if (encoder != null && decoder != null) {
+      return "paraformer";
+    }
+    // Check for single-file models (Zipformer2/Zipformer)
     final names =
         onnxFiles.map((file) => path.basename(file.path).toLowerCase());
     if (names.any((name) => name.contains("zipformer2"))) {
@@ -283,11 +295,13 @@ class LocalSherpaOnnxRecognitionEngine implements VoiceRecognitionEngine {
     if (names.any((name) => name.contains("zipformer"))) {
       return "zipformer";
     }
-    if (encoder != null && decoder != null && joiner != null) {
-      return "transducer";
+    // Check directory name if file names are generic
+    final dirName = path.basename(modelPath).toLowerCase();
+    if (dirName.contains("zipformer2")) {
+      return "zipformer2";
     }
-    if (encoder != null && decoder != null) {
-      return "paraformer";
+    if (dirName.contains("zipformer")) {
+      return "zipformer";
     }
     return "";
   }
