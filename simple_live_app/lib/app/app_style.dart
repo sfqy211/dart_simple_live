@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:simple_live_app/app/controller/app_settings_controller.dart';
+
 class AppColors {
   static ColorScheme lightColorScheme = ColorScheme.fromSeed(
     // primarySwatch: Colors.blue,
@@ -19,88 +21,64 @@ class AppColors {
 }
 
 class AppStyle {
-  static ThemeData lightTheme = ThemeData(
-    colorScheme: AppColors.lightColorScheme,
-    useMaterial3: true,
-    fontFamily: Platform.isWindows ? "Microsoft YaHei" : null,
-    visualDensity: VisualDensity.standard,
-    appBarTheme: AppBarTheme(
-      //elevation: 0,
-      centerTitle: true,
-      titleTextStyle: const TextStyle(
-        fontSize: 16,
-        color: AppColors.black333,
-      ),
-      foregroundColor: AppColors.black333,
-      systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
-        systemNavigationBarColor: Colors.transparent,
-      ),
-    ),
-
-    // radioTheme: RadioThemeData(
-    //   fillColor: MaterialStateProperty.all(AppColors.lightColorScheme.primary),
-    // ),
-    // checkboxTheme: CheckboxThemeData(
-    //   fillColor: MaterialStateProperty.all(AppColors.lightColorScheme.primary),
-    // ),
-    // tabBarTheme: TabBarTheme(
-    //   labelColor: AppColors.lightColorScheme.primary,
-    //   unselectedLabelColor: Colors.white70,
-    //   indicatorSize: TabBarIndicatorSize.tab,
-    //   indicator: RectangularIndicator(
-    //     color: Colors.white.withOpacity(.8),
-    //     topLeftRadius: 24,
-    //     bottomLeftRadius: 24,
-    //     topRightRadius: 24,
-    //     bottomRightRadius: 24,
-    //     verticalPadding: 8,
-    //     horizontalPadding: 0,
-    //   ),
-    // ),
-  );
-
-  static ThemeData darkTheme = ThemeData.dark().copyWith(
-    colorScheme: AppColors.darkColorScheme,
-    visualDensity: VisualDensity.standard,
-    textTheme: ThemeData.dark().textTheme.apply(
-          fontFamily: Platform.isWindows ? "Microsoft YaHei" : null,
+  static ThemeData get lightTheme => ThemeData(
+        colorScheme: AppColors.lightColorScheme,
+        useMaterial3: true,
+        fontFamily: AppSettingsController.instance.appFontFamily.value.isEmpty
+            ? (Platform.isWindows ? "Microsoft YaHei" : null)
+            : AppSettingsController.instance.appFontFamily.value,
+        visualDensity: VisualDensity.standard,
+        appBarTheme: AppBarTheme(
+          //elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontSize: 16,
+            color: AppColors.black333,
+            fontFamily:
+                AppSettingsController.instance.appFontFamily.value.isEmpty
+                    ? (Platform.isWindows ? "Microsoft YaHei" : null)
+                    : AppSettingsController.instance.appFontFamily.value,
+          ),
+          foregroundColor: AppColors.black333,
+          systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
+            systemNavigationBarColor: Colors.transparent,
+          ),
         ),
-    primaryTextTheme: ThemeData().textTheme.apply(
-          fontFamily: Platform.isWindows ? "Microsoft YaHei" : null,
-        ),
-    appBarTheme: AppBarTheme(
-      //elevation: 0,
+      );
 
-      centerTitle: true,
-      titleTextStyle: const TextStyle(
-        fontSize: 16,
-        color: Colors.white,
-      ),
-      foregroundColor: Colors.white,
-      systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
-        systemNavigationBarColor: Colors.transparent,
-      ),
-    ),
-    // radioTheme: RadioThemeData(
-    //   fillColor: MaterialStateProperty.all(AppColors.darkColorScheme.primary),
-    // ),
-    // checkboxTheme: CheckboxThemeData(
-    //   fillColor: MaterialStateProperty.all(AppColors.darkColorScheme.primary),
-    // ),
-    // tabBarTheme: TabBarTheme(
-    //   labelColor: AppColors.darkColorScheme.primary,
-    //   unselectedLabelColor: Colors.white70,
-    //   indicator: RectangularIndicator(
-    //     color: Colors.white.withAlpha(50),
-    //     topLeftRadius: 24,
-    //     bottomLeftRadius: 24,
-    //     topRightRadius: 24,
-    //     bottomRightRadius: 24,
-    //     verticalPadding: 8,
-    //     horizontalPadding: 0,
-    //   ),
-    // ),
-  );
+  static ThemeData get darkTheme => ThemeData.dark().copyWith(
+        colorScheme: AppColors.darkColorScheme,
+        visualDensity: VisualDensity.standard,
+        textTheme: ThemeData.dark().textTheme.apply(
+              fontFamily:
+                  AppSettingsController.instance.appFontFamily.value.isEmpty
+                      ? (Platform.isWindows ? "Microsoft YaHei" : null)
+                      : AppSettingsController.instance.appFontFamily.value,
+            ),
+        primaryTextTheme: ThemeData().textTheme.apply(
+              fontFamily:
+                  AppSettingsController.instance.appFontFamily.value.isEmpty
+                      ? (Platform.isWindows ? "Microsoft YaHei" : null)
+                      : AppSettingsController.instance.appFontFamily.value,
+            ),
+        appBarTheme: AppBarTheme(
+          //elevation: 0,
+
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontSize: 16,
+            color: Colors.white,
+            fontFamily:
+                AppSettingsController.instance.appFontFamily.value.isEmpty
+                    ? (Platform.isWindows ? "Microsoft YaHei" : null)
+                    : AppSettingsController.instance.appFontFamily.value,
+          ),
+          foregroundColor: Colors.white,
+          systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
+            systemNavigationBarColor: Colors.transparent,
+          ),
+        ),
+      );
   static const vGap4 = SizedBox(
     height: 4,
   );

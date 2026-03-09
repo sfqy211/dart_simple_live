@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
@@ -6,10 +8,13 @@ import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 
 class AppstyleSettingPage extends GetView<AppSettingsController> {
-  const AppstyleSettingPage({Key? key}) : super(key: key);
+  AppstyleSettingPage({Key? key}) : super(key: key);
+
+  final TextEditingController _fontController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    _fontController.text = controller.appFontFamily.value;
     return Scaffold(
       appBar: AppBar(
         title: const Text("外观设置"),
@@ -18,7 +23,67 @@ class AppstyleSettingPage extends GetView<AppSettingsController> {
         padding: AppStyle.edgeInsetsA12,
         children: [
           Padding(
-            padding: AppStyle.edgeInsetsA12.copyWith(top: 0),
+            padding: AppStyle.edgeInsetsA12,
+            child: Text(
+              "全局字体",
+              style: Get.textTheme.titleSmall,
+            ),
+          ),
+          SettingsCard(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _fontController,
+                          decoration: const InputDecoration(
+                            hintText: "输入字体名称 (留空使用默认)",
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          onSubmitted: (value) {
+                            controller.setAppFontFamily(value);
+                            Get.changeTheme(AppStyle.lightTheme);
+                            Get.changeTheme(AppStyle.darkTheme);
+                            // 重新应用当前主题模式以触发刷新
+                            controller.setTheme(controller.themeMode.value);
+                          },
+                        ),
+                      ),
+                      AppStyle.hGap12,
+                      ElevatedButton(
+                        onPressed: () {
+                          controller.setAppFontFamily(_fontController.text);
+                          Get.changeTheme(AppStyle.lightTheme);
+                          Get.changeTheme(AppStyle.darkTheme);
+                          // 重新应用当前主题模式以触发刷新
+                          controller.setTheme(controller.themeMode.value);
+                        },
+                        child: const Text("应用"),
+                      ),
+                    ],
+                  ),
+                ),
+                if (Platform.isWindows)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12, right: 12, bottom: 12),
+                    child: Text(
+                      "提示: Windows 下常用字体: Microsoft YaHei, SimHei, KaiTi, SimSun, Segoe UI",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          AppStyle.vGap12,
+          Padding(
+            padding: AppStyle.edgeInsetsA12,
             child: Text(
               "显示主题",
               style: Get.textTheme.titleSmall,

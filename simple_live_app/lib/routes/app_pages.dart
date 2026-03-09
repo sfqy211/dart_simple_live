@@ -118,8 +118,7 @@ class AppPages {
     ),
     //外观设置
     GetPage(
-        name: RoutePath.kAppstyleSetting,
-        page: () => const AppstyleSettingPage()),
+        name: RoutePath.kAppstyleSetting, page: () => AppstyleSettingPage()),
     //播放设置
     GetPage(
       name: RoutePath.kSettingsPlay,
@@ -232,7 +231,7 @@ class AppPages {
       page: () => const RemoteSyncWebDAVPage(),
       bindings: [
         BindingsBuilder.put(
-              () => RemoteSyncWebDAVController(),
+          () => RemoteSyncWebDAVController(),
         ),
       ],
     ),

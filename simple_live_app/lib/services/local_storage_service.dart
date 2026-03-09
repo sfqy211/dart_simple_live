@@ -99,6 +99,9 @@ class LocalStorageService extends GetxService {
   /// 聊天区间隔
   static const String kChatTextGap = "ChatTextGap";
 
+  /// 字体
+  static const String kAppFontFamily = "AppFontFamily";
+
   /// 聊天区-气泡样式
   static const String kChatBubbleStyle = "ChatBubbleStyle";
 

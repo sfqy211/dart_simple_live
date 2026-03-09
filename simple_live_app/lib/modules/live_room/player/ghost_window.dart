@@ -20,6 +20,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   double _danmakuOpacity = 1.0;
   int _fontWeight = 4;
   int _panelColor = 0xBFD0D0D0;
+  String _fontFamily = '';
   String _subtitleText = '';
   bool _subtitleIsPartial = false;
   final List<DanmakuContentItem> _items = [];
@@ -133,6 +134,14 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           if (colorValue is int) {
             setState(() {
               _panelColor = colorValue;
+            });
+          }
+        }
+        if (message.containsKey('fontFamily')) {
+          final fontValue = message['fontFamily'];
+          if (fontValue is String) {
+            setState(() {
+              _fontFamily = fontValue;
             });
           }
         }
@@ -1501,102 +1510,120 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     final weightIndex =
         _fontWeight.clamp(0, FontWeight.values.length - 1).toInt();
     final panelColor = Color(_panelColor);
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: panelColor,
-            borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context).copyWith(
+      textTheme: Theme.of(context).textTheme.apply(
+            fontFamily: _fontFamily.isEmpty
+                ? (Platform.isWindows ? "Microsoft YaHei" : null)
+                : _fontFamily,
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              Container(
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _locked
-                          ? const SizedBox.expand()
-                          : const DragToMoveArea(
-                              child: SizedBox.expand(),
-                            ),
-                    ),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      icon: const Icon(Icons.settings, size: 18),
-                      onPressed: _showSettingsSheet,
-                    ),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: _requestExitGhostMode,
-                    ),
-                  ],
-                ),
-              ),
-              if (_showSubtitle && _subtitleText.isNotEmpty)
+    );
+
+    return Theme(
+      data: theme,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Container(
+          color: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: panelColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 6,
-                    horizontal: 10,
+                  height: 32,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _locked
+                            ? const SizedBox.expand()
+                            : const DragToMoveArea(
+                                child: SizedBox.expand(),
+                              ),
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
+                        ),
+                        icon: const Icon(Icons.settings, size: 18),
+                        onPressed: _showSettingsSheet,
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
+                        ),
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: _requestExitGhostMode,
+                      ),
+                    ],
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(160),
-                    border: Border(
-                      left: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 4,
+                ),
+                if (_showSubtitle && _subtitleText.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(160),
+                      border: Border(
+                        left: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 4,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      _subtitleText,
+                      style: TextStyle(
+                        fontSize: _fontSize,
+                        fontWeight: _subtitleIsPartial
+                            ? FontWeight.normal
+                            : FontWeight.w600,
+                        color: Colors.white,
+                        fontFamily: _fontFamily.isEmpty
+                            ? (Platform.isWindows ? "Microsoft YaHei" : null)
+                            : _fontFamily,
                       ),
                     ),
                   ),
-                  child: Text(
-                    _subtitleText,
-                    style: TextStyle(
-                      fontSize: _fontSize,
-                      fontWeight: _subtitleIsPartial
-                          ? FontWeight.normal
-                          : FontWeight.w600,
-                      color: Colors.white,
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount: _items.length,
+                      itemBuilder: (context, index) {
+                        final item = _items[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            item.text,
+                            style: TextStyle(
+                              color:
+                                  item.color.withValues(alpha: _danmakuOpacity),
+                              fontSize: _fontSize,
+                              fontWeight: FontWeight.values[weightIndex],
+                              fontFamily: _fontFamily.isEmpty
+                                  ? (Platform.isWindows
+                                      ? "Microsoft YaHei"
+                                      : null)
+                                  : _fontFamily,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Text(
-                          item.text,
-                          style: TextStyle(
-                            color:
-                                item.color.withValues(alpha: _danmakuOpacity),
-                            fontSize: _fontSize,
-                            fontWeight: FontWeight.values[weightIndex],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Row(
@@ -1633,7 +1660,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 
