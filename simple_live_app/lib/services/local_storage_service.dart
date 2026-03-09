@@ -68,6 +68,9 @@ class LocalStorageService extends GetxService {
   /// 字幕字体大小
   static const String kSubtitleFontSize = "SubtitleFontSize";
 
+  /// 字幕背景透明度
+  static const String kSubtitleBackgroundOpacity = "SubtitleBackgroundOpacity";
+
   /// 字幕模型名称
   static const String kSubtitleModelName = "SubtitleModelName";
 

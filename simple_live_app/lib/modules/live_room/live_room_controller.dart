@@ -69,6 +69,7 @@ class LiveRoomController extends PlayerController
   final RxString subtitleText = "".obs;
   final RxBool subtitleIsPartial = false.obs;
   final RxBool subtitleEnabled = false.obs;
+  final Rx<Offset?> subtitlePosition = Rx<Offset?>(null);
   Timer? _subtitleClearTimer;
   final List<Worker> _subtitleWorkers = [];
   final Player _subtitleAudioPlayer = Player();

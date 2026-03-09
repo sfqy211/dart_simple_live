@@ -56,6 +56,8 @@ class AppSettingsController extends GetxController {
         .getValue(LocalStorageService.kSubtitleEnable, false);
     subtitleFontSize.value = LocalStorageService.instance
         .getValue(LocalStorageService.kSubtitleFontSize, 16.0);
+    subtitleBackgroundOpacity.value = LocalStorageService.instance
+        .getValue(LocalStorageService.kSubtitleBackgroundOpacity, 0.7);
     subtitleModelName.value = LocalStorageService.instance.getValue(
         LocalStorageService.kSubtitleModelName, _defaultSubtitleModel);
     final modeIndex = LocalStorageService.instance.getValue(
@@ -413,6 +415,13 @@ class AppSettingsController extends GetxController {
     subtitleFontSize.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kSubtitleFontSize, e);
+  }
+
+  var subtitleBackgroundOpacity = 0.7.obs;
+  void setSubtitleBackgroundOpacity(double e) {
+    subtitleBackgroundOpacity.value = e;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kSubtitleBackgroundOpacity, e);
   }
 
   var subtitleModelName = _defaultSubtitleModel.obs;

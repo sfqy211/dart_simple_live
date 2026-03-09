@@ -132,152 +132,170 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildPhoneUI(BuildContext context) {
-    return Obx(() {
-      if (controller.audioOnlyMode.value) {
-        // 黑听模式：显示控制界面和弹幕栏
-        return Column(
+    return Stack(
+      children: [
+        Obx(() {
+          if (controller.audioOnlyMode.value) {
+            // 黑听模式：显示控制界面和弹幕栏
+            return Column(
+              children: [
+                // 黑听模式控制界面
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.withAlpha(25),
+                      ),
+                    ),
+                  ),
+                  padding: AppStyle.edgeInsetsA12,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "纯净黑听模式",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: controller.toggleAudioMode,
+                        icon: const Icon(Remix.video_line),
+                        label: const Text("切换到视频模式"),
+                      ),
+                    ],
+                  ),
+                ),
+                buildUserProfile(context),
+                Expanded(
+                  child: buildMessageArea(),
+                ),
+                buildBottomActions(context),
+              ],
+            );
+          } else {
+            // 正常模式：显示视频栏和弹幕栏
+            return Column(
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: buildMediaPlayer(),
+                ),
+                buildUserProfile(context),
+                buildMessageArea(),
+                buildBottomActions(context),
+              ],
+            );
+          }
+        }),
+        buildFloatingSubtitleBar(context),
+      ],
+    );
+  }
+
+  Widget buildTabletUI(BuildContext context) {
+    return Stack(
+      children: [
+        Column(
           children: [
-            // 黑听模式控制界面
+            Expanded(
+              child: Obx(() {
+                if (controller.audioOnlyMode.value) {
+                  return Row(
+                    children: [
+                      Container(
+                        width: 320,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          border: Border(
+                            right: BorderSide(
+                              color: Colors.grey.withAlpha(25),
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Colors.grey.withAlpha(25),
+                                  ),
+                                ),
+                              ),
+                              padding: AppStyle.edgeInsetsA12,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    "纯净黑听模式",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  ElevatedButton.icon(
+                                    onPressed: controller.toggleAudioMode,
+                                    icon: const Icon(Remix.video_line),
+                                    label: const Text("切换到视频模式"),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            buildUserProfile(context),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: buildMessageArea(),
+                      ),
+                    ],
+                  );
+                } else {
+                  return Row(
+                    children: [
+                      Expanded(
+                        flex: 7,
+                        child: Container(
+                          color: Colors.black,
+                          child: Center(
+                            child: buildMediaPlayer(),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          children: [
+                            buildUserProfile(context),
+                            Expanded(
+                              child: buildMessageArea(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              }),
+            ),
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 border: Border(
-                  bottom: BorderSide(
+                  top: BorderSide(
                     color: Colors.grey.withAlpha(25),
                   ),
                 ),
               ),
-              padding: AppStyle.edgeInsetsA12,
+              padding: AppStyle.edgeInsetsV4.copyWith(
+                bottom: AppStyle.bottomBarHeight + 4,
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "纯净黑听模式",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: controller.toggleAudioMode,
-                    icon: const Icon(Remix.video_line),
-                    label: const Text("切换到视频模式"),
-                  ),
-                ],
-              ),
-            ),
-            buildUserProfile(context),
-            Expanded(
-              child: buildMessageArea(),
-            ),
-            buildBottomActions(context),
-          ],
-        );
-      } else {
-        // 正常模式：显示视频栏和弹幕栏
-        return Column(
-          children: [
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: buildMediaPlayer(),
-            ),
-            buildUserProfile(context),
-            buildMessageArea(),
-            buildBottomActions(context),
-          ],
-        );
-      }
-    });
-  }
-
-  Widget buildTabletUI(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: Obx(() {
-            if (controller.audioOnlyMode.value) {
-              // 黑听模式：显示控制界面和弹幕栏
-              return Column(
-                children: [
-                  // 黑听模式控制界面
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Colors.grey.withAlpha(25),
-                        ),
-                      ),
-                    ),
-                    padding: AppStyle.edgeInsetsA12,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "纯净黑听模式",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: controller.toggleAudioMode,
-                          icon: const Icon(Remix.video_line),
-                          label: const Text("切换到视频模式"),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // 弹幕栏
-                  Expanded(
-                    child: buildMessageArea(),
-                  ),
-                ],
-              );
-            } else {
-              // 正常模式：显示视频栏和弹幕栏
-              return Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: buildMediaPlayer(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 300,
-                    child: Column(
-                      children: [
-                        buildUserProfile(context),
-                        buildMessageArea(),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
-          }),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            border: Border(
-              top: BorderSide(
-                color: Colors.grey.withAlpha(25),
-              ),
-            ),
-          ),
-          padding: AppStyle.edgeInsetsV4.copyWith(
-            bottom: AppStyle.bottomBarHeight + 4,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              buildSubtitleBar(context),
-              Row(
                 children: [
                   TextButton.icon(
                     style: TextButton.styleFrom(
@@ -334,9 +352,10 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+        buildFloatingSubtitleBar(context),
       ],
     );
   }
@@ -422,7 +441,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withAlpha(180),
+              color: Colors.black.withOpacity(AppSettingsController
+                  .instance.subtitleBackgroundOpacity.value),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -442,7 +462,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     );
   }
 
-  Widget buildSubtitleBar(BuildContext context) {
+  Widget buildFloatingSubtitleBar(BuildContext context) {
     return Obx(
       () {
         if (controller.fullScreenState.value ||
@@ -453,23 +473,106 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             controller.subtitleText.value.isEmpty) {
           return const SizedBox.shrink();
         }
-        return Container(
-          width: double.infinity,
-          margin: AppStyle.edgeInsetsH12,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.withAlpha(40)),
-          ),
-          child: Text(
-            controller.subtitleText.value,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: AppSettingsController.instance.subtitleFontSize.value,
-              fontWeight: controller.subtitleIsPartial.value
-                  ? FontWeight.normal
-                  : FontWeight.w600,
+
+        // 动态计算底部距离，避免遮挡输入框
+        // 手机模式下，如果有底部操作栏或输入框，需要抬高位置
+        // 平板模式下，如果有输入框，也需要抬高位置
+        double bottomPadding = AppStyle.bottomBarHeight + 60;
+
+        // 如果是 B站且有输入框，需要额外抬高
+        if (controller.site.id == Constant.kBiliBili) {
+          bottomPadding += 60; // 预估输入框高度
+        }
+
+        // 使用自定义位置或默认位置
+        final offset = controller.subtitlePosition.value;
+
+        if (offset != null) {
+          return Positioned(
+            left: offset.dx,
+            top: offset.dy,
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                // 更新位置
+                final newOffset =
+                    controller.subtitlePosition.value! + details.delta;
+                // 简单的边界限制，防止完全拖出屏幕
+                final size = MediaQuery.of(context).size;
+                if (newOffset.dx > -100 &&
+                    newOffset.dx < size.width - 20 &&
+                    newOffset.dy > 50 &&
+                    newOffset.dy < size.height - 50) {
+                  controller.subtitlePosition.value = newOffset;
+                }
+              },
+              child: Container(
+                constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width - 40),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor.withOpacity(
+                      AppSettingsController
+                          .instance.subtitleBackgroundOpacity.value),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.withAlpha(40)),
+                ),
+                child: Text(
+                  controller.subtitleText.value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize:
+                        AppSettingsController.instance.subtitleFontSize.value,
+                    fontWeight: controller.subtitleIsPartial.value
+                        ? FontWeight.normal
+                        : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Positioned(
+          left: 12,
+          right: 12,
+          bottom: bottomPadding,
+          child: GestureDetector(
+            onPanStart: (details) {
+              // 开始拖动时，计算当前的绝对位置并初始化 subtitlePosition
+              // 由于是 bottom 定位，需要转换为 top/left
+              final RenderBox box = context.findRenderObject() as RenderBox;
+              // 这里很难精确获取当前 Positioned 的位置，因为还没 build 完成
+              // 但我们可以简单地从点击位置开始
+              // 或者更简单的，一旦开始拖动，直接把当前位置设为 globalPosition
+              // 为了体验好一点，我们假设当前就在默认位置
+              final size = MediaQuery.of(context).size;
+              // 默认位置是 left 12, bottom: bottomPadding
+              // 转换为 top/left
+              // 但这里我们简单处理：第一次拖动时，将位置设置到手指所在位置附近
+              controller.subtitlePosition.value =
+                  details.globalPosition - const Offset(50, 20);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor.withOpacity(
+                    AppSettingsController
+                        .instance.subtitleBackgroundOpacity.value),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.withAlpha(40)),
+              ),
+              child: Text(
+                controller.subtitleText.value,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize:
+                      AppSettingsController.instance.subtitleFontSize.value,
+                  fontWeight: controller.subtitleIsPartial.value
+                      ? FontWeight.normal
+                      : FontWeight.w600,
+                ),
+              ),
             ),
           ),
         );
@@ -575,54 +678,48 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         ),
       ),
       padding: EdgeInsets.only(bottom: AppStyle.bottomBarHeight),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          buildSubtitleBar(context),
-          Row(
-            children: [
-              Expanded(
-                child: Obx(
-                  () => controller.followed.value
-                      ? TextButton.icon(
-                          style: TextButton.styleFrom(
-                            textStyle: const TextStyle(fontSize: 14),
-                          ),
-                          onPressed: controller.removeFollowUser,
-                          icon: const Icon(Remix.heart_fill),
-                          label: const Text("取消关注"),
-                        )
-                      : TextButton.icon(
-                          style: TextButton.styleFrom(
-                            textStyle: const TextStyle(fontSize: 14),
-                          ),
-                          onPressed: controller.followUser,
-                          icon: const Icon(Remix.heart_line),
-                          label: const Text("关注"),
-                        ),
-                ),
+          Expanded(
+            child: Obx(
+              () => controller.followed.value
+                  ? TextButton.icon(
+                      style: TextButton.styleFrom(
+                        textStyle: const TextStyle(fontSize: 14),
+                      ),
+                      onPressed: controller.removeFollowUser,
+                      icon: const Icon(Remix.heart_fill),
+                      label: const Text("取消关注"),
+                    )
+                  : TextButton.icon(
+                      style: TextButton.styleFrom(
+                        textStyle: const TextStyle(fontSize: 14),
+                      ),
+                      onPressed: controller.followUser,
+                      icon: const Icon(Remix.heart_line),
+                      label: const Text("关注"),
+                    ),
+            ),
+          ),
+          Expanded(
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(fontSize: 14),
               ),
-              Expanded(
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    textStyle: const TextStyle(fontSize: 14),
-                  ),
-                  onPressed: controller.refreshRoom,
-                  icon: const Icon(Remix.refresh_line),
-                  label: const Text("刷新"),
-                ),
+              onPressed: controller.refreshRoom,
+              icon: const Icon(Remix.refresh_line),
+              label: const Text("刷新"),
+            ),
+          ),
+          Expanded(
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(fontSize: 14),
               ),
-              Expanded(
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    textStyle: const TextStyle(fontSize: 14),
-                  ),
-                  onPressed: controller.share,
-                  icon: const Icon(Remix.share_line),
-                  label: const Text("分享"),
-                ),
-              ),
-            ],
+              onPressed: controller.share,
+              icon: const Icon(Remix.share_line),
+              label: const Text("分享"),
+            ),
           ),
         ],
       ),

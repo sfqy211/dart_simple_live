@@ -237,6 +237,45 @@ class _VoiceRecognitionSettingsPageState
                 ),
                 AppStyle.divider,
                 Obx(
+                  () => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "背景透明度",
+                                style: Get.textTheme.bodyLarge,
+                              ),
+                              Text(
+                                "${(AppSettingsController.instance.subtitleBackgroundOpacity.value * 100).toInt()}%",
+                                style: Get.textTheme.bodySmall
+                                    ?.copyWith(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Slider(
+                          value: AppSettingsController
+                              .instance.subtitleBackgroundOpacity.value,
+                          min: 0.0,
+                          max: 1.0,
+                          divisions: 20,
+                          onChanged: (value) {
+                            AppSettingsController.instance
+                                .setSubtitleBackgroundOpacity(value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                AppStyle.divider,
+                Obx(
                   () => SettingsNumber(
                     title: "字体大小",
                     value: AppSettingsController.instance.subtitleFontSize.value
