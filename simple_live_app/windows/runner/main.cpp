@@ -5,9 +5,9 @@
 #include <iostream>
 #include <string>
 #include <streambuf>
-
 #include "flutter_window.h"
 #include "utils.h"
+
 #include "window_manager_plus/window_manager_plus_plugin.h"
 
 class AccessibilityLogFilter : public std::streambuf {
@@ -41,12 +41,11 @@ class AccessibilityLogFilter : public std::streambuf {
 
  private:
   void process_line() {
-    if (current_line_.find("Failed to update ui::AXTree") ==
-            std::string::npos &&
-        current_line_.find("Problem getting monitor brightness") ==
-            std::string::npos &&
-        current_line_.find("Problem setting monitor brightness") ==
-            std::string::npos) {
+    if (current_line_.find("Failed to update ui::AXTree") == std::string::npos &&
+        current_line_.find("AXTree") == std::string::npos &&
+        current_line_.find("accessibility_bridge.cc") == std::string::npos &&
+        current_line_.find("not the new root") == std::string::npos &&
+        current_line_.find("monitor brightness") == std::string::npos) {
       original_buffer_->sputn(current_line_.c_str(), current_line_.size());
     }
     current_line_.clear();
