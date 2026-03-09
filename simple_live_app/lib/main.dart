@@ -39,16 +39,16 @@ import 'package:dynamic_color/dynamic_color.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 初始化 window_manager_plus
   if (!Platform.isAndroid && !Platform.isIOS) {
     await WindowManagerPlus.ensureInitialized(
         args.isEmpty ? 0 : int.tryParse(args[0]) ?? 0);
   }
-  
+
   // 检查是否是主窗口（通过参数判断）
   bool isMainWindow = args.isEmpty || (Platform.isAndroid || Platform.isIOS);
-  
+
   if (isMainWindow) {
     // 主窗口：运行完整应用
     await migrateData();
@@ -144,11 +144,11 @@ Future initWindow() async {
     await WindowManagerPlus.current.show();
     await WindowManagerPlus.current.focus();
   });
-  
+
   // 初始化系统托盘
   if (Platform.isWindows) {
     await SystemTrayManager().initialize();
-    
+
     // 处理关闭按钮事件，最小化到托盘
     WindowManagerPlus.current.addListener(_windowCloseListener);
     await WindowManagerPlus.current.setPreventClose(true);
@@ -251,97 +251,114 @@ class MyApp extends StatelessWidget {
         defaultTransition: Platform.isAndroid ? Transition.cupertino : null,
         //debugShowCheckedModeBanner: false,
         navigatorObservers: [FlutterSmartDialog.observer],
-        builder: FlutterSmartDialog.init(
-          loadingBuilder: ((msg) => const AppLoaddingWidget()),
-          //字体大小不跟随系统变化
-          builder: (context, child) {
-            // Fix for HyperOS windowed-mode Flutter bug:
-            // - Values > 50 indicate the bug (windowed mode on HyperOS)
-            // - Values == 0 are valid for fullscreen/immersive mode and must NOT be treated as abnormal
-            const fallbackPadding = EdgeInsets.only(top: 25, bottom: 35);
-            const maxNormalPadding = 50.0;
+        // 禁用语义化调试覆盖层
+        showSemanticsDebugger: false,
+        builder: (context, child) {
+          final smartDialogBuilder = FlutterSmartDialog.init(
+            loadingBuilder: ((msg) => const AppLoaddingWidget()),
+            builder: (context, child) {
+              // Fix for HyperOS windowed-mode Flutter bug:
+              // - Values > 50 indicate the bug (windowed mode on HyperOS)
+              // - Values == 0 are valid for fullscreen/immersive mode and must NOT be treated as abnormal
+              const fallbackPadding = EdgeInsets.only(top: 25, bottom: 35);
+              const maxNormalPadding = 50.0;
 
-            final mediaQueryData = MediaQuery.of(context);
-            final hasAbnormalPadding = mediaQueryData.viewPadding.top > maxNormalPadding;
+              final mediaQueryData = MediaQuery.of(context);
+              final hasAbnormalPadding =
+                  mediaQueryData.viewPadding.top > maxNormalPadding;
 
-            final fixedMediaQueryData = hasAbnormalPadding
-                ? mediaQueryData.copyWith(
-                    viewPadding: fallbackPadding,
-                    padding: fallbackPadding,
-                    textScaler: const TextScaler.linear(1.0),
-                  )
-                : mediaQueryData.copyWith(textScaler: const TextScaler.linear(1.0));
+              final fixedMediaQueryData = hasAbnormalPadding
+                  ? mediaQueryData.copyWith(
+                      viewPadding: fallbackPadding,
+                      padding: fallbackPadding,
+                      textScaler: const TextScaler.linear(1.0),
+                    )
+                  : mediaQueryData.copyWith(
+                      textScaler: const TextScaler.linear(1.0));
 
-            return MediaQuery(
-              data: fixedMediaQueryData,
-              child: Stack(
-              children: [
-                //侧键返回
-                RawGestureDetector(
-                  excludeFromSemantics: true,
-                  gestures: <Type, GestureRecognizerFactory>{
-                    FourthButtonTapGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                            FourthButtonTapGestureRecognizer>(
-                      () => FourthButtonTapGestureRecognizer(),
-                      (FourthButtonTapGestureRecognizer instance) {
-                        instance.onTapDown = (TapDownDetails details) async {
-                          //如果处于全屏状态，退出全屏
-                          if (!Platform.isAndroid && !Platform.isIOS) {
-                            if (await WindowManagerPlus.current.isFullScreen()) {
-                              await WindowManagerPlus.current.setFullScreen(false);
-                              return;
+              return MediaQuery(
+                data: fixedMediaQueryData,
+                child: Stack(
+                  children: [
+                    //侧键返回
+                    RawGestureDetector(
+                      excludeFromSemantics: true,
+                      gestures: <Type, GestureRecognizerFactory>{
+                        FourthButtonTapGestureRecognizer:
+                            GestureRecognizerFactoryWithHandlers<
+                                FourthButtonTapGestureRecognizer>(
+                          () => FourthButtonTapGestureRecognizer(),
+                          (FourthButtonTapGestureRecognizer instance) {
+                            instance.onTapDown =
+                                (TapDownDetails details) async {
+                              //如果处于全屏状态，退出全屏
+                              if (!Platform.isAndroid && !Platform.isIOS) {
+                                if (await WindowManagerPlus.current
+                                    .isFullScreen()) {
+                                  await WindowManagerPlus.current
+                                      .setFullScreen(false);
+                                  return;
+                                }
+                              }
+                              Get.back();
+                            };
+                          },
+                        ),
+                      },
+                      child: KeyboardListener(
+                        focusNode: FocusNode(),
+                        onKeyEvent: (KeyEvent event) async {
+                          if (event is KeyDownEvent &&
+                              event.logicalKey == LogicalKeyboardKey.escape) {
+                            // ESC退出全屏
+                            // 如果处于全屏状态，退出全屏
+                            if (!Platform.isAndroid && !Platform.isIOS) {
+                              if (await WindowManagerPlus.current
+                                  .isFullScreen()) {
+                                await WindowManagerPlus.current
+                                    .setFullScreen(false);
+                                return;
+                              }
                             }
                           }
-                          Get.back();
-                        };
-                      },
-                    ),
-                  },
-                  child: KeyboardListener(
-                    focusNode: FocusNode(),
-                    onKeyEvent: (KeyEvent event) async {
-                      if (event is KeyDownEvent &&
-                          event.logicalKey == LogicalKeyboardKey.escape) {
-                        // ESC退出全屏
-                        // 如果处于全屏状态，退出全屏
-                        if (!Platform.isAndroid && !Platform.isIOS) {
-                          if (await WindowManagerPlus.current.isFullScreen()) {
-                            await WindowManagerPlus.current.setFullScreen(false);
-                            return;
-                          }
-                        }
-                      }
-                    },
-                    child: child!,
-                  ),
-                ),
-
-                //查看DEBUG日志按钮
-                //只在Debug、Profile模式显示
-                Visibility(
-                  visible: !kReleaseMode,
-                  child: Positioned(
-                    right: 12,
-                    bottom: 100 + context.mediaQueryViewPadding.bottom,
-                    child: Opacity(
-                      opacity: 0.4,
-                      child: ElevatedButton(
-                        child: const Text("DEBUG LOG"),
-                        onPressed: () {
-                          Get.bottomSheet(
-                            const DebugLogPage(),
-                          );
                         },
+                        child: child!,
                       ),
                     ),
-                  ),
+
+                    //查看DEBUG日志按钮
+                    //只在Debug、Profile模式显示
+                    Visibility(
+                      visible: !kReleaseMode,
+                      child: Positioned(
+                        right: 12,
+                        bottom: 100 + context.mediaQueryViewPadding.bottom,
+                        child: Opacity(
+                          opacity: 0.4,
+                          child: ElevatedButton(
+                            child: const Text("DEBUG LOG"),
+                            onPressed: () {
+                              Get.bottomSheet(
+                                const DebugLogPage(),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            );
-          },
-        ),
+              );
+            },
+          );
+
+          child = smartDialogBuilder(context, child);
+
+          if (!Platform.isAndroid && !Platform.isIOS) {
+            return ExcludeSemantics(child: child);
+          }
+          return child;
+        },
       );
     }));
   }

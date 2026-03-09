@@ -441,8 +441,10 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(AppSettingsController
-                  .instance.subtitleBackgroundOpacity.value),
+              // 【修改 1】将 withOpacity 改为 withValues(alpha: ...)
+              color: Colors.black.withValues(
+                  alpha: AppSettingsController
+                      .instance.subtitleBackgroundOpacity.value),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -511,8 +513,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor.withOpacity(
-                      AppSettingsController
+                  // 【修改 2】将 withOpacity 改为 withValues(alpha: ...)
+                  color: Theme.of(context).cardColor.withValues(
+                      alpha: AppSettingsController
                           .instance.subtitleBackgroundOpacity.value),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey.withAlpha(40)),
@@ -541,14 +544,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             onPanStart: (details) {
               // 开始拖动时，计算当前的绝对位置并初始化 subtitlePosition
               // 由于是 bottom 定位，需要转换为 top/left
-              final RenderBox box = context.findRenderObject() as RenderBox;
-              // 这里很难精确获取当前 Positioned 的位置，因为还没 build 完成
-              // 但我们可以简单地从点击位置开始
-              // 或者更简单的，一旦开始拖动，直接把当前位置设为 globalPosition
-              // 为了体验好一点，我们假设当前就在默认位置
-              final size = MediaQuery.of(context).size;
-              // 默认位置是 left 12, bottom: bottomPadding
-              // 转换为 top/left
               // 但这里我们简单处理：第一次拖动时，将位置设置到手指所在位置附近
               controller.subtitlePosition.value =
                   details.globalPosition - const Offset(50, 20);
@@ -556,8 +551,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor.withOpacity(
-                    AppSettingsController
+                // 【修改 3】将 withOpacity 改为 withValues(alpha: ...)
+                color: Theme.of(context).cardColor.withValues(
+                    alpha: AppSettingsController
                         .instance.subtitleBackgroundOpacity.value),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey.withAlpha(40)),
