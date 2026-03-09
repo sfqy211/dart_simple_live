@@ -1315,6 +1315,7 @@ class LiveRoomController extends PlayerController
         } else {
           stopVoiceRecognition();
         }
+        sendGhostConfig();
       }),
     );
     _subtitleWorkers.add(
@@ -2745,6 +2746,12 @@ ${errorStackTrace?.toString()}''');
           if (value is int) {
             AppSettingsController.instance.setGhostPanelColor(value);
             sendGhostConfig();
+          }
+        }
+        if (message.containsKey('subtitleEnable')) {
+          final value = message['subtitleEnable'];
+          if (value is bool) {
+            AppSettingsController.instance.setSubtitleEnable(value);
           }
         }
       }
