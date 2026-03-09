@@ -1200,7 +1200,7 @@ class PlayerController extends BaseController
     }
     if (!audioOnlyMode.value) {
       try {
-        await (player.platform as dynamic).setProperty('vo', 'gpu');
+        await (player.platform as dynamic).setProperty('vo', 'libmpv');
       } catch (e) {
         Log.logPrint('切换渲染输出失败: $e');
       }
@@ -1253,7 +1253,6 @@ class PlayerController extends BaseController
             await (player.platform as dynamic).setProperty('vo', 'gpu');
           }
         } else {
-          await (player.platform as dynamic).setProperty('vo', '');
           if (AppSettingsController.instance.customPlayerOutput.value) {
             Log.d(
               'AudioOnly off, custom vo=${AppSettingsController.instance.videoOutputDriver.value}',
@@ -1264,11 +1263,22 @@ class PlayerController extends BaseController
                 AppSettingsController.instance.videoOutputDriver.value,
               ),
             );
+            await (player.platform as dynamic).setProperty(
+              'hwdec',
+              AppSettingsController.instance.videoHardwareDecoder.value,
+            );
+          } else {
+            await (player.platform as dynamic).setProperty('vo', 'libmpv');
+            await (player.platform as dynamic).setProperty(
+              'hwdec',
+              AppSettingsController.instance.hardwareDecode.value
+                  ? 'auto'
+                  : 'no',
+            );
           }
         }
-        final needsReload =
-            (player.state.width == 0) || (player.state.height == 0);
-        if (needsReload && player.state.playlist.medias.isNotEmpty) {
+        if (player.state.playlist.medias.isNotEmpty) {
+          await Future.delayed(const Duration(milliseconds: 120));
           await player.open(player.state.playlist);
         }
       }
