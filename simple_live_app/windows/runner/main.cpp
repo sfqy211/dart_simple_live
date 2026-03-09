@@ -2,17 +2,17 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
-#include <iostream>
-#include <string>
-#include <streambuf>
 #include "flutter_window.h"
 #include "utils.h"
+#include <iostream>
+#include <streambuf>
+#include <string>
 
 #include "window_manager_plus/window_manager_plus_plugin.h"
 
 class AccessibilityLogFilter : public std::streambuf {
- public:
-  AccessibilityLogFilter(std::ostream& stream)
+public:
+  AccessibilityLogFilter(std::ostream &stream)
       : stream_(stream), original_buffer_(stream.rdbuf()) {
     stream_.rdbuf(this);
   }
@@ -24,7 +24,7 @@ class AccessibilityLogFilter : public std::streambuf {
     stream_.rdbuf(original_buffer_);
   }
 
- protected:
+protected:
   int overflow(int c) override {
     if (c == EOF) {
       return !EOF;
@@ -39,20 +39,26 @@ class AccessibilityLogFilter : public std::streambuf {
 
   int sync() override { return original_buffer_->pubsync(); }
 
- private:
+private:
   void process_line() {
-    if (current_line_.find("Failed to update ui::AXTree") == std::string::npos &&
-        current_line_.find("AXTree") == std::string::npos &&
-        current_line_.find("accessibility_bridge.cc") == std::string::npos &&
-        current_line_.find("not the new root") == std::string::npos &&
-        current_line_.find("monitor brightness") == std::string::npos) {
+    bool is_accessibility_noise =
+        (current_line_.find("AXTree") != std::string::npos ||
+         current_line_.find("accessibility_bridge.cc") != std::string::npos) &&
+        current_line_.find("Failed") == std::string::npos &&
+        current_line_.find("Error") == std::string::npos &&
+        current_line_.find("Exception") == std::string::npos;
+
+    bool is_monitor_noise =
+        current_line_.find("monitor brightness") != std::string::npos;
+
+    if (!is_accessibility_noise && !is_monitor_noise) {
       original_buffer_->sputn(current_line_.c_str(), current_line_.size());
     }
     current_line_.clear();
   }
 
-  std::ostream& stream_;
-  std::streambuf* original_buffer_;
+  std::ostream &stream_;
+  std::streambuf *original_buffer_;
   std::string current_line_;
 };
 
@@ -73,8 +79,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   flutter::DartProject project(L"data");
 
-  std::vector<std::string> command_line_arguments =
-      GetCommandLineArguments();
+  std::vector<std::string> command_line_arguments = GetCommandLineArguments();
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 

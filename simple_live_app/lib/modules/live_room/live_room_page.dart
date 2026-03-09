@@ -152,23 +152,27 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   padding: AppStyle.edgeInsetsA12,
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "纯净黑听模式",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          "纯净黑听模式",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                          ElevatedButton.icon(
-                            onPressed: controller.toggleAudioMode,
-                            icon: const Icon(Remix.video_line),
-                            label: const Text("切换到视频模式"),
-                          ),
-                        ],
+                        ),
                       ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: controller.toggleAudioMode,
+                        icon: const Icon(Remix.video_line),
+                        label: const Text("切换到视频模式"),
+                      ),
+                    ],
+                  ),
                       AppStyle.vGap12,
                       Row(
                         children: [
@@ -225,7 +229,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   child: buildMediaPlayer(),
                 ),
                 buildUserProfile(context),
-                buildMessageArea(),
+                Expanded(
+                  child: buildMessageArea(),
+                ),
                 buildBottomActions(context),
               ],
             );
@@ -271,16 +277,19 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                               child: Column(
                                 children: [
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text(
-                                        "纯净黑听模式",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                      const Expanded(
+                                        child: Text(
+                                          "纯净黑听模式",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
+                                      const SizedBox(width: 12),
                                       ElevatedButton.icon(
                                         onPressed: controller.toggleAudioMode,
                                         icon: const Icon(Remix.video_line),
@@ -807,88 +816,86 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildMessageArea() {
-    return Expanded(
-      child: DefaultTabController(
-        length: controller.site.id == Constant.kBiliBili ? 4 : 3,
-        child: Column(
-          children: [
-            TabBar(
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelPadding: EdgeInsets.zero,
-              indicatorWeight: 1.0,
-              tabs: [
-                const Tab(
-                  text: "聊天",
+    return DefaultTabController(
+      length: controller.site.id == Constant.kBiliBili ? 4 : 3,
+      child: Column(
+        children: [
+          TabBar(
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelPadding: EdgeInsets.zero,
+            indicatorWeight: 1.0,
+            tabs: [
+              const Tab(
+                text: "聊天",
+              ),
+              if (controller.site.id == Constant.kBiliBili)
+                Tab(
+                  child: Obx(
+                    () => Text(
+                      controller.superChats.isNotEmpty
+                          ? "SC(${controller.superChats.length})"
+                          : "SC",
+                    ),
+                  ),
+                ),
+              const Tab(
+                text: "关注",
+              ),
+              const Tab(
+                text: "设置",
+              ),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                Obx(
+                  () => Stack(
+                    children: [
+                      ListView.separated(
+                        controller: controller.scrollController,
+                        separatorBuilder: (_, i) => Obx(
+                          () => SizedBox(
+                            // *2与原来的EdgeInsets.symmetric(vertical: )做兼容
+                            height:
+                                AppSettingsController.instance.chatTextGap.value *
+                                    2,
+                          ),
+                        ),
+                        padding: AppStyle.edgeInsetsA12,
+                        itemCount: controller.messages.length,
+                        itemBuilder: (_, i) {
+                          var item = controller.messages[i];
+                          return buildMessageItem(item);
+                        },
+                      ),
+                      Visibility(
+                        visible: controller.disableAutoScroll.value,
+                        child: Positioned(
+                          right: 12,
+                          bottom: 12,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              controller.disableAutoScroll.value = false;
+                              controller.chatScrollToBottom();
+                            },
+                            icon: const Icon(Icons.expand_more),
+                            label: const Text("最新"),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (controller.site.id == Constant.kBiliBili)
-                  Tab(
-                    child: Obx(
-                      () => Text(
-                        controller.superChats.isNotEmpty
-                            ? "SC(${controller.superChats.length})"
-                            : "SC",
-                      ),
-                    ),
-                  ),
-                const Tab(
-                  text: "关注",
-                ),
-                const Tab(
-                  text: "设置",
-                ),
+                  buildSuperChats(),
+                buildFollowList(),
+                buildSettings(),
               ],
             ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  Obx(
-                    () => Stack(
-                      children: [
-                        ListView.separated(
-                          controller: controller.scrollController,
-                          separatorBuilder: (_, i) => Obx(
-                            () => SizedBox(
-                              // *2与原来的EdgeInsets.symmetric(vertical: )做兼容
-                              height: AppSettingsController
-                                      .instance.chatTextGap.value *
-                                  2,
-                            ),
-                          ),
-                          padding: AppStyle.edgeInsetsA12,
-                          itemCount: controller.messages.length,
-                          itemBuilder: (_, i) {
-                            var item = controller.messages[i];
-                            return buildMessageItem(item);
-                          },
-                        ),
-                        Visibility(
-                          visible: controller.disableAutoScroll.value,
-                          child: Positioned(
-                            right: 12,
-                            bottom: 12,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                controller.disableAutoScroll.value = false;
-                                controller.chatScrollToBottom();
-                              },
-                              icon: const Icon(Icons.expand_more),
-                              label: const Text("最新"),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (controller.site.id == Constant.kBiliBili)
-                    buildSuperChats(),
-                  buildFollowList(),
-                  buildSettings(),
-                ],
-              ),
-            ),
-            if (controller.site.id == Constant.kBiliBili) buildChatInput(),
-          ],
-        ),
+          ),
+          if (controller.site.id == Constant.kBiliBili) buildChatInput(),
+        ],
       ),
     );
   }

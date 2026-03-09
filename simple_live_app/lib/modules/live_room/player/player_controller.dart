@@ -629,6 +629,11 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       );
       ghostModeState.value = false;
       try {
+        if (controller == null) {
+          await _restoreMainWindowAfterGhost();
+          Log.logPrint('退出透明模式 幽灵窗口为空，已恢复主窗口');
+          return;
+        }
         await _restoreMainWindowAfterGhost();
         await controller?.setAlwaysOnTop(false);
         await controller?.setIgnoreMouseEvents(true, forward: true);
@@ -1060,6 +1065,9 @@ class PlayerController extends BaseController
         PlayerDanmakuMixin,
         PlayerSystemMixin,
         PlayerGestureControlMixin {
+  bool _renderFallbackApplied = false;
+  bool _audioModeTransitioning = false;
+
   @override
   void onInit() {
     // 初始化黑听模式状态
@@ -1119,7 +1127,12 @@ class PlayerController extends BaseController
       }
     });
     _logSubscription = player.stream.log.listen((event) {
+      final message = event.text;
+      if (_shouldSuppressPlayerLog(message)) {
+        return;
+      }
       Log.d("播放器日志：$event");
+      _handleRenderErrorLog(message);
     });
     _widthSubscription = player.stream.width.listen((event) {
       Log.d(
@@ -1153,13 +1166,69 @@ class PlayerController extends BaseController
     WakelockPlus.disable();
   }
 
+  bool _shouldSuppressPlayerLog(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('property not found') &&
+        lower.contains('_setproperty(osc');
+  }
+
+  void _handleRenderErrorLog(String message) {
+    if (_renderFallbackApplied) {
+      return;
+    }
+    final lower = message.toLowerCase();
+    if (lower.contains('failed to create egl surface') ||
+        lower.contains('dxva2-egl') ||
+        lower.contains('cannot load nvcuda.dll') ||
+        lower.contains('nvcuda.dll')) {
+      _applyRenderFallback(message);
+    }
+  }
+
+  Future<void> _applyRenderFallback(String reason) async {
+    if (_renderFallbackApplied) {
+      return;
+    }
+    _renderFallbackApplied = true;
+    if (player.platform is! NativePlayer) {
+      return;
+    }
+    try {
+      await (player.platform as dynamic).setProperty('hwdec', 'no');
+    } catch (e) {
+      Log.logPrint('切换为软件解码失败: $e');
+    }
+    if (!audioOnlyMode.value) {
+      try {
+        await (player.platform as dynamic).setProperty('vo', 'gpu');
+      } catch (e) {
+        Log.logPrint('切换渲染输出失败: $e');
+      }
+    }
+    AppSettingsController.instance.setHardwareDecode(false);
+    if (AppSettingsController.instance.customPlayerOutput.value) {
+      AppSettingsController.instance.setVideoHardwareDecoder('no');
+      AppSettingsController.instance.setVideoOutputDriver('gpu');
+    }
+    if (player.state.playlist.medias.isNotEmpty) {
+      await player.open(player.state.playlist);
+    }
+    SmartDialog.showToast('检测到硬解渲染失败，已切换到软件解码');
+  }
+
   /// 切换黑听模式
   Future<void> toggleAudioMode() async {
-    audioOnlyMode.value = !audioOnlyMode.value;
-    // 保存状态到设置
-    AppSettingsController.instance.setAudioOnlyMode(audioOnlyMode.value);
-    // 应用黑听模式
-    await applyAudioMode();
+    if (_audioModeTransitioning) {
+      return;
+    }
+    _audioModeTransitioning = true;
+    try {
+      audioOnlyMode.value = !audioOnlyMode.value;
+      AppSettingsController.instance.setAudioOnlyMode(audioOnlyMode.value);
+      await applyAudioMode();
+    } finally {
+      _audioModeTransitioning = false;
+    }
   }
 
   /// 应用黑听模式
@@ -1197,8 +1266,9 @@ class PlayerController extends BaseController
             );
           }
         }
-        // 重新加载当前媒体，确保视频轨道被正确初始化
-        if (player.state.playlist.medias.isNotEmpty) {
+        final needsReload =
+            (player.state.width == 0) || (player.state.height == 0);
+        if (needsReload && player.state.playlist.medias.isNotEmpty) {
           await player.open(player.state.playlist);
         }
       }
