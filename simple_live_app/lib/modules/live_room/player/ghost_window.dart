@@ -14,7 +14,9 @@ class GhostWindow extends StatefulWidget {
 class _GhostWindowState extends State<GhostWindow> with WindowListener {
   double _opacity = 0.8;
   bool _locked = false;
+  bool _showSubtitle = true;
   double _fontSize = 16.0;
+  double _volume = 100.0;
   double _danmakuOpacity = 1.0;
   int _fontWeight = 4;
   int _panelColor = 0xBFD0D0D0;
@@ -131,6 +133,14 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           if (colorValue is int) {
             setState(() {
               _panelColor = colorValue;
+            });
+          }
+        }
+        if (message.containsKey('volume')) {
+          final value = message['volume'];
+          if (value is num) {
+            setState(() {
+              _volume = value.toDouble();
             });
           }
         }
@@ -1337,12 +1347,56 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                       const SizedBox(height: 8),
                       Row(
                         children: [
+                          const SizedBox(width: 64, child: Text("音量")),
+                          Expanded(
+                            child: Slider(
+                              value: _volume,
+                              min: 0,
+                              max: 100,
+                              onChanged: (value) {
+                                setState(() {
+                                  _volume = value;
+                                });
+                                WindowManagerPlus.current.invokeMethodToWindow(
+                                  0,
+                                  'ghost_volume',
+                                  {'value': value},
+                                );
+                                setSheetState(() {});
+                              },
+                            ),
+                          ),
+                          SizedBox(
+                            width: 48,
+                            child: Text("${_volume.toInt()}%"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
                           const SizedBox(width: 64, child: Text("锁定")),
                           Expanded(child: Container()),
                           Switch(
                             value: _locked,
                             onChanged: (value) {
                               _updateLocked(value);
+                              setSheetState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 64, child: Text("显示字幕")),
+                          Expanded(child: Container()),
+                          Switch(
+                            value: _showSubtitle,
+                            onChanged: (value) {
+                              setState(() {
+                                _showSubtitle = value;
+                              });
                               setSheetState(() {});
                             },
                           ),
@@ -1451,135 +1505,132 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       backgroundColor: Colors.transparent,
       body: Container(
         color: Colors.transparent,
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          children: [
-            Container(
-              height: 28,
-              decoration: BoxDecoration(
-                color: panelColor,
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
+        child: Container(
+          decoration: BoxDecoration(
+            color: panelColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _locked
+                          ? const SizedBox.expand()
+                          : const DragToMoveArea(
+                              child: SizedBox.expand(),
+                            ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      icon: const Icon(Icons.settings, size: 18),
+                      onPressed: _showSettingsSheet,
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: _requestExitGhostMode,
+                    ),
+                  ],
+                ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                children: [
-                  if (_subtitleText.isNotEmpty)
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 4,
-                          horizontal: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withAlpha(110),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
+              if (_showSubtitle && _subtitleText.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 6,
+                    horizontal: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(160),
+                    border: Border(
+                      left: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 4,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    _subtitleText,
+                    style: TextStyle(
+                      fontSize: _fontSize,
+                      fontWeight: _subtitleIsPartial
+                          ? FontWeight.normal
+                          : FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    itemCount: _items.length,
+                    itemBuilder: (context, index) {
+                      final item = _items[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Text(
-                          _subtitleText,
-                          softWrap: true,
+                          item.text,
                           style: TextStyle(
+                            color:
+                                item.color.withValues(alpha: _danmakuOpacity),
                             fontSize: _fontSize,
-                            fontWeight: _subtitleIsPartial
-                                ? FontWeight.normal
-                                : FontWeight.w600,
-                            color: Colors.white,
+                            fontWeight: FontWeight.values[weightIndex],
                           ),
                         ),
-                      ),
-                    ),
-                  Expanded(
-                    child: _locked
-                        ? const SizedBox.expand()
-                        : const DragToMoveArea(
-                            child: SizedBox.expand(),
-                          ),
+                      );
+                    },
                   ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
-                    ),
-                    icon: const Icon(Icons.settings, size: 18),
-                    onPressed: _showSettingsSheet,
-                  ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
-                    ),
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: _requestExitGhostMode,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: panelColor,
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.all(8),
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) {
-                    final item = _items[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        item.text,
-                        style: TextStyle(
-                          color: item.color.withValues(alpha: _danmakuOpacity),
-                          fontSize: _fontSize,
-                          fontWeight: FontWeight.values[weightIndex],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: _requestShowEmotions,
+                      icon: const Icon(Icons.emoji_emotions_outlined, size: 18),
+                      tooltip: "表情包",
+                    ),
+                    IconButton(
+                      onPressed: _requestAutoSpam,
+                      icon: const Icon(Icons.auto_mode, size: 18),
+                      tooltip: "自动发送",
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _inputController,
+                        decoration: const InputDecoration(
+                          hintText: "发送弹幕...",
+                          border: InputBorder.none,
+                          isDense: true,
                         ),
+                        onSubmitted: (_) => _sendMessage(),
                       ),
-                    );
-                  },
+                    ),
+                    TextButton(
+                      onPressed: _sendMessage,
+                      child: const Text("发送"),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: panelColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: _requestShowEmotions,
-                    icon: const Icon(Icons.emoji_emotions_outlined, size: 18),
-                    tooltip: "表情包",
-                  ),
-                  IconButton(
-                    onPressed: _requestAutoSpam,
-                    icon: const Icon(Icons.auto_mode, size: 18),
-                    tooltip: "自动发送",
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _inputController,
-                      decoration: const InputDecoration(
-                        hintText: "发送弹幕...",
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _sendMessage,
-                    child: const Text("发送"),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

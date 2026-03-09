@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
+import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
 
@@ -103,6 +104,46 @@ class AudioModeCover extends GetView<LiveRoomController> {
                 style: TextStyle(
                   fontSize: 14,
                   color: Theme.of(context).textTheme.bodySmall?.color,
+                ),
+              ),
+              AppStyle.vGap24,
+              GestureDetector(
+                onTap: () {},
+                child: SizedBox(
+                  width: 240,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.volume_down,
+                        size: 20,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
+                      Expanded(
+                        child: Obx(
+                          () => Slider(
+                            value: AppSettingsController
+                                .instance.playerVolume.value,
+                            min: 0,
+                            max: 100,
+                            onChanged: (value) {
+                              controller.player.setVolume(value);
+                              AppSettingsController.instance
+                                  .setPlayerVolume(value);
+                            },
+                          ),
+                        ),
+                      ),
+                      Obx(
+                        () => Text(
+                          "${AppSettingsController.instance.playerVolume.value.toInt()}%",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

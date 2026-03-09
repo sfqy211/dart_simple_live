@@ -150,20 +150,61 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     ),
                   ),
                   padding: AppStyle.edgeInsetsA12,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      const Text(
-                        "纯净黑听模式",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "纯净黑听模式",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: controller.toggleAudioMode,
+                            icon: const Icon(Remix.video_line),
+                            label: const Text("切换到视频模式"),
+                          ),
+                        ],
                       ),
-                      ElevatedButton.icon(
-                        onPressed: controller.toggleAudioMode,
-                        icon: const Icon(Remix.video_line),
-                        label: const Text("切换到视频模式"),
+                      AppStyle.vGap12,
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.volume_down,
+                            size: 20,
+                            color: Theme.of(context).iconTheme.color,
+                          ),
+                          Expanded(
+                            child: Obx(
+                              () => Slider(
+                                value: AppSettingsController
+                                    .instance.playerVolume.value,
+                                min: 0,
+                                max: 100,
+                                onChanged: (value) {
+                                  controller.player.setVolume(value);
+                                  AppSettingsController.instance
+                                      .setPlayerVolume(value);
+                                },
+                              ),
+                            ),
+                          ),
+                          Obx(
+                            () => Text(
+                              "${AppSettingsController.instance.playerVolume.value.toInt()}%",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.color,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -227,21 +268,64 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                 ),
                               ),
                               padding: AppStyle.edgeInsetsA12,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              child: Column(
                                 children: [
-                                  const Text(
-                                    "纯净黑听模式",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        "纯净黑听模式",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        onPressed: controller.toggleAudioMode,
+                                        icon: const Icon(Remix.video_line),
+                                        label: const Text("切换到视频模式"),
+                                      ),
+                                    ],
                                   ),
-                                  ElevatedButton.icon(
-                                    onPressed: controller.toggleAudioMode,
-                                    icon: const Icon(Remix.video_line),
-                                    label: const Text("切换到视频模式"),
+                                  AppStyle.vGap12,
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.volume_down,
+                                        size: 20,
+                                        color:
+                                            Theme.of(context).iconTheme.color,
+                                      ),
+                                      Expanded(
+                                        child: Obx(
+                                          () => Slider(
+                                            value: AppSettingsController
+                                                .instance.playerVolume.value,
+                                            min: 0,
+                                            max: 100,
+                                            onChanged: (value) {
+                                              controller.player
+                                                  .setVolume(value);
+                                              AppSettingsController.instance
+                                                  .setPlayerVolume(value);
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      Obx(
+                                        () => Text(
+                                          "${AppSettingsController.instance.playerVolume.value.toInt()}%",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

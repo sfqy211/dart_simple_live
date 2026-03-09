@@ -2748,6 +2748,14 @@ ${errorStackTrace?.toString()}''');
           }
         }
       }
+    } else if (eventName == 'ghost_volume') {
+      if (arguments is Map) {
+        final value = arguments['value'];
+        if (value is num) {
+          player.setVolume(value.toDouble());
+          AppSettingsController.instance.setPlayerVolume(value.toDouble());
+        }
+      }
     } else if (eventName == 'ghost_exit' || eventName == 'ghost_closed') {
       stopAllAutoSpam();
       if (ghostModeState.value) {

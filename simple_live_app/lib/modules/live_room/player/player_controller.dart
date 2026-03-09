@@ -430,6 +430,7 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
                   AppSettingsController.instance.danmuFontWeight.value,
             },
             'panelColor': AppSettingsController.instance.ghostPanelColor.value,
+            'volume': AppSettingsController.instance.playerVolume.value,
           },
         );
       } catch (e) {
@@ -667,8 +668,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       return;
     }
     try {
-      await WindowManagerPlus.current
-          .setIgnoreMouseEvents(true, forward: true);
+      await WindowManagerPlus.current.setIgnoreMouseEvents(true, forward: true);
       await WindowManagerPlus.current.setSkipTaskbar(true);
       await WindowManagerPlus.current.setOpacity(0);
     } catch (e) {
