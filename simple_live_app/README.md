@@ -71,6 +71,57 @@ keytool -genkey -v -keystore android/app/upload-keystore.jks -storetype JKS -key
 - 密码：`123456`
 - CN=wind, OU=sfqy, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
 
-## 📄 许可证
+## � 项目结构
+
+项目采用标准的 Flutter 项目结构，主要目录说明如下：
+
+```
+simple_live_app/
+├── android/            # Android 平台相关代码和配置
+│   ├── app/            # Android 应用代码
+│   └── gradle/         # Gradle 配置文件
+├── assets/             # 静态资源文件
+│   ├── icons/          # 应用图标
+│   ├── images/         # 图片资源
+│   ├── lotties/        # Lottie 动画文件
+│   └── logo.*          # 应用 logo 文件
+├── ios/                # iOS 平台相关代码和配置
+│   ├── Flutter/        # Flutter 相关配置
+│   ├── Runner/         # iOS 应用代码
+│   └── Runner.xcodeproj/ # Xcode 项目文件
+├── lib/                # Dart 源代码
+│   ├── app/            # 应用核心配置和工具
+│   │   ├── controller/ # 应用控制器
+│   │   └── utils/      # 工具类
+│   ├── modules/        # 功能模块
+│   │   ├── category/   # 分类模块
+│   │   ├── follow_user/ # 关注用户模块
+│   │   ├── home/       # 首页模块
+│   │   ├── indexed/    # 索引模块
+│   │   ├── live_room/  # 直播间模块
+│   │   ├── mine/       # 个人中心模块
+│   │   ├── search/     # 搜索模块
+│   │   ├── settings/   # 设置模块
+│   │   └── sync/       # 同步模块
+│   ├── requests/       # 网络请求相关
+│   ├── routes/         # 路由配置
+│   ├── services/       # 服务类
+│   └── main.dart       # 应用入口文件
+├── .fvmrc              # FVM 配置文件
+├── .gitignore          # Git 忽略文件
+├── README.md           # 项目说明文档
+├── analysis_options.yaml # 代码分析配置
+└── distribute_options.yaml # 分发配置
+```
+
+### 核心模块说明
+
+- **app/**: 应用核心配置和工具类，包含应用样式、常量定义、事件总线等
+- **modules/**: 功能模块集合，每个模块包含对应的页面和控制器
+- **requests/**: 网络请求相关代码，封装了 HTTP 客户端
+- **routes/**: 应用路由配置，定义了页面导航规则
+- **services/**: 服务类，提供账号管理、数据存储等功能
+
+## �📄 许可证
 
 MIT License

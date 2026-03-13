@@ -852,8 +852,10 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
               TextField(
                 controller: _autoSpamTextController,
                 maxLines: 4,
+                style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   hintText: "输入自动发送弹幕内容",
+                  hintStyle: TextStyle(color: Colors.white70),
                   border: OutlineInputBorder(),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1108,8 +1110,10 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
               TextField(
                 controller: _autoSpamFavoriteController,
                 maxLines: 4,
+                style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   hintText: "输入当前分组弹幕内容",
+                  hintStyle: TextStyle(color: Colors.white70),
                   border: OutlineInputBorder(),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1652,8 +1656,10 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                         Expanded(
                           child: TextField(
                             controller: _inputController,
+                            style: const TextStyle(color: Colors.white),
                             decoration: const InputDecoration(
                               hintText: "发送弹幕...",
+                              hintStyle: TextStyle(color: Colors.white70),
                               border: InputBorder.none,
                               isDense: true,
                             ),
