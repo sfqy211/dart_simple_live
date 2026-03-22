@@ -16,13 +16,7 @@
 
 ## 支持直播平台：
 
-- 虎牙直播
-
-- 斗鱼直播
-
 - 哔哩哔哩直播
-
-- 抖音直播
 
 ## APP支持平台
 
@@ -34,8 +28,7 @@
 
 ## 项目结构
 
-- `simple_live_core` 项目核心库，实现获取各个网站的信息及弹幕。
-- `simple_live_console` 基于simple_live_core的控制台程序。
+- `simple_live_core` 项目核心库，实现获取哔哩哔哩网站的信息及弹幕。
 - `simple_live_app` 基于核心库实现的Flutter APP客户端。
 
 ## 环境
@@ -46,21 +39,9 @@ Flutter : `3.38`
 
 [AllLive](https://github.com/xiaoyaocz/AllLive) `本项目的C#版，有兴趣可以看看`
 
-[dart_tars_protocol](https://github.com/xiaoyaocz/dart_tars_protocol.git)
-
-[wbt5/real-url](https://github.com/wbt5/real-url)
-
 [lovelyyoshino/Bilibili-Live-API](https://github.com/lovelyyoshino/Bilibili-Live-API/blob/master/API.WebSocket.md)
 
 [IsoaSFlus/danmaku](https://github.com/IsoaSFlus/danmaku)
-
-[BacooTang/huya-danmu](https://github.com/BacooTang/huya-danmu)
-
-[TarsCloud/Tars](https://github.com/TarsCloud/Tars)
-
-[YunzhiYike/douyin-live](https://github.com/YunzhiYike/douyin-live)
-
-[5ime/Tiktok_Signature](https://github.com/5ime/Tiktok_Signature)
 
 ## 声明
 

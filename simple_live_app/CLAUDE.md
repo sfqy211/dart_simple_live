@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Simple Live App is a Flutter-based cross-platform live streaming aggregation client. It depends on `simple_live_core` for platform-specific implementations.
+Simple Live App is a Flutter-based cross-platform live streaming client for **Bilibili only**. It depends on `simple_live_core` for platform-specific implementations.
 
 ## Environment
 
@@ -43,7 +43,7 @@ lib/
 ├── app/                   # Core config, constants, GetX controllers
 │   ├── controller/        # AppSettingsController, BaseController
 │   ├── constant.dart      # App constants, platform IDs
-│   ├── sites.dart         # Platform site definitions (Bilibili, Douyu, Huya, Douyin)
+│   ├── sites.dart         # Platform site definitions (Bilibili only)
 │   └── utils/             # Utilities (archive, document, fourth button listener)
 ├── modules/               # Feature modules (pages + controllers)
 │   ├── home/              # Home page
@@ -77,7 +77,7 @@ lib/
 
 - **Controllers**: Each feature module has its own controller extending `GetxController`. Use `BindingsBuilder.put()` in route definitions for dependency injection.
 - **Settings**: `AppSettingsController` is the global settings singleton (Get.find pattern). All settings persist via `LocalStorageService` using Hive.
-- **Site Integration**: Platform sites are registered in `app/sites.dart` using `simple_live_core` classes (`BiliBiliSite`, `DouyuSite`, etc.)
+- **Site Integration**: Platform sites are registered in `app/sites.dart` using `simple_live_core` classes (`BiliBiliSite`)
 - **Routing**: Routes are defined in `AppPages.routes` using GetX. Arguments are passed via `Get.arguments` or `Get.parameters`.
 
 ### Database Models

@@ -1,10 +1,10 @@
 # Simple Live App
 
-基于 Flutter 开发的跨平台直播聚合客户端，支持多种直播平台，提供清爽的观看体验和丰富的功能。
+基于 Flutter 开发的跨平台直播聚合客户端，支持哔哩哔哩直播平台，提供清爽的观看体验和丰富的功能。
 
 ## ✨ 主要特性
 
-- **多平台聚合**：支持 **哔哩哔哩 (Bilibili)**、**斗鱼 (Douyu)**、**虎牙 (Huya)**、**抖音 (Douyin)** 等主流直播平台。
+- **哔哩哔哩直播**：支持哔哩哔哩 (Bilibili) 直播平台。
 - **跨平台支持**：完美运行于 **Windows**、**Android**，并支持 Linux (实验性)。
 - **沉浸式播放体验**：
   - 基于 `media_kit` 的高性能播放器。
@@ -13,7 +13,7 @@
 - **AI 实时字幕**：
   - 内置本地语音识别模型（Sherpa ONNX），无需联网即可生成实时字幕。
   - 支持在线 WebSocket API 识别。
-  - **透明浮窗模式**：支持“幽灵窗口”模式，在桌面顶层透明显示画面与字幕，工作摸鱼两不误。
+  - **透明浮窗模式**：支持"幽灵窗口"模式，在桌面顶层透明显示画面与字幕，工作摸鱼两不误。
 - **数据同步**：
   - 支持 **WebDAV** 云端同步关注列表与观看历史。
   - 支持局域网内二维码扫码快速同步。
@@ -71,7 +71,7 @@ keytool -genkey -v -keystore android/app/upload-keystore.jks -storetype JKS -key
 - 密码：`123456`
 - CN=wind, OU=sfqy, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
 
-## � 项目结构
+## 项目结构
 
 项目采用标准的 Flutter 项目结构，主要目录说明如下：
 
@@ -122,6 +122,6 @@ simple_live_app/
 - **routes/**: 应用路由配置，定义了页面导航规则
 - **services/**: 服务类，提供账号管理、数据存储等功能
 
-## �📄 许可证
+## 📄 许可证
 
 MIT License
