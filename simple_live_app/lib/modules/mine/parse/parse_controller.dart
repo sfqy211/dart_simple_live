@@ -122,40 +122,6 @@ class ParseController extends GetxController {
       return await parse(location);
     }
 
-    if (url.contains("douyu.com")) {
-      var regExp = RegExp(r"douyu\.com/([\d|\w]+)");
-      // 适配 topic_url
-      if(url.contains("topic")){
-        regExp = RegExp(r"[?&]rid=([\d]+)");
-      }
-      id = regExp.firstMatch(url)?.group(1) ?? "";
-
-      return [id, Sites.allSites[Constant.kDouyu]!];
-    }
-    if (url.contains("huya.com")) {
-      var regExp = RegExp(r"huya\.com/([\d|\w]+)");
-      id = regExp.firstMatch(url)?.group(1) ?? "";
-
-      return [id, Sites.allSites[Constant.kHuya]!];
-    }
-    if (url.contains("live.douyin.com")) {
-      var regExp = RegExp(r"live\.douyin\.com/([\d|\w]+)");
-      id = regExp.firstMatch(url)?.group(1) ?? "";
-
-      return [id, Sites.allSites[Constant.kDouyin]!];
-    }
-    if (url.contains("webcast.amemv.com")) {
-      var regExp = RegExp(r"reflow/(\d+)");
-      id = regExp.firstMatch(url)?.group(1) ?? "";
-      return [id, Sites.allSites[Constant.kDouyin]!];
-    }
-    if (url.contains("v.douyin.com")) {
-      var regExp = RegExp(r"http.?://v.douyin.com/[\d\w]+/");
-      var u = regExp.firstMatch(url)?.group(0) ?? "";
-      var location = await getLocation(u);
-      return await parse(location);
-    }
-
     return [];
   }
 

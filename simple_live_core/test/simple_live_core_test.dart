@@ -59,10 +59,6 @@ void testSite(LiveSite site) async {
   });
 
   test('searchAnchors', () async {
-    // 跳过抖音测试此项
-    if (site is DouyinSite) {
-      return;
-    }
     var result = await site.searchAnchors('联盟');
     expect(result, isNotNull);
     expect(result.items, isNotEmpty);
@@ -135,17 +131,5 @@ void main() {
 
   group('bilibili tests', () {
     testSite(BiliBiliSite());
-  });
-
-  group('douyu tests', () {
-    testSite(DouyuSite());
-  });
-
-  group('huya tests', () {
-    testSite(HuyaSite());
-  });
-
-  group('douyin tests', () {
-    testSite(DouyinSite());
   });
 }

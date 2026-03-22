@@ -25,7 +25,6 @@ import 'package:simple_live_app/modules/live_room/player/ghost_window.dart';
 import 'package:simple_live_app/routes/app_pages.dart';
 import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/services/bilibili_account_service.dart';
-import 'package:simple_live_app/services/douyin_account_service.dart';
 import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/services/local_storage_service.dart';
@@ -170,8 +169,6 @@ Future initServices() async {
   Get.put(AppSettingsController());
 
   Get.put(BiliBiliAccountService());
-
-  Get.put(DouyinAccountService());
 
   Get.put(SyncService());
 

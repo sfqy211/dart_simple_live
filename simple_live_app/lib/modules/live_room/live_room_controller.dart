@@ -48,10 +48,6 @@ class LiveRoomController extends PlayerController
     rxSite = pSite.obs;
     rxRoomId = pRoomId.obs;
     liveDanmaku = site.liveSite.getDanmaku();
-    // 抖音应该默认是竖屏的
-    if (site.id == "douyin") {
-      isVertical.value = true;
-    }
   }
 
   late Rx<Site> rxSite;
@@ -1797,33 +1793,6 @@ class LiveRoomController extends PlayerController
       addSysMsg("正在读取直播间信息");
       detail.value = await site.liveSite.getRoomDetail(roomId: roomId);
 
-      if (site.id == Constant.kDouyin) {
-        // 1.6.0之前收藏的WebRid
-        // 1.6.0收藏的RoomID
-        // 1.6.0之后改回WebRid
-        if (detail.value!.roomId != roomId) {
-          var oldId = roomId;
-          rxRoomId.value = detail.value!.roomId;
-          if (followed.value) {
-            // 更新关注列表
-            DBService.instance.deleteFollow("${site.id}_$oldId");
-            DBService.instance.addFollow(
-              FollowUser(
-                id: "${site.id}_$roomId",
-                roomId: roomId,
-                siteId: site.id,
-                userName: detail.value!.userName,
-                face: detail.value!.userAvatar,
-                addTime: DateTime.now(),
-              ),
-            );
-          } else {
-            followed.value =
-                DBService.instance.getFollowExist("${site.id}_$roomId");
-          }
-        }
-      }
-
       getSuperChatMessage();
 
       addHistory();
@@ -2463,25 +2432,8 @@ class LiveRoomController extends PlayerController
   }
 
   void openNaviteAPP() async {
-    var naviteUrl = "";
-    var webUrl = "";
-    if (site.id == Constant.kBiliBili) {
-      naviteUrl = "bilibili://live/${detail.value?.roomId}";
-      webUrl = "https://live.bilibili.com/${detail.value?.roomId}";
-    } else if (site.id == Constant.kDouyin) {
-      var args = detail.value?.danmakuData as DouyinDanmakuArgs;
-      naviteUrl = "snssdk1128://webcast_room?room_id=${args.roomId}";
-      webUrl = "https://live.douyin.com/${args.webRid}";
-    } else if (site.id == Constant.kHuya) {
-      var args = detail.value?.danmakuData as HuyaDanmakuArgs;
-      naviteUrl =
-          "yykiwi://homepage/index.html?banneraction=https%3A%2F%2Fdiy-front.cdn.huya.com%2Fzt%2Ffrontpage%2Fcc%2Fupdate.html%3Fhyaction%3Dlive%26channelid%3D${args.subSid}%26subid%3D${args.subSid}%26liveuid%3D${args.subSid}%26screentype%3D1%26sourcetype%3D0%26fromapp%3Dhuya_wap%252Fclick%252Fopen_app_guide%26&fromapp=huya_wap/click/open_app_guide";
-      webUrl = "https://www.huya.com/${detail.value?.roomId}";
-    } else if (site.id == Constant.kDouyu) {
-      naviteUrl =
-          "douyulink://?type=90001&schemeUrl=douyuapp%3A%2F%2Froom%3FliveType%3D0%26rid%3D${detail.value?.roomId}";
-      webUrl = "https://www.douyu.com/${detail.value?.roomId}";
-    }
+    var naviteUrl = "bilibili://live/${detail.value?.roomId}";
+    var webUrl = "https://live.bilibili.com/${detail.value?.roomId}";
     try {
       await launchUrlString(naviteUrl, mode: LaunchMode.externalApplication);
     } catch (e) {

@@ -94,11 +94,6 @@ class SearchPage extends GetView<AppSearchController> {
             .map((e) => SearchListView(
                       e.id,
                     )
-                // (e) => e.id == Constant.kDouyin
-                //     ? const DouyinSearchView()
-                //     : SearchListView(
-                //         e.id,
-                //       ),
                 )
             .toList(),
       ),

@@ -99,15 +99,6 @@ class ParsePage extends GetView<ParseController> {
 哔哩哔哩：
 https://live.bilibili.com/xxxxx
 https://b23.tv/xxxxx
-虎牙直播：
-https://www.huya.com/xxxxx
-斗鱼直播：
-https://www.douyu.com/xxxxx
-https://www.douyu.com/topic/xxx?rid=xxx
-抖音直播：
-https://v.douyin.com/xxxxx
-https://live.douyin.com/xxxxx
-https://webcast.amemv.com/webcast/reflow/xxxxx
 ''', style: TextStyle(color: Colors.grey)),
           ),
         ],

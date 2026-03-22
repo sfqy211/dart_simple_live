@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Simple Live is a Flutter-based cross-platform live streaming aggregation client that supports multiple Chinese streaming platforms (Huya, Douyu, Bilibili, Douyin). The project is written in Dart and organized as a monorepo with multiple packages.
+Simple Live is a Flutter-based cross-platform live streaming aggregation client for **Bilibili** only. The project is written in Dart and organized as a monorepo.
 
 ## Environment
 
@@ -15,19 +15,18 @@ Simple Live is a Flutter-based cross-platform live streaming aggregation client 
 ## Package Structure
 
 ```
-├── simple_live_core/     # Core library - platform APIs and danmaku
-├── simple_live_app/      # Flutter APP client
-└── simple_live_console/  # Console application
+├── simple_live_core/     # Core library - Bilibili API and danmaku
+└── simple_live_app/      # Flutter APP client
 ```
 
 ### simple_live_core Architecture
 
 The core library uses a plugin-like interface architecture:
 
-- **`src/interface/live_site.dart`** - Abstract `LiveSite` class defining the contract for all streaming platforms
+- **`src/interface/live_site.dart`** - Abstract `LiveSite` class defining the contract for streaming platforms
 - **`src/interface/live_danmaku.dart`** - Abstract class for danmaku (bullet comments) handling
-- **`src/huya_site.dart`**, **`src/douyu_site.dart`**, **`src/bilibili_site.dart`**, **`src/douyin_site.dart`** - Platform-specific implementations
-- **`src/danmaku/`** - Platform-specific danmaku WebSocket handlers
+- **`src/bilibili_site.dart`** - Bilibili platform implementation
+- **`src/danmaku/bilibili_danmaku.dart`** - Bilibili WebSocket danmaku handler
 - **`src/model/`** - Data models (LiveRoomDetail, LivePlayUrl, LiveCategory, etc.)
 - **`src/common/`** - HTTP client, WebSocket utilities, logging
 
@@ -76,9 +75,3 @@ flutter test
 - **Voice Recognition**: Uses `sherpa_onnx` for local ASR (automatic speech recognition).
 - **Desktop Window Management**: `window_manager_plus` handles multi-window support on desktop platforms. The app supports a "ghost window" (PIP-like transparent overlay) mode.
 - **Windows-specific**: Desktop builds use `libmpv` for video playback. The build directory contains pre-built native dependencies.
-
-## Platform Integration Points
-
-- **Bilibili**: Uses Tars protocol (see `packages/tars_dart`) and custom protobuf definitions for danmaku
-- **Douyin**: Uses protobuf for danmaku (`src/danmaku/proto/douyin.pb.dart`)
-- **Huya/Douyu**: Custom WebSocket-based danmaku protocols
