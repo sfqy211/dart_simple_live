@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
-import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/modules/home/home_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_view.dart';
 import 'package:simple_live_app/routes/route_path.dart';
@@ -9,60 +8,6 @@ import 'package:simple_live_app/widgets/app_shell.dart';
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
-
-  Widget _buildTabBar(BuildContext context, {required bool desktop}) {
-    final scheme = Theme.of(context).colorScheme;
-    final border = BorderSide(
-      color:
-          AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180),
-    );
-    return Container(
-      decoration: desktop
-          ? BoxDecoration(
-              color: scheme.surface.withAlpha(Get.isDarkMode ? 70 : 160),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.fromBorderSide(border),
-            )
-          : null,
-      padding: desktop
-          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 8)
-          : EdgeInsets.zero,
-      child: TabBar(
-        controller: controller.tabController,
-        labelPadding: desktop
-            ? const EdgeInsets.symmetric(horizontal: 8)
-            : AppStyle.edgeInsetsH20,
-        isScrollable: true,
-        indicatorSize: TabBarIndicatorSize.label,
-        tabAlignment: desktop ? TabAlignment.start : TabAlignment.center,
-        indicator: desktop
-            ? BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: scheme.primary.withAlpha(Get.isDarkMode ? 28 : 20),
-                border: Border.all(
-                  color: scheme.primary.withAlpha(Get.isDarkMode ? 70 : 55),
-                ),
-              )
-            : null,
-        tabs: Sites.supportSites
-            .map(
-              (e) => Tab(
-                child: Row(
-                  children: [
-                    Image.asset(
-                      e.logo,
-                      width: desktop ? 18 : 24,
-                    ),
-                    AppStyle.hGap8,
-                    Text(e.name),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
 
   Widget _buildDesktopHeader(BuildContext context) {
     return Padding(
@@ -89,8 +34,6 @@ class HomePage extends GetView<HomeController> {
                           color: AppStyle.mutedTextColor(context),
                         ),
                   ),
-                  AppStyle.vGap20,
-                  _buildTabBar(context, desktop: true),
                 ],
               ),
             ),
@@ -133,16 +76,7 @@ class HomePage extends GetView<HomeController> {
           children: [
             _buildDesktopHeader(context),
             Expanded(
-              child: TabBarView(
-                controller: controller.tabController,
-                children: Sites.supportSites
-                    .map(
-                      (e) => HomeListView(
-                        e.id,
-                      ),
-                    )
-                    .toList(),
-              ),
+              child: HomeListView(controller.site.id),
             ),
           ],
         ),
@@ -153,7 +87,7 @@ class HomePage extends GetView<HomeController> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 8,
-        title: _buildTabBar(context, desktop: false),
+        title: const Text("首页"),
         actions: [
           IconButton(
             onPressed: controller.toSearch,
@@ -161,16 +95,7 @@ class HomePage extends GetView<HomeController> {
           )
         ],
       ),
-      body: TabBarView(
-        controller: controller.tabController,
-        children: Sites.supportSites
-            .map(
-              (e) => HomeListView(
-                e.id,
-              ),
-            )
-            .toList(),
-      ),
+      body: HomeListView(controller.site.id),
     );
   }
 }

@@ -10,6 +10,13 @@ import 'indexed_controller.dart';
 class IndexedPage extends GetView<IndexedController> {
   const IndexedPage({Key? key}) : super(key: key);
 
+  Widget _buildRailIcon(IconData iconData) {
+    return SizedBox.square(
+      dimension: 22,
+      child: Icon(iconData, size: 20),
+    );
+  }
+
   Widget _buildDesktopRail(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isExtended = MediaQuery.of(context).size.width >= 1180;
@@ -24,6 +31,8 @@ class IndexedPage extends GetView<IndexedController> {
             selectedIndex: controller.index.value,
             onDestinationSelected: controller.setIndex,
             useIndicator: true,
+            minWidth: 84,
+            minExtendedWidth: 240,
             groupAlignment: -0.9,
             leading: Padding(
               padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
@@ -61,9 +70,13 @@ class IndexedPage extends GetView<IndexedController> {
             destinations: controller.items
                 .map(
                   (item) => NavigationRailDestination(
-                    icon: Icon(item.iconData),
-                    label: Text(item.title),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    icon: _buildRailIcon(item.iconData),
+                    label: Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 )
                 .toList(),
@@ -143,15 +156,16 @@ class IndexedPage extends GetView<IndexedController> {
                     onDestinationSelected: controller.setIndex,
                     labelType: NavigationRailLabelType.none,
                     useIndicator: true,
+                    minWidth: 84,
                     indicatorShape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                     destinations: controller.items
                         .map(
                           (item) => NavigationRailDestination(
-                            icon: Icon(item.iconData),
+                            icon: _buildRailIcon(item.iconData),
                             label: Text(item.title),
-                            padding: AppStyle.edgeInsetsV8,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                         )
                         .toList(),

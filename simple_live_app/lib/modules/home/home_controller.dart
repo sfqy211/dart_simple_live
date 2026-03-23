@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
@@ -9,15 +7,9 @@ import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/modules/home/home_list_controller.dart';
 import 'package:simple_live_app/routes/route_path.dart';
 
-class HomeController extends GetxController
-    with GetSingleTickerProviderStateMixin {
-  late TabController tabController;
-  HomeController() {
-    tabController =
-        TabController(length: Sites.supportSites.length, vsync: this);
-  }
-
+class HomeController extends GetxController {
   StreamSubscription<dynamic>? streamSubscription;
+  Site get site => Sites.supportSites.first;
 
   @override
   void onInit() {
@@ -29,18 +21,14 @@ class HomeController extends GetxController
         }
       },
     );
-    for (var site in Sites.supportSites) {
-      Get.put(HomeListController(site), tag: site.id);
-    }
+    Get.put(HomeListController(site), tag: site.id);
 
     super.onInit();
   }
 
   void refreshOrScrollTop() {
-    var tabIndex = tabController.index;
     BasePageController controller;
-    controller =
-        Get.find<HomeListController>(tag: Sites.supportSites[tabIndex].id);
+    controller = Get.find<HomeListController>(tag: site.id);
     controller.scrollToTopOrRefresh();
   }
 
