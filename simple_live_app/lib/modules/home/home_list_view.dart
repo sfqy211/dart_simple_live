@@ -13,23 +13,32 @@ class HomeListView extends StatelessWidget {
   HomeListController get controller => Get.find<HomeListController>(tag: tag);
   @override
   Widget build(BuildContext context) {
-    var c = MediaQuery.of(context).size.width ~/ 200;
-    if (c < 2) {
-      c = 2;
-    }
-    return KeepAliveWrapper(
-      child: PageGridView(
-        pageController: controller,
-        padding: AppStyle.edgeInsetsA12,
-        firstRefresh: true,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        crossAxisCount: c,
-        itemBuilder: (_, i) {
-          var item = controller.list[i];
-          return LiveRoomCard(controller.siteInfo, item);
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = AppStyle.isDesktopLayout(context);
+        final columnWidth = isDesktop ? 250.0 : 200.0;
+        var c = (constraints.maxWidth / columnWidth).floor();
+        if (c < 2) {
+          c = 2;
+        }
+        return KeepAliveWrapper(
+          child: PageGridView(
+            pageController: controller,
+            padding: isDesktop
+                ? const EdgeInsets.fromLTRB(24, 0, 24, 24)
+                : AppStyle.edgeInsetsA12,
+            firstRefresh: true,
+            showPCRefreshButton: !isDesktop,
+            mainAxisSpacing: isDesktop ? 18 : 12,
+            crossAxisSpacing: isDesktop ? 18 : 12,
+            crossAxisCount: c,
+            itemBuilder: (_, i) {
+              var item = controller.list[i];
+              return LiveRoomCard(controller.siteInfo, item);
+            },
+          ),
+        );
+      },
     );
   }
 }

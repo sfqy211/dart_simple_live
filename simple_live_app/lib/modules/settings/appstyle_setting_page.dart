@@ -5,17 +5,24 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/widgets/settings/settings_card.dart';
-import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 
 class AppstyleSettingPage extends GetView<AppSettingsController> {
   AppstyleSettingPage({Key? key}) : super(key: key);
 
   final TextEditingController _fontController = TextEditingController();
 
+  void _applyFont() {
+    controller.setAppFontFamily(_fontController.text.trim());
+    Get.changeTheme(AppStyle.lightTheme);
+    Get.changeTheme(AppStyle.darkTheme);
+    controller.setTheme(controller.themeMode.value);
+  }
+
   @override
   Widget build(BuildContext context) {
     _fontController.text = controller.appFontFamily.value;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("外观设置"),
       ),
@@ -40,28 +47,16 @@ class AppstyleSettingPage extends GetView<AppSettingsController> {
                         child: TextField(
                           controller: _fontController,
                           decoration: const InputDecoration(
-                            hintText: "输入字体名称 (留空使用默认)",
+                            hintText: "输入字体名称，留空则使用默认字体",
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
-                          onSubmitted: (value) {
-                            controller.setAppFontFamily(value);
-                            Get.changeTheme(AppStyle.lightTheme);
-                            Get.changeTheme(AppStyle.darkTheme);
-                            // 重新应用当前主题模式以触发刷新
-                            controller.setTheme(controller.themeMode.value);
-                          },
+                          onSubmitted: (_) => _applyFont(),
                         ),
                       ),
                       AppStyle.hGap12,
                       ElevatedButton(
-                        onPressed: () {
-                          controller.setAppFontFamily(_fontController.text);
-                          Get.changeTheme(AppStyle.lightTheme);
-                          Get.changeTheme(AppStyle.darkTheme);
-                          // 重新应用当前主题模式以触发刷新
-                          controller.setTheme(controller.themeMode.value);
-                        },
+                        onPressed: _applyFont,
                         child: const Text("应用"),
                       ),
                     ],
@@ -71,7 +66,7 @@ class AppstyleSettingPage extends GetView<AppSettingsController> {
                   const Padding(
                     padding: EdgeInsets.only(left: 12, right: 12, bottom: 12),
                     child: Text(
-                      "提示: Windows 下常用字体: Microsoft YaHei, SimHei, KaiTi, SimSun, Segoe UI",
+                      "Windows 常用字体: Microsoft YaHei, Segoe UI, SimHei, KaiTi, SimSun",
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -94,31 +89,19 @@ class AppstyleSettingPage extends GetView<AppSettingsController> {
               () => RadioGroup(
                 groupValue: controller.themeMode.value,
                 onChanged: (e) {
-                  controller.setTheme(e ?? 0);
+                  controller.setTheme(e ?? 1);
                 },
                 child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     RadioListTile<int>(
-                      title: Text(
-                        "跟随系统",
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      value: 0,
-                      contentPadding: AppStyle.edgeInsetsH12,
-                    ),
-                    RadioListTile<int>(
-                      title: Text(
-                        "浅色模式",
-                      ),
+                      title: Text("浅色模式"),
                       visualDensity: VisualDensity.compact,
                       value: 1,
                       contentPadding: AppStyle.edgeInsetsH12,
                     ),
                     RadioListTile<int>(
-                      title: Text(
-                        "深色模式",
-                      ),
+                      title: Text("深色模式"),
                       visualDensity: VisualDensity.compact,
                       value: 2,
                       contentPadding: AppStyle.edgeInsetsH12,
@@ -132,75 +115,19 @@ class AppstyleSettingPage extends GetView<AppSettingsController> {
           Padding(
             padding: AppStyle.edgeInsetsA12,
             child: Text(
-              "主题颜色",
+              "说明",
               style: Get.textTheme.titleSmall,
             ),
           ),
           SettingsCard(
-            child: Obx(
-              () => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SettingsSwitch(
-                    value: controller.isDynamic.value,
-                    title: "动态取色",
-                    onChanged: (e) {
-                      controller.setIsDynamic(e);
-                      Get.forceAppUpdate();
-                    },
-                  ),
-                  if (!controller.isDynamic.value) AppStyle.divider,
-                  if (!controller.isDynamic.value)
-                    Padding(
-                      padding: AppStyle.edgeInsetsA12,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: <Color>[
-                          const Color(0xffEF5350),
-                          const Color(0xff3498db),
-                          const Color(0xffF06292),
-                          const Color(0xff9575CD),
-                          const Color(0xff26C6DA),
-                          const Color(0xff26A69A),
-                          const Color(0xffFFF176),
-                          const Color(0xffFF9800),
-                        ]
-                            .map(
-                              (e) => GestureDetector(
-                                onTap: () {
-                                  controller.setStyleColor(e.toARGB32());
-                                  Get.forceAppUpdate();
-                                },
-                                child: Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: e,
-                                    borderRadius: AppStyle.radius4,
-                                    border: Border.all(
-                                      color: Colors.grey.withAlpha(50),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Obx(
-                                    () => Center(
-                                      child: Icon(
-                                        Icons.check,
-                                        color: controller.styleColor.value ==
-                                                e.toARGB32()
-                                            ? Colors.white
-                                            : Colors.transparent,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                ],
+            child: Padding(
+              padding: AppStyle.edgeInsetsA12,
+              child: Text(
+                "当前外观重构已收敛为浅色 / 深色两套主题，优先保证桌面端的稳定性、可读性和一致性。",
+                style: Get.textTheme.bodyMedium?.copyWith(
+                  color: AppStyle.mutedTextColor(context),
+                  height: 1.5,
+                ),
               ),
             ),
           ),
@@ -209,15 +136,3 @@ class AppstyleSettingPage extends GetView<AppSettingsController> {
     );
   }
 }
-
-// extension ColorExt on Color {
-//   static int _floatToInt8(double x) {
-//     return (x * 255.0).round() & 0xff;
-//   }
-
-//   int get v =>
-//       _floatToInt8(a) << 24 |
-//       _floatToInt8(r) << 16 |
-//       _floatToInt8(g) << 8 |
-//       _floatToInt8(b) << 0;
-// }

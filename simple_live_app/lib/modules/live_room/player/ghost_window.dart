@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
+import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
 
 class GhostWindow extends StatefulWidget {
@@ -1343,6 +1345,52 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                             fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          FilledButton.tonalIcon(
+                            onPressed: () {
+                              final value =
+                                  AppColors.ghostLightPanel.toARGB32();
+                              alpha = (value >> 24) & 0xFF;
+                              red = (value >> 16) & 0xFF;
+                              green = (value >> 8) & 0xFF;
+                              blue = value & 0xFF;
+                              _updatePanelColor(value);
+                              setSheetState(() {});
+                            },
+                            icon: const Icon(Icons.light_mode_outlined),
+                            label: const Text("浅色面板"),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: () {
+                              final value = AppColors.ghostDarkPanel.toARGB32();
+                              alpha = (value >> 24) & 0xFF;
+                              red = (value >> 16) & 0xFF;
+                              green = (value >> 8) & 0xFF;
+                              blue = value & 0xFF;
+                              _updatePanelColor(value);
+                              setSheetState(() {});
+                            },
+                            icon: const Icon(Icons.dark_mode_outlined),
+                            label: const Text("深色面板"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Color(_panelColor),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(12)),
+                          border: Border.all(color: Colors.grey.withAlpha(60)),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text("当前面板预览"),
+                      ),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           const SizedBox(width: 64, child: Text("透明度")),
@@ -1423,16 +1471,6 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                             },
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: Color(_panelColor),
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(8)),
-                          border: Border.all(color: Colors.grey.withAlpha(60)),
-                        ),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -1523,161 +1561,308 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     final weightIndex =
         _fontWeight.clamp(0, FontWeight.values.length - 1).toInt();
     final panelColor = Color(_panelColor);
-    final theme = Theme.of(context).copyWith(
-      textTheme: Theme.of(context).textTheme.apply(
-            fontFamily: _fontFamily.isEmpty
-                ? (Platform.isWindows ? "Microsoft YaHei" : null)
-                : _fontFamily,
-          ),
+    final panelIsDark = panelColor.computeLuminance() < 0.4;
+
+    final scheme = ColorScheme.fromSeed(
+      seedColor: AppColors.seed,
+      brightness: panelIsDark ? Brightness.dark : Brightness.light,
+    );
+    final baseTheme = ThemeData(
+      useMaterial3: true,
+      brightness: panelIsDark ? Brightness.dark : Brightness.light,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: Colors.transparent,
     );
 
+    final fontFamily = _fontFamily.isEmpty
+        ? (Platform.isWindows ? "Microsoft YaHei" : null)
+        : _fontFamily;
+
+    final onPanel =
+        panelIsDark ? const Color(0xFFE9EEF5) : const Color(0xFF0B0F14);
+    final muted =
+        panelIsDark ? Colors.white.withAlpha(160) : Colors.black.withAlpha(140);
+    final borderColor =
+        panelIsDark ? Colors.white.withAlpha(40) : Colors.black.withAlpha(36);
+
+    final chromeFill = Color.alphaBlend(
+      panelIsDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(10),
+      panelColor,
+    );
+    final inputFill = Color.alphaBlend(
+      panelIsDark ? Colors.white.withAlpha(14) : Colors.black.withAlpha(10),
+      panelColor,
+    );
+
+    final theme = baseTheme.copyWith(
+      textTheme: baseTheme.textTheme.apply(fontFamily: fontFamily),
+      dividerColor: borderColor,
+      iconTheme: IconThemeData(color: onPanel),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: onPanel,
+        ),
+      ),
+    );
+
+    Color normalizeItemColor(Color color) {
+      final lum = color.computeLuminance();
+      if (!panelIsDark && lum > 0.86) {
+        return onPanel;
+      }
+      if (panelIsDark && lum < 0.16) {
+        return onPanel;
+      }
+      return color;
+    }
+
     return Theme(
-        data: theme,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Container(
-            color: Colors.transparent,
-            child: Container(
-              decoration: BoxDecoration(
-                color: panelColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  Container(
-                    height: 32,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _locked
-                              ? const SizedBox.expand()
-                              : const DragToMoveArea(
-                                  child: SizedBox.expand(),
-                                ),
-                        ),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 28,
-                            minHeight: 28,
-                          ),
-                          icon: const Icon(Icons.settings, size: 18),
-                          onPressed: _showSettingsSheet,
-                        ),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 28,
-                            minHeight: 28,
-                          ),
-                          icon: const Icon(Icons.close, size: 18),
-                          onPressed: _requestExitGhostMode,
-                        ),
-                      ],
-                    ),
+      data: theme,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Padding(
+          padding: const EdgeInsets.all(10),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(panelIsDark ? 90 : 40),
+                  blurRadius: 32,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: panelColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: borderColor),
                   ),
-                  if (_showSubtitle && _subtitleText.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withAlpha(160),
-                        border: Border(
-                          left: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
-                            width: 4,
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: chromeFill,
+                          border: Border(
+                            bottom: BorderSide(color: borderColor),
                           ),
                         ),
-                      ),
-                      child: Text(
-                        _subtitleText,
-                        style: TextStyle(
-                          fontSize: _fontSize,
-                          fontWeight: _subtitleIsPartial
-                              ? FontWeight.normal
-                              : FontWeight.w600,
-                          color: Colors.white,
-                          fontFamily: _fontFamily.isEmpty
-                              ? (Platform.isWindows ? "Microsoft YaHei" : null)
-                              : _fontFamily,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _locked
+                                  ? Row(
+                                      children: [
+                                        Icon(
+                                          Icons.lock_outline,
+                                          size: 16,
+                                          color: muted,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "已锁定",
+                                          style: theme.textTheme.labelMedium
+                                              ?.copyWith(color: muted),
+                                        ),
+                                      ],
+                                    )
+                                  : const DragToMoveArea(
+                                      child: SizedBox.expand(),
+                                    ),
+                            ),
+                            IconButton(
+                              tooltip: "设置",
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
+                              icon: const Icon(Icons.settings, size: 18),
+                              onPressed: _showSettingsSheet,
+                            ),
+                            IconButton(
+                              tooltip: "退出",
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: _requestExitGhostMode,
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) {
-                          final item = _items[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Text(
-                              item.text,
-                              style: TextStyle(
-                                color: item.color
-                                    .withValues(alpha: _danmakuOpacity),
-                                fontSize: _fontSize,
-                                fontWeight: FontWeight.values[weightIndex],
-                                fontFamily: _fontFamily.isEmpty
-                                    ? (Platform.isWindows
-                                        ? "Microsoft YaHei"
-                                        : null)
-                                    : _fontFamily,
+                      if (_showSubtitle && _subtitleText.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withAlpha(170),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border(
+                                left: BorderSide(
+                                  color: scheme.primary.withAlpha(220),
+                                  width: 3,
+                                ),
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: _requestShowEmotions,
-                          icon: const Icon(Icons.emoji_emotions_outlined,
-                              size: 18),
-                          tooltip: "表情包",
-                        ),
-                        IconButton(
-                          onPressed: _requestAutoSpam,
-                          icon: const Icon(Icons.auto_mode, size: 18),
-                          tooltip: "自动发送",
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _inputController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              hintText: "发送弹幕...",
-                              hintStyle: TextStyle(color: Colors.white70),
-                              border: InputBorder.none,
-                              isDense: true,
+                            child: Text(
+                              _subtitleText,
+                              style: TextStyle(
+                                fontSize: _fontSize,
+                                height: 1.25,
+                                fontWeight: _subtitleIsPartial
+                                    ? FontWeight.normal
+                                    : FontWeight.w600,
+                                color: Colors.white,
+                                fontFamily: fontFamily,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withAlpha(120),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
                             ),
-                            onSubmitted: (_) => _sendMessage(),
                           ),
                         ),
-                        TextButton(
-                          onPressed: _sendMessage,
-                          child: const Text("发送"),
+                      Expanded(
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          thumbVisibility: true,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                            itemCount: _items.length,
+                            itemBuilder: (context, index) {
+                              final item = _items[index];
+                              final color = normalizeItemColor(item.color)
+                                  .withValues(alpha: _danmakuOpacity);
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 3),
+                                child: Text(
+                                  item.text,
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: _fontSize,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.values[weightIndex],
+                                    fontFamily: fontFamily,
+                                    shadows: [
+                                      Shadow(
+                                        color: panelIsDark
+                                            ? Colors.black.withAlpha(140)
+                                            : Colors.black.withAlpha(90),
+                                        offset: const Offset(0, 1),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                        decoration: BoxDecoration(
+                          color: chromeFill,
+                          border: Border(
+                            top: BorderSide(color: borderColor),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              onPressed: _requestShowEmotions,
+                              tooltip: "表情包",
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              icon: const Icon(
+                                Icons.emoji_emotions_outlined,
+                                size: 18,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _requestAutoSpam,
+                              tooltip: "自动发送",
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              icon: const Icon(Icons.auto_mode, size: 18),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: inputFill,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: borderColor.withAlpha(
+                                      panelIsDark ? 90 : 110,
+                                    ),
+                                  ),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                child: TextField(
+                                  controller: _inputController,
+                                  style: TextStyle(color: onPanel),
+                                  decoration: InputDecoration(
+                                    hintText: "发送弹幕...",
+                                    hintStyle: TextStyle(color: muted),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton.tonal(
+                              onPressed: _sendMessage,
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: const Text("发送"),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
 }
 

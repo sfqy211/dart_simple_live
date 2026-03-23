@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/sites.dart';
@@ -38,8 +39,14 @@ class AppSettingsController extends GetxController {
 
   @override
   void onInit() {
-    themeMode.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kThemeMode, 0);
+    final storedThemeMode = LocalStorageService.instance
+        .getValue(LocalStorageService.kThemeMode, 1);
+    final normalizedThemeMode = storedThemeMode;
+    // Keep only light/dark for a simpler, more polished experience.
+    final normalizedClamped = normalizedThemeMode.clamp(1, 2);
+    themeMode.value = normalizedClamped;
+    LocalStorageService.instance
+        .setValue(LocalStorageService.kThemeMode, normalizedClamped);
     firstRun = LocalStorageService.instance
         .getValue(LocalStorageService.kFirstRun, true);
     danmuSize.value = LocalStorageService.instance
@@ -217,8 +224,12 @@ class AppSettingsController extends GetxController {
 
     ghostMode.value = LocalStorageService.instance
         .getValue(LocalStorageService.kGhostMode, false);
-    ghostPanelColor.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kGhostPanelColor, 0xBFD0D0D0);
+    ghostPanelColor.value = LocalStorageService.instance.getValue(
+      LocalStorageService.kGhostPanelColor,
+      themeMode.value == 2
+          ? AppColors.ghostDarkPanel.toARGB32()
+          : AppColors.ghostLightPanel.toARGB32(),
+    );
     final disabledPackages = LocalStorageService.instance
         .getValue(LocalStorageService.kEmoticonPackageDisabled, <String>[]);
     emoticonPackageDisabled
@@ -338,6 +349,12 @@ class AppSettingsController extends GetxController {
   }
 
   void setTheme(int i) {
+    if (i <= 0) {
+      i = 1;
+    }
+    if (i > 2) {
+      i = 2;
+    }
     themeMode.value = i;
     var mode = ThemeMode.values[i];
 
@@ -739,7 +756,7 @@ class AppSettingsController extends GetxController {
     LocalStorageService.instance.setValue(LocalStorageService.kGhostMode, e);
   }
 
-  var ghostPanelColor = 0xBFD0D0D0.obs;
+  var ghostPanelColor = AppColors.ghostLightPanel.toARGB32().obs;
   void setGhostPanelColor(int value) {
     ghostPanelColor.value = value;
     LocalStorageService.instance

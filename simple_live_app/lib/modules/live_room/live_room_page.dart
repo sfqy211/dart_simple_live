@@ -20,6 +20,7 @@ import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/keep_alive_wrapper.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
+import 'package:simple_live_app/widgets/app_shell.dart';
 import 'package:simple_live_app/widgets/settings/settings_action.dart';
 import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_number.dart';
@@ -116,18 +117,497 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   Widget buildPageUI() {
     return OrientationBuilder(
       builder: (context, orientation) {
+        final isDesktop = AppStyle.isDesktopLayout(context);
         return Scaffold(
-          appBar: AppBar(
-            title: Obx(
-              () => Text(controller.detail.value?.title ?? "直播间"),
-            ),
-            actions: buildAppbarActions(context),
-          ),
-          body: orientation == Orientation.portrait
-              ? buildPhoneUI(context)
-              : buildTabletUI(context),
+          backgroundColor: Colors.transparent,
+          appBar: isDesktop
+              ? null
+              : AppBar(
+                  title: Obx(
+                    () => Text(controller.detail.value?.title ?? "直播间"),
+                  ),
+                  actions: buildAppbarActions(context),
+                ),
+          body: isDesktop
+              ? buildDesktopUI(context)
+              : orientation == Orientation.portrait
+                  ? buildPhoneUI(context)
+                  : buildTabletUI(context),
         );
       },
+    );
+  }
+
+  Widget buildDesktopUI(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
+
+    Widget buildQuickChip({
+      required IconData icon,
+      required String label,
+      required bool selected,
+      required ValueChanged<bool>? onSelected,
+      String? tooltip,
+    }) {
+      final chip = FilterChip(
+        showCheckmark: false,
+        avatar: Icon(icon, size: 18),
+        label: Text(label),
+        selected: selected,
+        onSelected: onSelected,
+        side: BorderSide(color: borderColor),
+        backgroundColor: scheme.surface.withAlpha(Get.isDarkMode ? 46 : 170),
+        selectedColor: scheme.primary.withAlpha(Get.isDarkMode ? 26 : 18),
+        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+      );
+      if (tooltip == null || tooltip.isEmpty) {
+        return chip;
+      }
+      return Tooltip(message: tooltip, child: chip);
+    }
+
+    Widget buildSecondaryAction({
+      required IconData icon,
+      required String label,
+      required VoidCallback onPressed,
+    }) {
+      return OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: borderColor),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+      );
+    }
+
+    Widget buildStatTile({
+      required IconData icon,
+      required String label,
+      required String value,
+    }) {
+      return Container(
+        constraints: const BoxConstraints(minWidth: 140),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: scheme.surface.withAlpha(Get.isDarkMode ? 40 : 120),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return AppShellFrame(
+      child: Column(
+        children: [
+          AppPanel(
+            emphasized: true,
+            clipBehavior: Clip.antiAlias,
+            padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      tooltip: "返回",
+                      onPressed: Get.back,
+                      icon: const Icon(Icons.arrow_back),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Obx(
+                        () => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              controller.detail.value?.title ?? "直播间",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.1,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.asset(
+                                    controller.site.logo,
+                                    width: 14,
+                                    height: 14,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    controller.detail.value?.userName ?? "",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                const Icon(
+                                  Remix.fire_fill,
+                                  size: 14,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  Utils.onlineToString(
+                                    controller.detail.value?.online ?? 0,
+                                  ),
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    IconButton(
+                      tooltip: "刷新",
+                      onPressed: controller.refreshRoom,
+                      icon: const Icon(Remix.refresh_line),
+                    ),
+                    Obx(
+                      () => IconButton(
+                        tooltip: controller.followed.value ? "取消关注" : "关注",
+                        onPressed: controller.followed.value
+                            ? controller.removeFollowUser
+                            : controller.followUser,
+                        icon: Icon(
+                          controller.followed.value
+                              ? Remix.heart_fill
+                              : Remix.heart_line,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: "分享",
+                      onPressed: controller.share,
+                      icon: const Icon(Remix.share_line),
+                    ),
+                    IconButton(
+                      tooltip: "更多",
+                      onPressed: showMore,
+                      icon: const Icon(Icons.more_horiz),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Obx(
+                  () {
+                    final isAudio = controller.audioOnlyMode.value;
+                    final isGhost = controller.ghostModeState.value;
+                    final isMini = controller.smallWindowState.value;
+                    final isSubtitle = controller.subtitleEnabled.value;
+                    final canToggleGhost = isAudio || isGhost;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        buildQuickChip(
+                          icon: isAudio
+                              ? Remix.video_line
+                              : Icons.headphones_outlined,
+                          label: isAudio ? "视频" : "黑听",
+                          selected: isAudio,
+                          onSelected: (_) => controller.toggleAudioMode(),
+                        ),
+                        buildQuickChip(
+                          icon: Icons.blur_on_outlined,
+                          label: "透明浮窗",
+                          selected: isGhost,
+                          onSelected: canToggleGhost
+                              ? (_) => controller.toggleGhostMode()
+                              : null,
+                          tooltip: canToggleGhost ? null : "需先开启黑听模式",
+                        ),
+                        buildQuickChip(
+                          icon: Icons.picture_in_picture_alt_outlined,
+                          label: "小窗",
+                          selected: isMini,
+                          onSelected: (selected) {
+                            if (selected) {
+                              controller.enterSmallWindow();
+                            } else {
+                              controller.exitSmallWindow();
+                            }
+                          },
+                        ),
+                        buildQuickChip(
+                          icon: Icons.subtitles_outlined,
+                          label: "字幕",
+                          selected: isSubtitle,
+                          onSelected: (selected) {
+                            AppSettingsController.instance
+                                .setSubtitleEnable(selected);
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final sideW = (constraints.maxWidth * 0.34).clamp(400.0, 520.0);
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: AppPanel(
+                              emphasized: true,
+                              clipBehavior: Clip.antiAlias,
+                              child: Container(
+                                color: const Color(0xFF05070A),
+                                child: Center(
+                                  child: buildMediaPlayer(),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          AppPanel(
+                            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                            child: Obx(
+                              () => Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          controller.audioOnlyMode.value
+                                              ? "黑听工作区"
+                                              : "播放工作区",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          controller.audioOnlyMode.value
+                                              ? "保留聊天与字幕，把界面收束成更安静的桌面陪伴模式。"
+                                              : "让视频保持主角位置，把高频调整收纳到更克制的次级层。",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: scheme.onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 20),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    alignment: WrapAlignment.end,
+                                    children: [
+                                      buildSecondaryAction(
+                                        icon: Icons.high_quality_outlined,
+                                        label: "清晰度",
+                                        onPressed: controller.showQualitySheet,
+                                      ),
+                                      buildSecondaryAction(
+                                        icon: Icons.route_outlined,
+                                        label: "线路",
+                                        onPressed: controller.showPlayUrlsSheet,
+                                      ),
+                                      buildSecondaryAction(
+                                        icon: Icons.crop_free_outlined,
+                                        label: "画面",
+                                        onPressed:
+                                            controller.showPlayerSettingsSheet,
+                                      ),
+                                      buildSecondaryAction(
+                                        icon: Icons.camera_alt_outlined,
+                                        label: "截图",
+                                        onPressed: controller.saveScreenshot,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: sideW,
+                      child: Column(
+                        children: [
+                          AppPanel(
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                            child: Obx(
+                              () => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      NetImage(
+                                        controller.detail.value?.userAvatar ??
+                                            "",
+                                        width: 56,
+                                        height: 56,
+                                        borderRadius: 18,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              controller
+                                                      .detail.value?.userName ??
+                                                  "",
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              controller.detail.value?.title ??
+                                                  "直播间",
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        scheme.onSurfaceVariant,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    children: [
+                                      buildStatTile(
+                                        icon: Icons.public_outlined,
+                                        label: "平台",
+                                        value: controller.site.name,
+                                      ),
+                                      buildStatTile(
+                                        icon: Remix.fire_fill,
+                                        label: "热度",
+                                        value: Utils.onlineToString(
+                                          controller.detail.value?.online ?? 0,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: FilledButton.tonalIcon(
+                                          onPressed: controller.copyUrl,
+                                          icon: const Icon(Icons.link_outlined),
+                                          label: const Text("复制链接"),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: FilledButton.tonalIcon(
+                                          onPressed: controller.share,
+                                          icon: const Icon(Remix.share_line),
+                                          label: const Text("分享"),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: AppPanel(
+                              emphasized: true,
+                              clipBehavior: Clip.antiAlias,
+                              child: buildMessageArea(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -152,27 +632,27 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   padding: AppStyle.edgeInsetsA12,
                   child: Column(
                     children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          "纯净黑听模式",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              "纯净黑听模式",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: controller.toggleAudioMode,
+                            icon: const Icon(Remix.video_line),
+                            label: const Text("切换到视频模式"),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: controller.toggleAudioMode,
-                        icon: const Icon(Remix.video_line),
-                        label: const Text("切换到视频模式"),
-                      ),
-                    ],
-                  ),
                       AppStyle.vGap12,
                       Row(
                         children: [
@@ -670,15 +1150,17 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildUserProfile(BuildContext context) {
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(
           top: BorderSide(
-            color: Colors.grey.withAlpha(25),
+            color: borderColor,
           ),
           bottom: BorderSide(
-            color: Colors.grey.withAlpha(25),
+            color: borderColor,
           ),
         ),
       ),
@@ -692,7 +1174,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           children: [
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.withAlpha(50)),
+                border: Border.all(
+                  color: borderColor.withAlpha(Get.isDarkMode ? 160 : 200),
+                ),
                 borderRadius: AppStyle.radius24,
               ),
               child: NetImage(
@@ -722,9 +1206,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       AppStyle.hGap4,
                       Text(
                         controller.site.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey,
+                          color: AppStyle.mutedTextColor(context),
                         ),
                       ),
                     ],
@@ -816,36 +1300,89 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildMessageArea() {
+    final context = Get.context!;
+    final isDesktop = AppStyle.isDesktopLayout(context);
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return DefaultTabController(
       length: controller.site.id == Constant.kBiliBili ? 4 : 3,
       child: Column(
         children: [
-          TabBar(
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelPadding: EdgeInsets.zero,
-            indicatorWeight: 1.0,
-            tabs: [
-              const Tab(
-                text: "聊天",
-              ),
-              if (controller.site.id == Constant.kBiliBili)
-                Tab(
-                  child: Obx(
-                    () => Text(
-                      controller.superChats.isNotEmpty
-                          ? "SC(${controller.superChats.length})"
-                          : "SC",
+          if (isDesktop)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: scheme.surface.withAlpha(Get.isDarkMode ? 46 : 170),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: borderColor),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  indicatorWeight: 1.0,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: scheme.primary.withAlpha(Get.isDarkMode ? 26 : 18),
+                    border: Border.all(
+                      color: scheme.primary.withAlpha(Get.isDarkMode ? 70 : 55),
                     ),
                   ),
+                  tabs: [
+                    const Tab(
+                      text: "聊天",
+                    ),
+                    if (controller.site.id == Constant.kBiliBili)
+                      Tab(
+                        child: Obx(
+                          () => Text(
+                            controller.superChats.isNotEmpty
+                                ? "SC(${controller.superChats.length})"
+                                : "SC",
+                          ),
+                        ),
+                      ),
+                    const Tab(
+                      text: "关注",
+                    ),
+                    const Tab(
+                      text: "设置",
+                    ),
+                  ],
                 ),
-              const Tab(
-                text: "关注",
               ),
-              const Tab(
-                text: "设置",
-              ),
-            ],
-          ),
+            )
+          else
+            TabBar(
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelPadding: EdgeInsets.zero,
+              indicatorWeight: 1.0,
+              tabs: [
+                const Tab(
+                  text: "聊天",
+                ),
+                if (controller.site.id == Constant.kBiliBili)
+                  Tab(
+                    child: Obx(
+                      () => Text(
+                        controller.superChats.isNotEmpty
+                            ? "SC(${controller.superChats.length})"
+                            : "SC",
+                      ),
+                    ),
+                  ),
+                const Tab(
+                  text: "关注",
+                ),
+                const Tab(
+                  text: "设置",
+                ),
+              ],
+            ),
           Expanded(
             child: TabBarView(
               children: [
@@ -857,12 +1394,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         separatorBuilder: (_, i) => Obx(
                           () => SizedBox(
                             // *2与原来的EdgeInsets.symmetric(vertical: )做兼容
-                            height:
-                                AppSettingsController.instance.chatTextGap.value *
-                                    2,
+                            height: AppSettingsController
+                                    .instance.chatTextGap.value *
+                                2,
                           ),
                         ),
-                        padding: AppStyle.edgeInsetsA12,
+                        padding: isDesktop
+                            ? const EdgeInsets.fromLTRB(16, 12, 16, 12)
+                            : AppStyle.edgeInsetsA12,
                         itemCount: controller.messages.length,
                         itemBuilder: (_, i) {
                           var item = controller.messages[i];
@@ -874,7 +1413,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         child: Positioned(
                           right: 12,
                           bottom: 12,
-                          child: ElevatedButton.icon(
+                          child: FilledButton.tonalIcon(
                             onPressed: () {
                               controller.disableAutoScroll.value = false;
                               controller.chatScrollToBottom();
@@ -887,8 +1426,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     ],
                   ),
                 ),
-                if (controller.site.id == Constant.kBiliBili)
-                  buildSuperChats(),
+                if (controller.site.id == Constant.kBiliBili) buildSuperChats(),
                 buildFollowList(),
                 buildSettings(),
               ],
@@ -901,12 +1439,16 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildChatInput() {
+    final context = Get.context!;
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(Get.context!).cardColor,
+        color: Theme.of(context).cardColor,
         border: Border(
           top: BorderSide(
-            color: Colors.grey.withAlpha(25),
+            color: borderColor,
           ),
         ),
       ),
@@ -932,7 +1474,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey.withAlpha(25),
+                fillColor: scheme.surfaceContainerHighest
+                    .withAlpha(Get.isDarkMode ? 80 : 120),
                 contentPadding: AppStyle.edgeInsetsH12,
               ),
               onSubmitted: (value) {
@@ -943,14 +1486,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             ),
           ),
           AppStyle.hGap8,
-          ElevatedButton(
+          FilledButton.tonal(
             onPressed: () {
               var message = controller.chatInputController.text.trim();
               if (message.isNotEmpty) {
                 controller.sendChatMessage(message);
               }
             },
-            style: ElevatedButton.styleFrom(
+            style: FilledButton.styleFrom(
               shape: RoundedRectangleBorder(
                 borderRadius: AppStyle.radius12,
               ),

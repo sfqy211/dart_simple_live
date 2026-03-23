@@ -34,7 +34,6 @@ import 'package:simple_live_app/widgets/status/app_loadding_widget.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 import 'package:path/path.dart' as p;
-import 'package:dynamic_color/dynamic_color.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +59,9 @@ void main(List<String> args) async {
     );
     //初始化服务
     await initServices();
+    await _applyWindowsTrayIntegration(
+      AppSettingsController.instance.windowsTrayIntegration.value,
+    );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     //设置状态栏为透明
     SystemUiOverlayStyle systemUiOverlayStyle = const SystemUiOverlayStyle(
@@ -122,13 +124,30 @@ class _WindowCloseListener with WindowListener {
     bool isPreventClose = await WindowManagerPlus.current.isPreventClose();
     if (isPreventClose) {
       await WindowManagerPlus.current.hide();
+      await SystemTrayManager().refreshState();
     } else {
       await WindowManagerPlus.current.destroy();
     }
   }
+
+  @override
+  void onWindowMinimize([int? windowId]) async {
+    final isPreventClose = await WindowManagerPlus.current.isPreventClose();
+    if (!isPreventClose) {
+      return;
+    }
+    await WindowManagerPlus.current.hide();
+    await SystemTrayManager().refreshState();
+  }
+
+  @override
+  void onWindowRestore([int? windowId]) async {
+    await SystemTrayManager().refreshState();
+  }
 }
 
 final _windowCloseListener = _WindowCloseListener();
+bool _windowsTrayListenerAttached = false;
 
 Future initWindow() async {
   if (!(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
@@ -143,15 +162,30 @@ Future initWindow() async {
     await WindowManagerPlus.current.show();
     await WindowManagerPlus.current.focus();
   });
+}
 
-  // 初始化系统托盘
-  if (Platform.isWindows) {
-    await SystemTrayManager().initialize();
-
-    // 处理关闭按钮事件，最小化到托盘
-    WindowManagerPlus.current.addListener(_windowCloseListener);
-    await WindowManagerPlus.current.setPreventClose(true);
+Future<void> _applyWindowsTrayIntegration(bool enabled) async {
+  if (!Platform.isWindows) {
+    return;
   }
+
+  if (enabled) {
+    await SystemTrayManager().initialize();
+    if (!_windowsTrayListenerAttached) {
+      WindowManagerPlus.current.addListener(_windowCloseListener);
+      _windowsTrayListenerAttached = true;
+    }
+    await WindowManagerPlus.current.setPreventClose(true);
+    await SystemTrayManager().refreshState();
+    return;
+  }
+
+  if (_windowsTrayListenerAttached) {
+    WindowManagerPlus.current.removeListener(_windowCloseListener);
+    _windowsTrayListenerAttached = false;
+  }
+  await WindowManagerPlus.current.setPreventClose(false);
+  await SystemTrayManager().dispose();
 }
 
 Future initServices() async {
@@ -167,6 +201,18 @@ Future initServices() async {
   await Get.put(DBService()).init();
   //初始化设置控制器
   Get.put(AppSettingsController());
+  ever<bool>(
+    AppSettingsController.instance.windowsTrayIntegration,
+    (value) {
+      _applyWindowsTrayIntegration(value);
+    },
+  );
+  ever<int>(
+    AppSettingsController.instance.themeMode,
+    (value) {
+      SystemTrayManager().refreshState();
+    },
+  );
 
   Get.put(BiliBiliAccountService());
 
@@ -207,108 +253,70 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool isDynamicColor = AppSettingsController.instance.isDynamic.value;
-    Color styleColor = Color(AppSettingsController.instance.styleColor.value);
-    return DynamicColorBuilder(
-        builder: ((ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-      ColorScheme? lightColorScheme;
-      ColorScheme? darkColorScheme;
-      if (lightDynamic != null && darkDynamic != null && isDynamicColor) {
-        lightColorScheme = lightDynamic;
-        darkColorScheme = darkDynamic;
-      } else {
-        lightColorScheme = ColorScheme.fromSeed(
-          seedColor: styleColor,
-          brightness: Brightness.light,
-        );
-        darkColorScheme = ColorScheme.fromSeed(
-            seedColor: styleColor, brightness: Brightness.dark);
-      }
-      return GetMaterialApp(
-        title: "Simple Live",
-        theme: AppStyle.lightTheme.copyWith(colorScheme: lightColorScheme),
-        darkTheme: AppStyle.darkTheme.copyWith(colorScheme: darkColorScheme),
-        themeMode:
-            ThemeMode.values[Get.find<AppSettingsController>().themeMode.value],
-        initialRoute: RoutePath.kIndex,
-        getPages: AppPages.routes,
-        //国际化
-        locale: const Locale("zh", "CN"),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale("zh", "CN")],
-        logWriterCallback: (text, {bool? isError}) {
-          Log.addDebugLog(text, (isError ?? false) ? Colors.red : Colors.grey);
-          Log.writeLog(text, (isError ?? false) ? Level.error : Level.info);
-        },
-        // 升级后Android页面过渡动画似乎有BUG
-        defaultTransition: Platform.isAndroid ? Transition.cupertino : null,
-        //debugShowCheckedModeBanner: false,
-        navigatorObservers: [FlutterSmartDialog.observer],
-        // 禁用语义化调试覆盖层
-        showSemanticsDebugger: false,
-        builder: (context, child) {
-          final smartDialogBuilder = FlutterSmartDialog.init(
-            loadingBuilder: ((msg) => const AppLoaddingWidget()),
-            builder: (context, child) {
-              // Fix for HyperOS windowed-mode Flutter bug:
-              // - Values > 50 indicate the bug (windowed mode on HyperOS)
-              // - Values == 0 are valid for fullscreen/immersive mode and must NOT be treated as abnormal
-              const fallbackPadding = EdgeInsets.only(top: 25, bottom: 35);
-              const maxNormalPadding = 50.0;
+    return GetMaterialApp(
+      title: "Simple Live",
+      theme: AppStyle.lightTheme,
+      darkTheme: AppStyle.darkTheme,
+      themeMode:
+          ThemeMode.values[Get.find<AppSettingsController>().themeMode.value],
+      initialRoute: RoutePath.kIndex,
+      getPages: AppPages.routes,
+      //国际化
+      locale: const Locale("zh", "CN"),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale("zh", "CN")],
+      logWriterCallback: (text, {bool? isError}) {
+        Log.addDebugLog(text, (isError ?? false) ? Colors.red : Colors.grey);
+        Log.writeLog(text, (isError ?? false) ? Level.error : Level.info);
+      },
+      // 升级后Android页面过渡动画似乎有BUG
+      defaultTransition: Platform.isAndroid ? Transition.cupertino : null,
+      //debugShowCheckedModeBanner: false,
+      navigatorObservers: [FlutterSmartDialog.observer],
+      // 禁用语义化调试覆盖层
+      showSemanticsDebugger: false,
+      builder: (context, child) {
+        final smartDialogBuilder = FlutterSmartDialog.init(
+          loadingBuilder: ((msg) => const AppLoaddingWidget()),
+          builder: (context, child) {
+            // Fix for HyperOS windowed-mode Flutter bug:
+            // - Values > 50 indicate the bug (windowed mode on HyperOS)
+            // - Values == 0 are valid for fullscreen/immersive mode and must NOT be treated as abnormal
+            const fallbackPadding = EdgeInsets.only(top: 25, bottom: 35);
+            const maxNormalPadding = 50.0;
 
-              final mediaQueryData = MediaQuery.of(context);
-              final hasAbnormalPadding =
-                  mediaQueryData.viewPadding.top > maxNormalPadding;
+            final mediaQueryData = MediaQuery.of(context);
+            final hasAbnormalPadding =
+                mediaQueryData.viewPadding.top > maxNormalPadding;
 
-              final fixedMediaQueryData = hasAbnormalPadding
-                  ? mediaQueryData.copyWith(
-                      viewPadding: fallbackPadding,
-                      padding: fallbackPadding,
-                      textScaler: const TextScaler.linear(1.0),
-                    )
-                  : mediaQueryData.copyWith(
-                      textScaler: const TextScaler.linear(1.0));
+            final fixedMediaQueryData = hasAbnormalPadding
+                ? mediaQueryData.copyWith(
+                    viewPadding: fallbackPadding,
+                    padding: fallbackPadding,
+                    textScaler: const TextScaler.linear(1.0),
+                  )
+                : mediaQueryData.copyWith(
+                    textScaler: const TextScaler.linear(1.0));
 
-              return MediaQuery(
-                data: fixedMediaQueryData,
-                child: Stack(
-                  children: [
-                    //侧键返回
-                    RawGestureDetector(
-                      excludeFromSemantics: true,
-                      gestures: <Type, GestureRecognizerFactory>{
-                        FourthButtonTapGestureRecognizer:
-                            GestureRecognizerFactoryWithHandlers<
-                                FourthButtonTapGestureRecognizer>(
-                          () => FourthButtonTapGestureRecognizer(),
-                          (FourthButtonTapGestureRecognizer instance) {
-                            instance.onTapDown =
-                                (TapDownDetails details) async {
-                              //如果处于全屏状态，退出全屏
-                              if (!Platform.isAndroid && !Platform.isIOS) {
-                                if (await WindowManagerPlus.current
-                                    .isFullScreen()) {
-                                  await WindowManagerPlus.current
-                                      .setFullScreen(false);
-                                  return;
-                                }
-                              }
-                              Get.back();
-                            };
-                          },
-                        ),
-                      },
-                      child: KeyboardListener(
-                        focusNode: FocusNode(),
-                        onKeyEvent: (KeyEvent event) async {
-                          if (event is KeyDownEvent &&
-                              event.logicalKey == LogicalKeyboardKey.escape) {
-                            // ESC退出全屏
-                            // 如果处于全屏状态，退出全屏
+            return MediaQuery(
+              data: fixedMediaQueryData,
+              child: Stack(
+                children: [
+                  //侧键返回
+                  RawGestureDetector(
+                    excludeFromSemantics: true,
+                    gestures: <Type, GestureRecognizerFactory>{
+                      FourthButtonTapGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                              FourthButtonTapGestureRecognizer>(
+                        () => FourthButtonTapGestureRecognizer(),
+                        (FourthButtonTapGestureRecognizer instance) {
+                          instance.onTapDown = (TapDownDetails details) async {
+                            //如果处于全屏状态，退出全屏
                             if (!Platform.isAndroid && !Platform.isIOS) {
                               if (await WindowManagerPlus.current
                                   .isFullScreen()) {
@@ -317,46 +325,65 @@ class MyApp extends StatelessWidget {
                                 return;
                               }
                             }
-                          }
+                            Get.back();
+                          };
                         },
-                        child: child!,
                       ),
+                    },
+                    child: KeyboardListener(
+                      focusNode: FocusNode(),
+                      onKeyEvent: (KeyEvent event) async {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.escape) {
+                          // ESC退出全屏
+                          // 如果处于全屏状态，退出全屏
+                          if (!Platform.isAndroid && !Platform.isIOS) {
+                            if (await WindowManagerPlus.current
+                                .isFullScreen()) {
+                              await WindowManagerPlus.current
+                                  .setFullScreen(false);
+                              return;
+                            }
+                          }
+                        }
+                      },
+                      child: child!,
                     ),
+                  ),
 
-                    //查看DEBUG日志按钮
-                    //只在Debug、Profile模式显示
-                    Visibility(
-                      visible: !kReleaseMode,
-                      child: Positioned(
-                        right: 12,
-                        bottom: 100 + context.mediaQueryViewPadding.bottom,
-                        child: Opacity(
-                          opacity: 0.4,
-                          child: ElevatedButton(
-                            child: const Text("DEBUG LOG"),
-                            onPressed: () {
-                              Get.bottomSheet(
-                                const DebugLogPage(),
-                              );
-                            },
-                          ),
+                  //查看DEBUG日志按钮
+                  //只在Debug、Profile模式显示
+                  Visibility(
+                    visible: !kReleaseMode,
+                    child: Positioned(
+                      right: 12,
+                      bottom: 100 + context.mediaQueryViewPadding.bottom,
+                      child: Opacity(
+                        opacity: 0.4,
+                        child: ElevatedButton(
+                          child: const Text("DEBUG LOG"),
+                          onPressed: () {
+                            Get.bottomSheet(
+                              const DebugLogPage(),
+                            );
+                          },
                         ),
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
-          );
+                  ),
+                ],
+              ),
+            );
+          },
+        );
 
-          child = smartDialogBuilder(context, child);
+        child = smartDialogBuilder(context, child);
 
-          if (!Platform.isAndroid && !Platform.isIOS) {
-            return ExcludeSemantics(child: child);
-          }
-          return child;
-        },
-      );
-    }));
+        if (!Platform.isAndroid && !Platform.isIOS) {
+          return ExcludeSemantics(child: child);
+        }
+        return child;
+      },
+    );
   }
 }

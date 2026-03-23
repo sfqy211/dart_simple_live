@@ -7,78 +7,210 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 
 class AppColors {
-  static ColorScheme lightColorScheme = ColorScheme.fromSeed(
-    // primarySwatch: Colors.blue,
-    seedColor: const Color(0xff3498db),
+  // Subtle, cool-toned seed that stays quiet in both light/dark themes.
+  static const Color seed = Color(0xFF4C78FF);
+
+  static final ColorScheme lightColorScheme = ColorScheme.fromSeed(
+    seedColor: seed,
     brightness: Brightness.light,
   );
-  static ColorScheme darkColorScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xff3498db),
+  static final ColorScheme darkColorScheme = ColorScheme.fromSeed(
+    seedColor: seed,
     brightness: Brightness.dark,
   );
+
+  // Tuned scaffolds for a calmer, more premium feel than pure white/black.
+  static const Color lightScaffold = Color(0xFFF6F7F9);
+  static const Color darkScaffold = Color(0xFF0B0F14);
+
+  static const Color lightCard = Color(0xFFFFFFFF);
+  static const Color darkCard = Color(0xFF111824);
+
+  static const Color ghostLightPanel = Color(0xDCF1F4F7);
+  static const Color ghostDarkPanel = Color(0xD9121822);
 
   static const Color black333 = Color(0xFF333333);
 }
 
 class AppStyle {
-  static ThemeData get lightTheme => ThemeData(
-        colorScheme: AppColors.lightColorScheme,
-        useMaterial3: true,
-        fontFamily: AppSettingsController.instance.appFontFamily.value.isEmpty
-            ? (Platform.isWindows ? "Microsoft YaHei" : null)
-            : AppSettingsController.instance.appFontFamily.value,
-        visualDensity: VisualDensity.standard,
-        appBarTheme: AppBarTheme(
-          //elevation: 0,
-          centerTitle: true,
-          titleTextStyle: TextStyle(
-            fontSize: 16,
-            color: AppColors.black333,
-            fontFamily:
-                AppSettingsController.instance.appFontFamily.value.isEmpty
-                    ? (Platform.isWindows ? "Microsoft YaHei" : null)
-                    : AppSettingsController.instance.appFontFamily.value,
-          ),
-          foregroundColor: AppColors.black333,
-          systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
-            systemNavigationBarColor: Colors.transparent,
-          ),
-        ),
-      );
+  static String? get _fontFamily {
+    final value = AppSettingsController.instance.appFontFamily.value;
+    if (value.isNotEmpty) {
+      return value;
+    }
+    return Platform.isWindows ? "Microsoft YaHei" : null;
+  }
 
-  static ThemeData get darkTheme => ThemeData.dark().copyWith(
-        colorScheme: AppColors.darkColorScheme,
-        visualDensity: VisualDensity.standard,
-        textTheme: ThemeData.dark().textTheme.apply(
-              fontFamily:
-                  AppSettingsController.instance.appFontFamily.value.isEmpty
-                      ? (Platform.isWindows ? "Microsoft YaHei" : null)
-                      : AppSettingsController.instance.appFontFamily.value,
-            ),
-        primaryTextTheme: ThemeData().textTheme.apply(
-              fontFamily:
-                  AppSettingsController.instance.appFontFamily.value.isEmpty
-                      ? (Platform.isWindows ? "Microsoft YaHei" : null)
-                      : AppSettingsController.instance.appFontFamily.value,
-            ),
-        appBarTheme: AppBarTheme(
-          //elevation: 0,
+  static ThemeData get lightTheme {
+    final scheme = AppColors.lightColorScheme;
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: scheme,
+      visualDensity: VisualDensity.standard,
+    );
+    final textTheme = base.textTheme.apply(fontFamily: _fontFamily);
 
-          centerTitle: true,
-          titleTextStyle: TextStyle(
-            fontSize: 16,
-            color: Colors.white,
-            fontFamily:
-                AppSettingsController.instance.appFontFamily.value.isEmpty
-                    ? (Platform.isWindows ? "Microsoft YaHei" : null)
-                    : AppSettingsController.instance.appFontFamily.value,
-          ),
-          foregroundColor: Colors.white,
-          systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
-            systemNavigationBarColor: Colors.transparent,
-          ),
+    return base.copyWith(
+      textTheme: textTheme,
+      scaffoldBackgroundColor: AppColors.lightScaffold,
+      canvasColor: AppColors.lightScaffold,
+      cardColor: AppColors.lightCard,
+      dividerColor: scheme.outlineVariant.withAlpha(140),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurface,
         ),
-      );
+        foregroundColor: scheme.onSurface,
+        systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        dividerColor: Colors.transparent,
+        labelColor: scheme.onSurface,
+        unselectedLabelColor: scheme.onSurfaceVariant,
+        indicatorColor: scheme.primary,
+        overlayColor: WidgetStateProperty.all(
+          scheme.primary.withAlpha(18),
+        ),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: Colors.transparent,
+        indicatorColor: scheme.primary.withAlpha(18),
+        selectedIconTheme: IconThemeData(color: scheme.onSurface),
+        unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 56,
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.primary.withAlpha(18),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        isDense: true,
+        filled: true,
+        fillColor: scheme.surfaceContainerHighest.withAlpha(120),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.primary, width: 1.4),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        dense: true,
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    final scheme = AppColors.darkColorScheme;
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: scheme,
+      visualDensity: VisualDensity.standard,
+    );
+    final textTheme = base.textTheme.apply(fontFamily: _fontFamily);
+
+    return base.copyWith(
+      textTheme: textTheme,
+      scaffoldBackgroundColor: AppColors.darkScaffold,
+      canvasColor: AppColors.darkScaffold,
+      cardColor: AppColors.darkCard,
+      dividerColor: scheme.outlineVariant.withAlpha(130),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurface,
+        ),
+        foregroundColor: scheme.onSurface,
+        systemOverlayStyle: SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        dividerColor: Colors.transparent,
+        labelColor: scheme.onSurface,
+        unselectedLabelColor: scheme.onSurfaceVariant,
+        indicatorColor: scheme.primary,
+        overlayColor: WidgetStateProperty.all(
+          scheme.primary.withAlpha(20),
+        ),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: Colors.transparent,
+        indicatorColor: scheme.primary.withAlpha(22),
+        selectedIconTheme: IconThemeData(color: scheme.onSurface),
+        unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 56,
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.primary.withAlpha(22),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        isDense: true,
+        filled: true,
+        fillColor: scheme.surfaceContainerHighest.withAlpha(120),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.primary, width: 1.4),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        dense: true,
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+
   static const vGap4 = SizedBox(
     height: 4,
   );
@@ -87,6 +219,9 @@ class AppStyle {
   );
   static const vGap12 = SizedBox(
     height: 12,
+  );
+  static const vGap20 = SizedBox(
+    height: 20,
   );
   static const vGap24 = SizedBox(
     height: 24,
@@ -178,11 +313,81 @@ class AppStyle {
   static double get bottomBarHeight =>
       MediaQuery.of(Get.context!).padding.bottom;
 
+  static bool isDesktopPlatform() =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  static bool isDesktopLayout(BuildContext context) =>
+      isDesktopPlatform() && MediaQuery.of(context).size.width >= 960;
+
+  static EdgeInsets shellPadding(BuildContext context) =>
+      isDesktopLayout(context)
+          ? const EdgeInsets.fromLTRB(20, 20, 20, 20)
+          : EdgeInsets.zero;
+
+  static EdgeInsets contentPadding(BuildContext context) =>
+      isDesktopLayout(context)
+          ? const EdgeInsets.fromLTRB(24, 24, 24, 24)
+          : edgeInsetsA12;
+
+  static Color borderColor(BuildContext context) =>
+      Theme.of(context).dividerColor;
+
+  static Color mutedTextColor(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurfaceVariant;
+
+  static BoxDecoration shellBackground(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? const [
+                Color(0xFF090D12),
+                Color(0xFF0D131C),
+                Color(0xFF111824),
+              ]
+            : const [
+                Color(0xFFF9FAFC),
+                Color(0xFFF2F4F7),
+                Color(0xFFEDF1F5),
+              ],
+      ),
+    );
+  }
+
+  static BoxDecoration panelDecoration(
+    BuildContext context, {
+    bool emphasized = false,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return BoxDecoration(
+      color: emphasized
+          ? theme.cardColor.withAlpha(isDark ? 248 : 252)
+          : theme.cardColor.withAlpha(isDark ? 236 : 245),
+      borderRadius: BorderRadius.circular(isDesktopLayout(context) ? 28 : 20),
+      border: Border.all(
+        color: borderColor(context).withAlpha(isDark ? 120 : 180),
+      ),
+      boxShadow: isDark
+          ? const []
+          : [
+              BoxShadow(
+                color: Colors.black.withAlpha(emphasized ? 18 : 10),
+                blurRadius: emphasized ? 28 : 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+    );
+  }
+
   static Divider get divider => Divider(
         height: 1,
         thickness: 1,
         indent: 16,
         endIndent: 16,
-        color: Colors.grey.withAlpha(25),
+        color: Get.theme.dividerColor,
       );
 }
