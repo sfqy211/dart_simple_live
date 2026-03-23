@@ -18,101 +18,106 @@ class IndexedPage extends GetView<IndexedController> {
   }
 
   Widget _buildDesktopRail(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final isExtended = MediaQuery.of(context).size.width >= 1180;
-    return SizedBox(
-      width: isExtended ? 240 : 84,
-      child: AppPanel(
-        emphasized: true,
-        clipBehavior: Clip.antiAlias,
-        child: Obx(
-          () => NavigationRail(
-            extended: isExtended,
-            selectedIndex: controller.index.value,
-            onDestinationSelected: controller.setIndex,
-            useIndicator: true,
-            minWidth: 84,
-            minExtendedWidth: 240,
-            groupAlignment: -0.9,
-            leading: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      "assets/logo.png",
-                      width: 28,
-                      height: 28,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  if (isExtended) ...[
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        "Simple Live",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                      ),
-                    ),
-                  ],
-                ],
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
+    return Container(
+      width: isExtended ? 252 : 92,
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        border: Border(
+          right: BorderSide(color: borderColor),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 64,
+            padding: EdgeInsets.symmetric(horizontal: isExtended ? 16 : 0),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: borderColor),
               ),
             ),
-            indicatorShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            destinations: controller.items
-                .map(
-                  (item) => NavigationRailDestination(
-                    icon: _buildRailIcon(item.iconData),
-                    label: Text(
-                      item.title,
+            child: Row(
+              mainAxisAlignment: isExtended
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.asset(
+                    "assets/logo.png",
+                    width: 26,
+                    height: 26,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                if (isExtended) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Simple Live",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.1,
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                )
-                .toList(),
-            trailing: isExtended
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: 1,
-                          width: double.infinity,
-                          color: AppStyle.borderColor(context).withAlpha(
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? 120
-                                  : 180),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: Obx(
+              () => NavigationRail(
+                extended: isExtended,
+                selectedIndex: controller.index.value,
+                onDestinationSelected: controller.setIndex,
+                useIndicator: true,
+                minWidth: 92,
+                minExtendedWidth: 252,
+                groupAlignment: -1,
+                leading: const SizedBox(height: 8),
+                backgroundColor: Colors.transparent,
+                indicatorShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                destinations: controller.items
+                    .map(
+                      (item) => NavigationRailDestination(
+                        icon: _buildRailIcon(item.iconData),
+                        label: Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 10),
-                        Align(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                      ),
+                    )
+                    .toList(),
+                trailing: isExtended
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             "Desktop",
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                : null,
+                      )
+                    : null,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -124,11 +129,9 @@ class IndexedPage extends GetView<IndexedController> {
         child: Row(
           children: [
             _buildDesktopRail(context),
-            const SizedBox(width: 16),
             Expanded(
-              child: AppPanel(
-                emphasized: true,
-                clipBehavior: Clip.antiAlias,
+              child: Container(
+                color: Theme.of(context).scaffoldBackgroundColor,
                 child: Obx(
                   () => IndexedStack(
                     index: controller.index.value,
@@ -156,7 +159,7 @@ class IndexedPage extends GetView<IndexedController> {
                     onDestinationSelected: controller.setIndex,
                     labelType: NavigationRailLabelType.none,
                     useIndicator: true,
-                    minWidth: 84,
+                    minWidth: 92,
                     indicatorShape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -165,7 +168,7 @@ class IndexedPage extends GetView<IndexedController> {
                           (item) => NavigationRailDestination(
                             icon: _buildRailIcon(item.iconData),
                             label: Text(item.title),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(vertical: 11),
                           ),
                         )
                         .toList(),

@@ -43,21 +43,30 @@ class AppPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: AppStyle.panelDecoration(
+    final radius = BorderRadius.circular(
+      AppStyle.panelRadius(context),
+    );
+    final content = Padding(
+      padding: padding ?? EdgeInsets.zero,
+      child: child,
+    );
+
+    final panel = DecoratedBox(
+      decoration: AppStyle.panelInnerDecoration(
         context,
         emphasized: emphasized,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(
-          AppStyle.isDesktopLayout(context) ? 28 : 20,
-        ),
-        clipBehavior: clipBehavior,
-        child: Padding(
-          padding: padding ?? EdgeInsets.zero,
-          child: child,
-        ),
-      ),
+      child: content,
+    );
+
+    if (clipBehavior == Clip.none) {
+      return panel;
+    }
+
+    return ClipRRect(
+      borderRadius: radius,
+      clipBehavior: clipBehavior,
+      child: panel,
     );
   }
 }

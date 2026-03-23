@@ -26,51 +26,32 @@ class _ShadowCardState extends State<ShadowCard> {
     final isDark = theme.brightness == Brightness.dark;
     final radius = BorderRadius.circular(widget.radius);
     final canHover = AppStyle.isDesktopPlatform() && widget.onTap != null;
-
-    final shadowBase = isDark
-        ? const <BoxShadow>[]
-        : [
-            BoxShadow(
-              blurRadius: 18,
-              spreadRadius: -6,
-              offset: const Offset(0, 10),
-              color: Colors.black.withAlpha(12),
-            ),
-          ];
-    final shadowHover = isDark
-        ? const <BoxShadow>[]
-        : [
-            BoxShadow(
-              blurRadius: 28,
-              spreadRadius: -10,
-              offset: const Offset(0, 14),
-              color: Colors.black.withAlpha(18),
-            ),
-          ];
+    final fillColor = _hovered
+        ? (isDark ? const Color(0xFF252526) : const Color(0xFFF8F8F8))
+        : (isDark ? const Color(0xFF202020) : Colors.white);
 
     final decoration = BoxDecoration(
+      color: fillColor,
       borderRadius: radius,
       border: Border.all(
-        color: theme.dividerColor.withAlpha(isDark ? 130 : 180),
+        color: _hovered
+            ? scheme.primary.withAlpha(isDark ? 90 : 72)
+            : theme.dividerColor.withAlpha(isDark ? 110 : 165),
       ),
-      boxShadow: _hovered ? shadowHover : shadowBase,
     );
 
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOutCubic,
-      transformAlignment: Alignment.center,
-      transform:
-          Matrix4.translationValues(0, (_hovered ? -2 : 0).toDouble(), 0),
       decoration: decoration,
       child: Material(
-        color: theme.cardColor.withAlpha(isDark ? 238 : 255),
+        color: Colors.transparent,
         borderRadius: radius,
         child: InkWell(
           borderRadius: radius,
           onTap: widget.onTap,
           overlayColor: WidgetStateProperty.all(
-            scheme.primary.withAlpha(isDark ? 18 : 14),
+            scheme.primary.withAlpha(isDark ? 18 : 12),
           ),
           child: widget.child,
         ),

@@ -139,9 +139,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildDesktopUI(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final borderColor =
         AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
+    final panelColor = theme.cardColor;
 
     Widget buildQuickChip({
       required IconData icon,
@@ -152,16 +154,25 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     }) {
       final chip = FilterChip(
         showCheckmark: false,
-        avatar: Icon(icon, size: 18),
+        avatar: Icon(icon, size: 16),
         label: Text(label),
         selected: selected,
         onSelected: onSelected,
-        side: BorderSide(color: borderColor),
-        backgroundColor: scheme.surface.withAlpha(Get.isDarkMode ? 46 : 170),
-        selectedColor: scheme.primary.withAlpha(Get.isDarkMode ? 26 : 18),
-        labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+        side: BorderSide(
+          color: selected
+              ? scheme.primary.withAlpha(Get.isDarkMode ? 84 : 68)
+              : borderColor,
+        ),
+        backgroundColor: panelColor,
+        selectedColor: scheme.primary.withAlpha(Get.isDarkMode ? 24 : 14),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        labelStyle: theme.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
       );
       if (tooltip == null || tooltip.isEmpty) {
         return chip;
@@ -180,7 +191,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         label: Text(label),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: borderColor),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          backgroundColor: panelColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
         ),
       );
     }
@@ -194,8 +209,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         constraints: const BoxConstraints(minWidth: 140),
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         decoration: BoxDecoration(
-          color: scheme.surface.withAlpha(Get.isDarkMode ? 40 : 120),
-          borderRadius: BorderRadius.circular(16),
+          color: panelColor,
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(color: borderColor),
         ),
         child: Row(
@@ -229,10 +244,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     return AppShellFrame(
       child: Column(
         children: [
-          AppPanel(
-            emphasized: true,
-            clipBehavior: Clip.antiAlias,
-            padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: BoxDecoration(
+              color: panelColor,
+              border: Border(
+                bottom: BorderSide(color: borderColor),
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -394,31 +413,31 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final sideW = (constraints.maxWidth * 0.34).clamp(400.0, 520.0);
+                final sideW = (constraints.maxWidth * 0.32).clamp(360.0, 440.0);
                 return Row(
                   children: [
                     Expanded(
                       child: Column(
                         children: [
                           Expanded(
-                            child: AppPanel(
-                              emphasized: true,
-                              clipBehavior: Clip.antiAlias,
-                              child: Container(
-                                color: const Color(0xFF05070A),
-                                child: Center(
-                                  child: buildMediaPlayer(),
-                                ),
+                            child: Container(
+                              color: const Color(0xFF05070A),
+                              child: Center(
+                                child: buildMediaPlayer(),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          AppPanel(
-                            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: panelColor,
+                              border: Border(
+                                top: BorderSide(color: borderColor),
+                              ),
+                            ),
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                             child: Obx(
                               () => Row(
                                 children: [
@@ -453,10 +472,10 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 20),
+                                  const SizedBox(width: 16),
                                   Wrap(
-                                    spacing: 10,
-                                    runSpacing: 10,
+                                    spacing: 8,
+                                    runSpacing: 8,
                                     alignment: WrapAlignment.end,
                                     children: [
                                       buildSecondaryAction(
@@ -489,13 +508,22 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    Container(
+                      width: 1,
+                      color: borderColor,
+                    ),
                     SizedBox(
                       width: sideW,
                       child: Column(
                         children: [
-                          AppPanel(
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: panelColor,
+                              border: Border(
+                                bottom: BorderSide(color: borderColor),
+                              ),
+                            ),
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                             child: Obx(
                               () => Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,9 +535,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                             "",
                                         width: 56,
                                         height: 56,
-                                        borderRadius: 18,
+                                        borderRadius: 4,
                                       ),
-                                      const SizedBox(width: 14),
+                                      const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
@@ -547,10 +575,10 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
                                   Wrap(
-                                    spacing: 10,
-                                    runSpacing: 10,
+                                    spacing: 8,
+                                    runSpacing: 8,
                                     children: [
                                       buildStatTile(
                                         icon: Icons.public_outlined,
@@ -566,19 +594,19 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
                                   Row(
                                     children: [
                                       Expanded(
-                                        child: FilledButton.tonalIcon(
+                                        child: OutlinedButton.icon(
                                           onPressed: controller.copyUrl,
                                           icon: const Icon(Icons.link_outlined),
                                           label: const Text("复制链接"),
                                         ),
                                       ),
-                                      const SizedBox(width: 10),
+                                      const SizedBox(width: 8),
                                       Expanded(
-                                        child: FilledButton.tonalIcon(
+                                        child: OutlinedButton.icon(
                                           onPressed: controller.share,
                                           icon: const Icon(Remix.share_line),
                                           label: const Text("分享"),
@@ -590,11 +618,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
                           Expanded(
-                            child: AppPanel(
-                              emphasized: true,
-                              clipBehavior: Clip.antiAlias,
+                            child: Container(
+                              color: panelColor,
                               child: buildMessageArea(),
                             ),
                           ),
@@ -1302,7 +1328,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   Widget buildMessageArea() {
     final context = Get.context!;
     final isDesktop = AppStyle.isDesktopLayout(context);
-    final scheme = Theme.of(context).colorScheme;
     final borderColor =
         AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return DefaultTabController(
@@ -1310,50 +1335,41 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       child: Column(
         children: [
           if (isDesktop)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: scheme.surface.withAlpha(Get.isDarkMode ? 46 : 170),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                border: Border(
+                  bottom: BorderSide(color: borderColor),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: TabBar(
-                  indicatorSize: TabBarIndicatorSize.label,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  indicatorWeight: 1.0,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: scheme.primary.withAlpha(Get.isDarkMode ? 26 : 18),
-                    border: Border.all(
-                      color: scheme.primary.withAlpha(Get.isDarkMode ? 70 : 55),
-                    ),
+              ),
+              child: TabBar(
+                indicatorSize: TabBarIndicatorSize.label,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 10),
+                indicatorWeight: 2,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                dividerColor: Colors.transparent,
+                tabs: [
+                  const Tab(
+                    text: "聊天",
                   ),
-                  tabs: [
-                    const Tab(
-                      text: "聊天",
-                    ),
-                    if (controller.site.id == Constant.kBiliBili)
-                      Tab(
-                        child: Obx(
-                          () => Text(
-                            controller.superChats.isNotEmpty
-                                ? "SC(${controller.superChats.length})"
-                                : "SC",
-                          ),
+                  if (controller.site.id == Constant.kBiliBili)
+                    Tab(
+                      child: Obx(
+                        () => Text(
+                          controller.superChats.isNotEmpty
+                              ? "SC(${controller.superChats.length})"
+                              : "SC",
                         ),
                       ),
-                    const Tab(
-                      text: "关注",
                     ),
-                    const Tab(
-                      text: "设置",
-                    ),
-                  ],
-                ),
+                  const Tab(
+                    text: "关注",
+                  ),
+                  const Tab(
+                    text: "设置",
+                  ),
+                ],
               ),
             )
           else
@@ -1470,7 +1486,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               decoration: InputDecoration(
                 hintText: "发送弹幕...",
                 border: OutlineInputBorder(
-                  borderRadius: AppStyle.radius12,
+                  borderRadius: BorderRadius.circular(4),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
@@ -1495,7 +1511,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             },
             style: FilledButton.styleFrom(
               shape: RoundedRectangleBorder(
-                borderRadius: AppStyle.radius12,
+                borderRadius: BorderRadius.circular(4),
               ),
               padding: AppStyle.edgeInsetsH16,
             ),

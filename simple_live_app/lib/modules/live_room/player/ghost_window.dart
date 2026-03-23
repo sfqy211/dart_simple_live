@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
@@ -1622,26 +1621,10 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
         backgroundColor: Colors.transparent,
         body: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(panelIsDark ? 90 : 40),
-                blurRadius: 32,
-                offset: const Offset(0, 14),
-              ),
-            ],
+            color: panelColor,
+            border: Border.all(color: borderColor),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: panelColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Column(
+          child: Column(
                   children: [
                     Container(
                       height: 36,
@@ -1855,10 +1838,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }
 

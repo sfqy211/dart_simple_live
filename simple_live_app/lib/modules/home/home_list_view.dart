@@ -25,12 +25,12 @@ class HomeListView extends StatelessWidget {
           child: PageGridView(
             pageController: controller,
             padding: isDesktop
-                ? const EdgeInsets.fromLTRB(24, 0, 24, 24)
+                ? const EdgeInsets.fromLTRB(16, 16, 16, 16)
                 : AppStyle.edgeInsetsA12,
             firstRefresh: true,
             showPCRefreshButton: !isDesktop,
-            mainAxisSpacing: isDesktop ? 18 : 12,
-            crossAxisSpacing: isDesktop ? 18 : 12,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
             crossAxisCount: c,
             itemBuilder: (_, i) {
               var item = controller.list[i];

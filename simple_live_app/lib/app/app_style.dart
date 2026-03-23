@@ -7,8 +7,7 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 
 class AppColors {
-  // Subtle, cool-toned seed that stays quiet in both light/dark themes.
-  static const Color seed = Color(0xFF4C78FF);
+  static const Color seed = Color(0xFF0A64D6);
 
   static final ColorScheme lightColorScheme = ColorScheme.fromSeed(
     seedColor: seed,
@@ -19,15 +18,14 @@ class AppColors {
     brightness: Brightness.dark,
   );
 
-  // Tuned scaffolds for a calmer, more premium feel than pure white/black.
-  static const Color lightScaffold = Color(0xFFF6F7F9);
-  static const Color darkScaffold = Color(0xFF0B0F14);
+  static const Color lightScaffold = Color(0xFFF3F3F3);
+  static const Color darkScaffold = Color(0xFF181818);
 
   static const Color lightCard = Color(0xFFFFFFFF);
-  static const Color darkCard = Color(0xFF111824);
+  static const Color darkCard = Color(0xFF202020);
 
-  static const Color ghostLightPanel = Color(0xDCF1F4F7);
-  static const Color ghostDarkPanel = Color(0xD9121822);
+  static const Color ghostLightPanel = Color(0xD9F3F3F3);
+  static const Color ghostDarkPanel = Color(0xD9202020);
 
   static const Color black333 = Color(0xFF333333);
 }
@@ -56,7 +54,7 @@ class AppStyle {
       scaffoldBackgroundColor: AppColors.lightScaffold,
       canvasColor: AppColors.lightScaffold,
       cardColor: AppColors.lightCard,
-      dividerColor: scheme.outlineVariant.withAlpha(140),
+      dividerColor: const Color(0xFFE3E3E8),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -74,7 +72,7 @@ class AppStyle {
         ),
       ),
       tabBarTheme: TabBarThemeData(
-        dividerColor: Colors.transparent,
+        dividerColor: dividerColorWithBrightness(false),
         labelColor: scheme.onSurface,
         unselectedLabelColor: scheme.onSurfaceVariant,
         indicatorColor: scheme.primary,
@@ -97,27 +95,72 @@ class AppStyle {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 56,
-        backgroundColor: scheme.surface,
-        indicatorColor: scheme.primary.withAlpha(18),
+        backgroundColor: AppColors.lightCard,
+        indicatorColor: scheme.primary.withAlpha(14),
       ),
       inputDecorationTheme: InputDecorationTheme(
         isDense: true,
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withAlpha(120),
+        fillColor: const Color(0xFFF7F7F7),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: dividerColorWithBrightness(false)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: dividerColorWithBrightness(false)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
           borderSide: BorderSide(color: scheme.primary, width: 1.4),
         ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          side: BorderSide(
+            color: dividerColorWithBrightness(false),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        showCheckmark: false,
+        side: BorderSide(color: dividerColorWithBrightness(false)),
+        selectedColor: scheme.primary.withAlpha(14),
+        backgroundColor: AppColors.lightCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
+        labelStyle: textTheme.labelLarge,
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        radius: const Radius.circular(4),
+        thickness: WidgetStateProperty.all(5),
+        thumbColor: WidgetStateProperty.all(
+          Colors.black.withAlpha(50),
+        ),
+        trackColor: WidgetStateProperty.all(Colors.transparent),
       ),
       listTileTheme: const ListTileThemeData(
         dense: true,
@@ -141,7 +184,7 @@ class AppStyle {
       scaffoldBackgroundColor: AppColors.darkScaffold,
       canvasColor: AppColors.darkScaffold,
       cardColor: AppColors.darkCard,
-      dividerColor: scheme.outlineVariant.withAlpha(130),
+      dividerColor: const Color(0xFF38383A),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -159,7 +202,7 @@ class AppStyle {
         ),
       ),
       tabBarTheme: TabBarThemeData(
-        dividerColor: Colors.transparent,
+        dividerColor: dividerColorWithBrightness(true),
         labelColor: scheme.onSurface,
         unselectedLabelColor: scheme.onSurfaceVariant,
         indicatorColor: scheme.primary,
@@ -182,27 +225,72 @@ class AppStyle {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 56,
-        backgroundColor: scheme.surface,
-        indicatorColor: scheme.primary.withAlpha(22),
+        backgroundColor: AppColors.darkCard,
+        indicatorColor: scheme.primary.withAlpha(18),
       ),
       inputDecorationTheme: InputDecorationTheme(
         isDense: true,
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withAlpha(120),
+        fillColor: const Color(0xFF252526),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: dividerColorWithBrightness(true)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: dividerColorWithBrightness(true)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
           borderSide: BorderSide(color: scheme.primary, width: 1.4),
         ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          side: BorderSide(
+            color: dividerColorWithBrightness(true),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        showCheckmark: false,
+        side: BorderSide(color: dividerColorWithBrightness(true)),
+        selectedColor: scheme.primary.withAlpha(18),
+        backgroundColor: AppColors.darkCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
+        labelStyle: textTheme.labelLarge,
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        radius: const Radius.circular(4),
+        thickness: WidgetStateProperty.all(5),
+        thumbColor: WidgetStateProperty.all(
+          Colors.white.withAlpha(68),
+        ),
+        trackColor: WidgetStateProperty.all(Colors.transparent),
       ),
       listTileTheme: const ListTileThemeData(
         dense: true,
@@ -319,14 +407,18 @@ class AppStyle {
   static bool isDesktopLayout(BuildContext context) =>
       isDesktopPlatform() && MediaQuery.of(context).size.width >= 960;
 
+  static Color dividerColorWithBrightness(bool isDark) =>
+      isDark ? const Color(0xFF313131) : const Color(0xFFD9D9D9);
+
+  static double panelRadius(BuildContext context, {bool compact = false}) =>
+      isDesktopLayout(context) ? (compact ? 4 : 0) : (compact ? 10 : 12);
+
   static EdgeInsets shellPadding(BuildContext context) =>
-      isDesktopLayout(context)
-          ? const EdgeInsets.fromLTRB(20, 20, 20, 20)
-          : EdgeInsets.zero;
+      isDesktopLayout(context) ? EdgeInsets.zero : EdgeInsets.zero;
 
   static EdgeInsets contentPadding(BuildContext context) =>
       isDesktopLayout(context)
-          ? const EdgeInsets.fromLTRB(24, 24, 24, 24)
+          ? const EdgeInsets.fromLTRB(16, 16, 16, 16)
           : edgeInsetsA12;
 
   static Color borderColor(BuildContext context) =>
@@ -339,21 +431,7 @@ class AppStyle {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: isDark
-            ? const [
-                Color(0xFF090D12),
-                Color(0xFF0D131C),
-                Color(0xFF111824),
-              ]
-            : const [
-                Color(0xFFF9FAFC),
-                Color(0xFFF2F4F7),
-                Color(0xFFEDF1F5),
-              ],
-      ),
+      color: isDark ? AppColors.darkScaffold : AppColors.lightScaffold,
     );
   }
 
@@ -361,25 +439,26 @@ class AppStyle {
     BuildContext context, {
     bool emphasized = false,
   }) {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(panelRadius(context)),
+    );
+  }
+
+  static BoxDecoration panelInnerDecoration(
+    BuildContext context, {
+    bool emphasized = false,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final base = emphasized
+        ? (isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFFFFFF))
+        : (isDark ? const Color(0xFF202020) : const Color(0xFFF8F8F8));
     return BoxDecoration(
-      color: emphasized
-          ? theme.cardColor.withAlpha(isDark ? 248 : 252)
-          : theme.cardColor.withAlpha(isDark ? 236 : 245),
-      borderRadius: BorderRadius.circular(isDesktopLayout(context) ? 28 : 20),
+      color: base,
+      borderRadius: BorderRadius.circular(panelRadius(context)),
       border: Border.all(
-        color: borderColor(context).withAlpha(isDark ? 120 : 180),
+        color: borderColor(context).withAlpha(isDark ? 110 : 170),
       ),
-      boxShadow: isDark
-          ? const []
-          : [
-              BoxShadow(
-                color: Colors.black.withAlpha(emphasized ? 18 : 10),
-                blurRadius: emphasized ? 28 : 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
     );
   }
 
