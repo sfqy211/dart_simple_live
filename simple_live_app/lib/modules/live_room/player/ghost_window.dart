@@ -1620,242 +1620,238 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       data: theme,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Padding(
-          padding: const EdgeInsets.all(10),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(panelIsDark ? 90 : 40),
-                  blurRadius: 32,
-                  offset: const Offset(0, 14),
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(panelIsDark ? 90 : 40),
+                blurRadius: 32,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: panelColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: borderColor),
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: panelColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 36,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: chromeFill,
-                          border: Border(
-                            bottom: BorderSide(color: borderColor),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _locked
-                                  ? Row(
-                                      children: [
-                                        Icon(
-                                          Icons.lock_outline,
-                                          size: 16,
-                                          color: muted,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          "已锁定",
-                                          style: theme.textTheme.labelMedium
-                                              ?.copyWith(color: muted),
-                                        ),
-                                      ],
-                                    )
-                                  : const DragToMoveArea(
-                                      child: SizedBox.expand(),
-                                    ),
-                            ),
-                            IconButton(
-                              tooltip: "设置",
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
-                              ),
-                              icon: const Icon(Icons.settings, size: 18),
-                              onPressed: _showSettingsSheet,
-                            ),
-                            IconButton(
-                              tooltip: "退出",
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
-                              ),
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: _requestExitGhostMode,
-                            ),
-                          ],
+                child: Column(
+                  children: [
+                    Container(
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: chromeFill,
+                        border: Border(
+                          bottom: BorderSide(color: borderColor),
                         ),
                       ),
-                      if (_showSubtitle && _subtitleText.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withAlpha(170),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border(
-                                left: BorderSide(
-                                  color: scheme.primary.withAlpha(220),
-                                  width: 3,
-                                ),
-                              ),
-                            ),
-                            child: Text(
-                              _subtitleText,
-                              style: TextStyle(
-                                fontSize: _fontSize,
-                                height: 1.25,
-                                fontWeight: _subtitleIsPartial
-                                    ? FontWeight.normal
-                                    : FontWeight.w600,
-                                color: Colors.white,
-                                fontFamily: fontFamily,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withAlpha(120),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      Expanded(
-                        child: Scrollbar(
-                          controller: _scrollController,
-                          thumbVisibility: true,
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                            itemCount: _items.length,
-                            itemBuilder: (context, index) {
-                              final item = _items[index];
-                              final color = normalizeItemColor(item.color)
-                                  .withValues(alpha: _danmakuOpacity);
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 3),
-                                child: Text(
-                                  item.text,
-                                  style: TextStyle(
-                                    color: color,
-                                    fontSize: _fontSize,
-                                    height: 1.25,
-                                    fontWeight: FontWeight.values[weightIndex],
-                                    fontFamily: fontFamily,
-                                    shadows: [
-                                      Shadow(
-                                        color: panelIsDark
-                                            ? Colors.black.withAlpha(140)
-                                            : Colors.black.withAlpha(90),
-                                        offset: const Offset(0, 1),
-                                        blurRadius: 10,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _locked
+                                ? Row(
+                                    children: [
+                                      Icon(
+                                        Icons.lock_outline,
+                                        size: 16,
+                                        color: muted,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "已锁定",
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(color: muted),
                                       ),
                                     ],
+                                  )
+                                : const DragToMoveArea(
+                                    child: SizedBox.expand(),
                                   ),
+                          ),
+                          IconButton(
+                            tooltip: "设置",
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            icon: const Icon(Icons.settings, size: 18),
+                            onPressed: _showSettingsSheet,
+                          ),
+                          IconButton(
+                            tooltip: "退出",
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: _requestExitGhostMode,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_showSubtitle && _subtitleText.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withAlpha(170),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border(
+                              left: BorderSide(
+                                color: scheme.primary.withAlpha(220),
+                                width: 3,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            _subtitleText,
+                            style: TextStyle(
+                              fontSize: _fontSize,
+                              height: 1.25,
+                              fontWeight: _subtitleIsPartial
+                                  ? FontWeight.normal
+                                  : FontWeight.w600,
+                              color: Colors.white,
+                              fontFamily: fontFamily,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withAlpha(120),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
                                 ),
-                              );
-                            },
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                        decoration: BoxDecoration(
-                          color: chromeFill,
-                          border: Border(
-                            top: BorderSide(color: borderColor),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              onPressed: _requestShowEmotions,
-                              tooltip: "表情包",
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                              icon: const Icon(
-                                Icons.emoji_emotions_outlined,
-                                size: 18,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: _requestAutoSpam,
-                              tooltip: "自动发送",
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                              icon: const Icon(Icons.auto_mode, size: 18),
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: inputFill,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: borderColor.withAlpha(
-                                      panelIsDark ? 90 : 110,
+                    Expanded(
+                      child: Scrollbar(
+                        controller: _scrollController,
+                        thumbVisibility: true,
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                          itemCount: _items.length,
+                          itemBuilder: (context, index) {
+                            final item = _items[index];
+                            final color = normalizeItemColor(item.color)
+                                .withValues(alpha: _danmakuOpacity);
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 3),
+                              child: Text(
+                                item.text,
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: _fontSize,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.values[weightIndex],
+                                  fontFamily: fontFamily,
+                                  shadows: [
+                                    Shadow(
+                                      color: panelIsDark
+                                          ? Colors.black.withAlpha(140)
+                                          : Colors.black.withAlpha(90),
+                                      offset: const Offset(0, 1),
+                                      blurRadius: 10,
                                     ),
-                                  ),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 10),
-                                child: TextField(
-                                  controller: _inputController,
-                                  style: TextStyle(color: onPanel),
-                                  decoration: InputDecoration(
-                                    hintText: "发送弹幕...",
-                                    hintStyle: TextStyle(color: muted),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                  ),
-                                  onSubmitted: (_) => _sendMessage(),
+                                  ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            FilledButton.tonal(
-                              onPressed: _sendMessage,
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Text("发送"),
-                            ),
-                          ],
+                            );
+                          },
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                      decoration: BoxDecoration(
+                        color: chromeFill,
+                        border: Border(
+                          top: BorderSide(color: borderColor),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: _requestShowEmotions,
+                            tooltip: "表情包",
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            icon: const Icon(
+                              Icons.emoji_emotions_outlined,
+                              size: 18,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _requestAutoSpam,
+                            tooltip: "自动发送",
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            icon: const Icon(Icons.auto_mode, size: 18),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: inputFill,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: borderColor.withAlpha(
+                                    panelIsDark ? 90 : 110,
+                                  ),
+                                ),
+                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: TextField(
+                                controller: _inputController,
+                                style: TextStyle(color: onPanel),
+                                decoration: InputDecoration(
+                                  hintText: "发送弹幕...",
+                                  hintStyle: TextStyle(color: muted),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                                onSubmitted: (_) => _sendMessage(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.tonal(
+                            onPressed: _sendMessage,
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text("发送"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
