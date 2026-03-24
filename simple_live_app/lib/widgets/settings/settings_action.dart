@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
+import 'package:simple_live_app/widgets/settings/settings_shared.dart';
 
 class SettingsAction extends StatelessWidget {
   final String title;
@@ -28,14 +29,16 @@ class SettingsAction extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       shape: RoundedRectangleBorder(
-        borderRadius: AppStyle.radius8,
+        borderRadius: settingsItemRadius(context),
       ),
       contentPadding: AppStyle.edgeInsetsL16.copyWith(right: 8),
       subtitle: subtitle == null
           ? null
           : Text(
               subtitle!,
-              style: Get.textTheme.bodySmall!.copyWith(color: Colors.grey),
+              style: Get.textTheme.bodySmall!.copyWith(
+                color: settingsMutedColor(context),
+              ),
             ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -46,12 +49,12 @@ class SettingsAction extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium!
-                  .copyWith(color: Colors.grey),
+                  .copyWith(color: settingsMutedColor(context)),
             ),
           AppStyle.hGap4,
-          const Icon(
+          Icon(
             Icons.chevron_right,
-            color: Colors.grey,
+            color: settingsMutedColor(context),
           ),
         ],
       ),

@@ -130,51 +130,62 @@ class Utils {
       useSystem: useSystem,
       maskColor: Colors.transparent,
       animationTime: const Duration(milliseconds: 200),
-      builder: (context) => Container(
-        width: width + MediaQuery.of(context).padding.right,
-        padding: EdgeInsets.only(right: MediaQuery.of(context).padding.right),
-        decoration: BoxDecoration(
-          color: Get.theme.cardColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(4),
-            bottomLeft: Radius.circular(4),
-          ),
-        ),
-        child: SafeArea(
-          left: false,
-          right: false,
-          child: MediaQuery(
-            data: const MediaQueryData(padding: EdgeInsets.zero),
-            child: Column(
-              children: [
-                ListTile(
-                  visualDensity: VisualDensity.compact,
-                  contentPadding: EdgeInsets.zero,
-                  leading: IconButton(
-                    onPressed: () {
-                      SmartDialog.dismiss(status: SmartStatus.allCustom).then(
-                        (value) => onDismiss?.call(),
-                      );
-                    },
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-                  title: Text(
-                    title,
-                    style: Get.textTheme.titleMedium,
-                  ),
-                ),
-                Divider(
-                  height: 1,
-                  color: Colors.grey.withAlpha(25),
-                ),
-                Expanded(
-                  child: child,
-                ),
-              ],
+      builder: (context) {
+        final isDesktop = AppStyle.isDesktopLayout(context);
+        final borderColor =
+            AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
+
+        return Container(
+          width: width + MediaQuery.of(context).padding.right,
+          padding: EdgeInsets.only(right: MediaQuery.of(context).padding.right),
+          decoration: BoxDecoration(
+            color: Get.theme.cardColor,
+            border: Border(
+              left: BorderSide(color: borderColor),
+            ),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(isDesktop ? 0 : 12),
+              bottomLeft: Radius.circular(isDesktop ? 0 : 12),
             ),
           ),
-        ),
-      ),
+          child: SafeArea(
+            left: false,
+            right: false,
+            child: MediaQuery(
+              data: const MediaQueryData(padding: EdgeInsets.zero),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 56,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            SmartDialog.dismiss(status: SmartStatus.allCustom)
+                                .then((value) => onDismiss?.call());
+                          },
+                          icon: const Icon(Icons.arrow_back),
+                        ),
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: Get.textTheme.titleMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(
+                    height: 1,
+                    color: borderColor,
+                  ),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -386,7 +397,6 @@ class Utils {
     }
     return num.toString();
   }
-
 
   static final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
 

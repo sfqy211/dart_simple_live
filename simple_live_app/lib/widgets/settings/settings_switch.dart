@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:simple_live_app/app/app_style.dart';
+import 'package:simple_live_app/widgets/settings/settings_shared.dart';
 
 class SettingsSwitch extends StatelessWidget {
   final bool value;
@@ -22,7 +23,7 @@ class SettingsSwitch extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       shape: RoundedRectangleBorder(
-        borderRadius: AppStyle.radius8,
+        borderRadius: settingsItemRadius(context),
       ),
       trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       //visualDensity: VisualDensity.compact,
@@ -33,7 +34,7 @@ class SettingsSwitch extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .bodySmall!
-                  .copyWith(color: Colors.grey),
+                  .copyWith(color: settingsMutedColor(context)),
             )
           : null,
       value: value,

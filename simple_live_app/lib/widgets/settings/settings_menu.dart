@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
+import 'package:simple_live_app/app/utils.dart';
+import 'package:simple_live_app/widgets/settings/settings_shared.dart';
+import 'package:simple_live_app/widgets/settings/settings_card.dart';
 
 class SettingsMenu<T> extends StatelessWidget {
   final String title;
@@ -27,14 +30,16 @@ class SettingsMenu<T> extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyLarge,
       ),
       shape: RoundedRectangleBorder(
-        borderRadius: AppStyle.radius8,
+        borderRadius: settingsItemRadius(context),
       ),
       contentPadding: AppStyle.edgeInsetsL16.copyWith(right: 8),
       subtitle: subtitle == null
           ? null
           : Text(
               subtitle!,
-              style: Get.textTheme.bodySmall!.copyWith(color: Colors.grey),
+              style: Get.textTheme.bodySmall!.copyWith(
+                color: settingsMutedColor(context),
+              ),
             ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -44,12 +49,12 @@ class SettingsMenu<T> extends StatelessWidget {
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium!
-                .copyWith(color: Colors.grey),
+                .copyWith(color: settingsMutedColor(context)),
           ),
           AppStyle.hGap4,
-          const Icon(
+          Icon(
             Icons.chevron_right,
-            color: Colors.grey,
+            color: settingsMutedColor(context),
           ),
         ],
       ),
@@ -58,6 +63,21 @@ class SettingsMenu<T> extends StatelessWidget {
   }
 
   void openMenu(BuildContext context) {
+    if (AppStyle.isDesktopLayout(context)) {
+      Utils.showRightDialog(
+        title: title,
+        width: 360,
+        child: _SettingsMenuPanel<T>(
+          title: title,
+          subtitle: subtitle,
+          value: value,
+          valueMap: valueMap,
+          onChanged: onChanged,
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
@@ -88,6 +108,71 @@ class SettingsMenu<T> extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SettingsMenuPanel<T> extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Map<T, String> valueMap;
+  final T value;
+  final Function(T)? onChanged;
+
+  const _SettingsMenuPanel({
+    required this.title,
+    required this.value,
+    required this.valueMap,
+    this.subtitle,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: AppStyle.contentPadding(context),
+      children: [
+        if (subtitle != null && subtitle!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+            child: Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: settingsMutedColor(context),
+                    height: 1.45,
+                  ),
+            ),
+          ),
+        Material(
+          color: Colors.transparent,
+          child: RadioGroup(
+            groupValue: value,
+            onChanged: (selected) {
+              if (selected == null) return;
+              onChanged?.call(selected as T);
+              Utils.hideRightDialog();
+            },
+            child: SettingsCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: valueMap.keys
+                    .map(
+                      (entry) => RadioListTile<T>(
+                        value: entry,
+                        title: Text(
+                          valueMap[entry]?.tr ?? "???",
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        contentPadding: AppStyle.edgeInsetsH16,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

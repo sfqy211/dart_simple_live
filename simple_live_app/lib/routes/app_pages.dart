@@ -118,7 +118,8 @@ class AppPages {
     ),
     //外观设置
     GetPage(
-        name: RoutePath.kAppstyleSetting, page: () => AppstyleSettingPage()),
+        name: RoutePath.kAppstyleSetting,
+        page: () => const AppstyleSettingPage()),
     //播放设置
     GetPage(
       name: RoutePath.kSettingsPlay,

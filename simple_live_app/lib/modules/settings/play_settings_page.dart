@@ -8,300 +8,255 @@ import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_menu.dart';
 import 'package:simple_live_app/widgets/settings/settings_number.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
+import 'package:simple_live_app/widgets/settings/settings_workspace.dart';
 
 class PlaySettingsPage extends GetView<AppSettingsController> {
-  const PlaySettingsPage({Key? key}) : super(key: key);
+  const PlaySettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("直播间设置"),
-      ),
-      body: ListView(
-        padding: AppStyle.edgeInsetsA12,
-        children: [
-          Padding(
-            padding: AppStyle.edgeInsetsA12.copyWith(top: 0),
-            child: Text(
-              "播放器",
-              style: Get.textTheme.titleSmall,
-            ),
+    return const SettingsPageScaffold(
+      title: "直播设置",
+      subtitle: "播放、任务栏与透明浮窗相关选项",
+      body: PlaySettingsView(),
+    );
+  }
+}
+
+class PlaySettingsView extends GetView<AppSettingsController> {
+  const PlaySettingsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: AppStyle.contentPadding(context),
+      children: [
+        const SettingsSectionTitle(
+          title: "播放器",
+          subtitle: "播放器内核、尺寸模式与桌面端行为控制。",
+        ),
+        SettingsCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Obx(
+                () => SettingsSwitch(
+                  title: "硬件解码",
+                  value: controller.hardwareDecode.value,
+                  subtitle: "播放失败时可尝试关闭这一项",
+                  onChanged: controller.setHardwareDecode,
+                ),
+              ),
+              if (Platform.isAndroid) AppStyle.divider,
+              Obx(
+                () => Visibility(
+                  visible: Platform.isAndroid,
+                  child: SettingsSwitch(
+                    title: "兼容模式",
+                    subtitle: "若播放卡顿可尝试打开这一项",
+                    value: controller.playerCompatMode.value,
+                    onChanged: controller.setPlayerCompatMode,
+                  ),
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: "进入后台自动暂停",
+                  value: controller.playerAutoPause.value,
+                  onChanged: controller.setPlayerAutoPause,
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsMenu<int>(
+                  title: "画面尺寸",
+                  value: controller.scaleMode.value,
+                  valueMap: const {
+                    0: "适应",
+                    1: "拉伸",
+                    2: "铺满",
+                    3: "16:9",
+                    4: "4:3",
+                  },
+                  onChanged: controller.setScaleMode,
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: "使用 HTTPS 链接",
+                  subtitle: "将 http 链接替换为 https",
+                  value: controller.playerForceHttps.value,
+                  onChanged: controller.setPlayerForceHttps,
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: "纯净黑听模式",
+                  subtitle: "仅播放音频，降低资源占用",
+                  value: controller.audioOnlyMode.value,
+                  onChanged: controller.setAudioOnlyMode,
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => Visibility(
+                  visible: Platform.isAndroid,
+                  child: SettingsSwitch(
+                    title: "后台保活",
+                    subtitle: "在黑听模式下保持后台运行",
+                    value: controller.backgroundKeepAlive.value,
+                    onChanged: controller.setBackgroundKeepAlive,
+                  ),
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => Visibility(
+                  visible: !Platform.isAndroid,
+                  child: SettingsSwitch(
+                    title: "Windows 任务栏托盘集成",
+                    subtitle: "点击关闭按钮时最小化到托盘",
+                    value: controller.windowsTrayIntegration.value,
+                    onChanged: controller.setWindowsTrayIntegration,
+                  ),
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => Visibility(
+                  visible: !Platform.isAndroid,
+                  child: SettingsSwitch(
+                    title: "透明浮窗模式",
+                    subtitle: "边工作边看直播的桌面模式",
+                    value: controller.ghostMode.value,
+                    onChanged: controller.setGhostMode,
+                  ),
+                ),
+              ),
+            ],
           ),
-          SettingsCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Obx(
-                  () => SettingsSwitch(
-                    title: "硬件解码",
-                    value: controller.hardwareDecode.value,
-                    subtitle: "播放失败可尝试关闭此选项",
-                    onChanged: (e) {
-                      controller.setHardwareDecode(e);
-                    },
+        ),
+        AppStyle.vGap24,
+        const SettingsSectionTitle(
+          title: "直播间",
+          subtitle: "控制进入直播间后的默认行为。",
+        ),
+        SettingsCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Obx(
+                () => SettingsSwitch(
+                  title: "进入直播间自动全屏",
+                  value: controller.autoFullScreen.value,
+                  onChanged: controller.setAutoFullScreen,
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => Visibility(
+                  visible: Platform.isAndroid,
+                  child: SettingsSwitch(
+                    title: "进入小窗隐藏弹幕",
+                    value: controller.pipHideDanmu.value,
+                    onChanged: controller.setPIPHideDanmu,
                   ),
                 ),
-                if (Platform.isAndroid) AppStyle.divider,
-                Obx(
-                  () => Visibility(
-                    visible: Platform.isAndroid,
-                    child: SettingsSwitch(
-                      title: "兼容模式",
-                      subtitle: "若播放卡顿可尝试打开此选项",
-                      value: controller.playerCompatMode.value,
-                      onChanged: (e) {
-                        controller.setPlayerCompatMode(e);
-                      },
-                    ),
-                  ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: "播放器中显示 SC",
+                  value: controller.playershowSuperChat.value,
+                  onChanged: controller.setPlayerShowSuperChat,
                 ),
-                // AppStyle.divider,
-                // Obx(
-                //   () => SettingsNumber(
-                //     title: "缓冲区大小",
-                //     subtitle: "若播放卡顿可尝试调高此选项",
-                //     value: controller.playerBufferSize.value,
-                //     min: 32,
-                //     max: 1024,
-                //     step: 4,
-                //     unit: "MB",
-                //     onChanged: (e) {
-                //       controller.setPlayerBufferSize(e);
-                //     },
-                //   ),
-                // ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsSwitch(
-                    title: "进入后台自动暂停",
-                    value: controller.playerAutoPause.value,
-                    onChanged: (e) {
-                      controller.setPlayerAutoPause(e);
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsMenu<int>(
-                    title: "画面尺寸",
-                    value: controller.scaleMode.value,
-                    valueMap: const {
-                      0: "适应",
-                      1: "拉伸",
-                      2: "铺满",
-                      3: "16:9",
-                      4: "4:3",
-                    },
-                    onChanged: (e) {
-                      controller.setScaleMode(e);
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsSwitch(
-                    title: "使用HTTPS链接",
-                    subtitle: "将http链接替换为https",
-                    value: controller.playerForceHttps.value,
-                    onChanged: (e) {
-                      controller.setPlayerForceHttps(e);
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsSwitch(
-                    title: "纯净黑听模式",
-                    subtitle: "仅播放音频，降低资源占用",
-                    value: controller.audioOnlyMode.value,
-                    onChanged: (e) {
-                      controller.setAudioOnlyMode(e);
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => Visibility(
-                    visible: Platform.isAndroid,
-                    child: SettingsSwitch(
-                      title: "后台保活",
-                      subtitle: "在黑听模式下保持后台运行",
-                      value: controller.backgroundKeepAlive.value,
-                      onChanged: (e) {
-                        controller.setBackgroundKeepAlive(e);
-                      },
-                    ),
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => Visibility(
-                    visible: !Platform.isAndroid,
-                    child: SettingsSwitch(
-                      title: "Windows 托盘集成",
-                      subtitle: "点击关闭按钮最小化到托盘",
-                      value: controller.windowsTrayIntegration.value,
-                      onChanged: (e) {
-                        controller.setWindowsTrayIntegration(e);
-                      },
-                    ),
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => Visibility(
-                    visible: !Platform.isAndroid,
-                    child: SettingsSwitch(
-                      title: "透明模式",
-                      subtitle: "边工作边看弹幕",
-                      value: controller.ghostMode.value,
-                      onChanged: (e) {
-                        controller.setGhostMode(e);
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Padding(
-            padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-            child: Text(
-              "直播间",
-              style: Get.textTheme.titleSmall,
-            ),
+        ),
+        AppStyle.vGap24,
+        const SettingsSectionTitle(
+          title: "清晰度",
+          subtitle: "根据网络环境设定默认清晰度偏好。",
+        ),
+        SettingsCard(
+          child: Column(
+            children: [
+              Obx(
+                () => SettingsMenu<int>(
+                  title: "默认清晰度",
+                  value: controller.qualityLevel.value,
+                  valueMap: const {
+                    0: "最低",
+                    1: "中等",
+                    2: "最高",
+                  },
+                  onChanged: controller.setQualityLevel,
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsMenu<int>(
+                  title: "数据网络清晰度",
+                  value: controller.qualityLevelCellular.value,
+                  valueMap: const {
+                    0: "最低",
+                    1: "中等",
+                    2: "最高",
+                  },
+                  onChanged: controller.setQualityLevelCellular,
+                ),
+              ),
+            ],
           ),
-          SettingsCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Obx(
-                  () => SettingsSwitch(
-                    title: "进入直播间自动全屏",
-                    value: controller.autoFullScreen.value,
-                    onChanged: (e) {
-                      controller.setAutoFullScreen(e);
-                    },
-                  ),
+        ),
+        AppStyle.vGap24,
+        const SettingsSectionTitle(
+          title: "聊天区",
+          subtitle: "右侧聊天区的密度与显示样式。",
+        ),
+        SettingsCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Obx(
+                () => SettingsNumber(
+                  title: "文字大小",
+                  value: controller.chatTextSize.value.toInt(),
+                  min: 8,
+                  max: 36,
+                  onChanged: (value) {
+                    controller.setChatTextSize(value.toDouble());
+                  },
                 ),
-                AppStyle.divider,
-                Obx(
-                  () => Visibility(
-                    visible: Platform.isAndroid,
-                    child: SettingsSwitch(
-                      title: "进入小窗隐藏弹幕",
-                      value: controller.pipHideDanmu.value,
-                      onChanged: (e) {
-                        controller.setPIPHideDanmu(e);
-                      },
-                    ),
-                  ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsNumber(
+                  title: "上下间隔",
+                  value: controller.chatTextGap.value.toInt(),
+                  min: 0,
+                  max: 12,
+                  onChanged: (value) {
+                    controller.setChatTextGap(value.toDouble());
+                  },
                 ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsSwitch(
-                    title: "播放器中显示SC",
-                    value: controller.playershowSuperChat.value,
-                    onChanged: (e) {
-                      controller.setPlayerShowSuperChat(e);
-                    },
-                  ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: "气泡样式",
+                  value: controller.chatBubbleStyle.value,
+                  onChanged: controller.setChatBubbleStyle,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Padding(
-            padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-            child: Text(
-              "清晰度",
-              style: Get.textTheme.titleSmall,
-            ),
-          ),
-          SettingsCard(
-            child: Column(
-              children: [
-                Obx(
-                  () => SettingsMenu<int>(
-                    title: "默认清晰度",
-                    value: controller.qualityLevel.value,
-                    valueMap: const {
-                      0: "最低",
-                      1: "中等",
-                      2: "最高",
-                    },
-                    onChanged: (e) {
-                      controller.setQualityLevel(e);
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsMenu<int>(
-                    title: "数据网络清晰度",
-                    value: controller.qualityLevelCellular.value,
-                    valueMap: const {
-                      0: "最低",
-                      1: "中等",
-                      2: "最高",
-                    },
-                    onChanged: (e) {
-                      controller.setQualityLevelCellular(e);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-            child: Text(
-              "聊天区",
-              style: Get.textTheme.titleSmall,
-            ),
-          ),
-          SettingsCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Obx(
-                  () => SettingsNumber(
-                    title: "文字大小",
-                    value: controller.chatTextSize.value.toInt(),
-                    min: 8,
-                    max: 36,
-                    onChanged: (e) {
-                      controller.setChatTextSize(e.toDouble());
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsNumber(
-                    title: "上下间隔",
-                    value: controller.chatTextGap.value.toInt(),
-                    min: 0,
-                    max: 12,
-                    onChanged: (e) {
-                      controller.setChatTextGap(e.toDouble());
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsSwitch(
-                    title: "气泡样式",
-                    value: controller.chatBubbleStyle.value,
-                    onChanged: (e) {
-                      controller.setChatBubbleStyle(e);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

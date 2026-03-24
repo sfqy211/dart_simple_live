@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/modules/home/home_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_view.dart';
-import 'package:simple_live_app/routes/route_path.dart';
+import 'package:simple_live_app/modules/settings/appstyle_setting_page.dart';
 import 'package:simple_live_app/widgets/desktop_page_header.dart';
 
 class HomePage extends GetView<HomeController> {
@@ -30,8 +30,8 @@ class HomePage extends GetView<HomeController> {
                   icon: Icons.search,
                   label: "搜索",
                 ),
-                DesktopPageHeaderButton(
-                  onTap: () => Get.toNamed(RoutePath.kAppstyleSetting),
+                const DesktopPageHeaderButton(
+                  onTap: showAppstyleSettingsPanel,
                   icon: Icons.tune,
                   label: "外观",
                 ),
