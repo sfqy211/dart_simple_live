@@ -1808,7 +1808,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               },
             ),
           ),
-          if (Platform.isLinux || Platform.isWindows)
+          if (Platform.isWindows)
             Positioned(
               right: 12,
               bottom: 12,

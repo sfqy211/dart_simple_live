@@ -2341,7 +2341,7 @@ class LiveRoomController extends PlayerController
                 },
               ),
             ),
-            if (Platform.isLinux || Platform.isWindows)
+            if (Platform.isWindows)
               Positioned(
                 right: 12,
                 bottom: 12,

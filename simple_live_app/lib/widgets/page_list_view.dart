@@ -63,8 +63,7 @@ class PageListView extends StatelessWidget {
             right: 0,
             child: // 加载更多按钮
                 Visibility(
-              visible: (Platform.isWindows ||
-                      Platform.isLinux) &&
+              visible: Platform.isWindows &&
                   pageController.canLoadMore.value &&
                   !pageController.pageLoadding.value &&
                   !pageController.pageEmpty.value,
@@ -81,8 +80,7 @@ class PageListView extends StatelessWidget {
             right: 12,
             child: // 加载更多按钮
                 Visibility(
-              visible: (Platform.isWindows ||
-                      Platform.isLinux) &&
+              visible: Platform.isWindows &&
                   pageController.canLoadMore.value &&
                   !pageController.pageLoadding.value &&
                   !pageController.pageEmpty.value &&

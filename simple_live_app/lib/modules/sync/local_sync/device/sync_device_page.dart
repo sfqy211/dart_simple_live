@@ -77,16 +77,8 @@ class SyncDevicePage extends GetView<SyncDeviceController> {
 
     if (icon == "android") {
       return const Icon(Remix.android_line);
-    } else if (icon == "ios") {
-      return const Icon(Remix.apple_line);
-    } else if (icon == "tv") {
-      return const Icon(Remix.tv_2_line);
     } else if (icon == "windows") {
       return const Icon(Remix.microsoft_fill);
-    } else if (icon == "macos") {
-      return const Icon(Remix.mac_line);
-    } else if (icon == "linux") {
-      return const Icon(Remix.ubuntu_line);
     } else {
       return const Icon(Remix.device_line);
     }

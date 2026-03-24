@@ -273,18 +273,8 @@ class RemoteSyncRoomPage extends GetView<RemoteSyncRoomController> {
   Widget buildIcon(String platform) {
     if (platform == "android") {
       return const Icon(Remix.android_line);
-    } else if (platform == "ios") {
-      return const Icon(Remix.apple_line);
-    } else if (platform == "tv") {
-      return const Icon(Remix.tv_2_line);
     } else if (platform == "windows") {
       return const Icon(Remix.microsoft_fill);
-    } else if (platform == "xbox") {
-      return const Icon(Remix.xbox_line);
-    } else if (platform == "macos") {
-      return const Icon(Remix.mac_line);
-    } else if (platform == "linux") {
-      return const Icon(Remix.ubuntu_line);
     } else {
       return const Icon(Remix.device_line);
     }

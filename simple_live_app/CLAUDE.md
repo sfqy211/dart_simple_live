@@ -21,8 +21,6 @@ flutter pub get
 # Run the app
 flutter run -d windows    # Windows
 flutter run -d android    # Android
-flutter run -d ios        # iOS
-flutter run -d linux      # Linux
 
 # Build releases
 flutter build windows --release
@@ -87,6 +85,7 @@ Hive models in `models/db/` include `FollowUser`, `History`, `FollowUserTag`. Th
 ### Live Room Module
 
 The `live_room` module is the most complex, containing:
+
 - `live_room_controller.dart` - Handles playback, danmaku, subtitle recognition
 - `live_room_page.dart` - Player UI
 - `player/` - Player-related components (ghost window, etc.)

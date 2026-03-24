@@ -132,9 +132,6 @@ class SyncService extends GetxService {
     if (Platform.isAndroid) {
       var info = await deviceInfo.androidInfo;
       name = info.model;
-    } else if (Platform.isLinux) {
-      var info = await deviceInfo.linuxInfo;
-      name = info.name;
     } else if (Platform.isWindows) {
       var info = await deviceInfo.windowsInfo;
       name = info.userName;

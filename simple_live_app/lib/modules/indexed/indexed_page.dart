@@ -125,7 +125,7 @@ class IndexedPage extends GetView<IndexedController> {
 
   @override
   Widget build(BuildContext context) {
-    if (Platform.isWindows || Platform.isLinux) {
+    if (Platform.isWindows) {
       return AppShellFrame(
         child: Row(
           children: [

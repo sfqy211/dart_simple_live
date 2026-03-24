@@ -5,7 +5,7 @@
 ## ✨ 主要特性
 
 - **哔哩哔哩直播**：支持哔哩哔哩 (Bilibili) 直播平台。
-- **跨平台支持**：完美运行于 **Windows**、**Android**，并支持 Linux (实验性)。
+- **跨平台支持**：完美运行于 **Windows**、**Android**。
 - **沉浸式播放体验**：
   - 基于 `media_kit` 的高性能播放器。
   - 支持多清晰度切换、硬件解码。
@@ -87,10 +87,6 @@ simple_live_app/
 │   ├── images/         # 图片资源
 │   ├── lotties/        # Lottie 动画文件
 │   └── logo.*          # 应用 logo 文件
-├── ios/                # iOS 平台相关代码和配置
-│   ├── Flutter/        # Flutter 相关配置
-│   ├── Runner/         # iOS 应用代码
-│   └── Runner.xcodeproj/ # Xcode 项目文件
 ├── lib/                # Dart 源代码
 │   ├── app/            # 应用核心配置和工具
 │   │   ├── controller/ # 应用控制器

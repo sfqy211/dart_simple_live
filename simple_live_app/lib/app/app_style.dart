@@ -402,7 +402,7 @@ class AppStyle {
       MediaQuery.of(Get.context!).padding.bottom;
 
   static bool isDesktopPlatform() =>
-      Platform.isWindows || Platform.isLinux;
+      Platform.isWindows;
 
   static bool isDesktopLayout(BuildContext context) =>
       isDesktopPlatform() && MediaQuery.of(context).size.width >= 960;

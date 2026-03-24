@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:remixicon/remixicon.dart';
@@ -193,13 +191,12 @@ class OtherSettingsPage extends GetView<OtherSettingsController> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (!Platform.isLinux)
-                            IconButton(
-                              onPressed: () {
-                                controller.shareLogFile(item);
-                              },
-                              icon: const Icon(Icons.share),
-                            ),
+                          IconButton(
+                            onPressed: () {
+                              controller.shareLogFile(item);
+                            },
+                            icon: const Icon(Icons.share),
+                          ),
                           IconButton(
                             onPressed: () {
                               controller.saveLogFile(item);

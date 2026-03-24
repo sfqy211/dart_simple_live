@@ -26,7 +26,6 @@ models/
 
 # Flutter/Dart/Pub related
 **/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -46,7 +45,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-/ios/Podfile.lock
 pubspec.lock
 
 .fvm/

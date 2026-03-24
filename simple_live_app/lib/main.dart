@@ -150,7 +150,7 @@ final _windowCloseListener = _WindowCloseListener();
 bool _windowsTrayListenerAttached = false;
 
 Future initWindow() async {
-  if (!(Platform.isWindows || Platform.isLinux)) {
+  if (!Platform.isWindows) {
     return;
   }
   WindowOptions windowOptions = const WindowOptions(
