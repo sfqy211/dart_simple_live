@@ -4,65 +4,10 @@ import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/modules/home/home_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_view.dart';
 import 'package:simple_live_app/routes/route_path.dart';
+import 'package:simple_live_app/widgets/desktop_page_header.dart';
 
 class HomePage extends GetView<HomeController> {
   const HomePage({Key? key}) : super(key: key);
-
-  Widget _buildDesktopHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    final borderColor =
-        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border(
-          bottom: BorderSide(color: borderColor),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "首页推荐",
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.end,
-            children: [
-              OutlinedButton.icon(
-                onPressed: controller.refreshOrScrollTop,
-                icon: const Icon(Icons.refresh),
-                label: const Text("刷新"),
-              ),
-              OutlinedButton.icon(
-                onPressed: controller.toSearch,
-                icon: const Icon(Icons.search),
-                label: const Text("搜索"),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => Get.toNamed(RoutePath.kAppstyleSetting),
-                icon: const Icon(Icons.tune),
-                label: const Text("外观"),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +17,26 @@ class HomePage extends GetView<HomeController> {
         backgroundColor: Colors.transparent,
         body: Column(
           children: [
-            _buildDesktopHeader(context),
+            DesktopPageHeader(
+              title: "首页推荐",
+              actions: [
+                DesktopPageHeaderButton(
+                  onTap: controller.refreshOrScrollTop,
+                  icon: Icons.refresh,
+                  label: "刷新",
+                ),
+                DesktopPageHeaderButton(
+                  onTap: controller.toSearch,
+                  icon: Icons.search,
+                  label: "搜索",
+                ),
+                DesktopPageHeaderButton(
+                  onTap: () => Get.toNamed(RoutePath.kAppstyleSetting),
+                  icon: Icons.tune,
+                  label: "外观",
+                ),
+              ],
+            ),
             Expanded(
               child: HomeListView(controller.site.id),
             ),

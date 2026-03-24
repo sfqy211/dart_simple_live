@@ -60,8 +60,7 @@ Widget buildFullControls(
               () => Visibility(
                 visible:
                     AppSettingsController.instance.playershowSuperChat.value &&
-                        ((!Platform.isAndroid && !Platform.isIOS) ||
-                            controller.fullScreenState.value),
+                        controller.fullScreenState.value,
                 child: Positioned(
                   left: 24,
                   bottom: 24,
@@ -305,7 +304,7 @@ Widget buildFullControls(
                       ),
                       const Expanded(child: Center()),
                       Visibility(
-                        visible: !Platform.isAndroid && !Platform.isIOS,
+                        visible: true,
                         child: IconButton(
                           key: volumeButtonkey,
                           onPressed: () {
@@ -456,8 +455,7 @@ Widget buildControls(
               () => Visibility(
                 visible:
                     AppSettingsController.instance.playershowSuperChat.value &&
-                        ((!Platform.isAndroid && !Platform.isIOS) ||
-                            controller.fullScreenState.value),
+                        controller.fullScreenState.value,
                 child: Positioned(
                   left: 24,
                   bottom: 24,
@@ -572,7 +570,7 @@ Widget buildControls(
                       ),
                       const Expanded(child: Center()),
                       Visibility(
-                        visible: !Platform.isAndroid && !Platform.isIOS,
+                        visible: true,
                         child: IconButton(
                           key: volumeButtonkey,
                           onPressed: () {
@@ -616,7 +614,7 @@ Widget buildControls(
                         ),
                       ),
                       Visibility(
-                        visible: !Platform.isAndroid && !Platform.isIOS,
+                        visible: true,
                         child: IconButton(
                           onPressed: () {
                             controller.enterSmallWindow();
@@ -902,7 +900,7 @@ void showFollowUser(LiveRoomController controller) {
               },
             ),
           ),
-          if (Platform.isLinux || Platform.isWindows || Platform.isMacOS)
+          if (Platform.isLinux || Platform.isWindows)
             Positioned(
               right: 12,
               bottom: 12,

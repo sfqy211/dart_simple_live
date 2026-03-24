@@ -45,7 +45,7 @@ class LocalSyncPage extends GetView<LocalSyncController> {
                       contentPadding: AppStyle.edgeInsetsH12,
                       border: const OutlineInputBorder(),
                       suffixIcon: Visibility(
-                        visible: Platform.isAndroid || Platform.isIOS,
+                        visible: Platform.isAndroid,
                         child: TextButton.icon(
                           onPressed: controller.toScanQr,
                           icon: const Icon(Remix.qr_scan_line),

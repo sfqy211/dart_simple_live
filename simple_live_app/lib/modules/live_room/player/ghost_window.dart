@@ -67,27 +67,25 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   }
 
   Future<void> initWindow() async {
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      const windowOptions = WindowOptions(
-        minimumSize: Size(200, 150),
-        maximumSize: Size(1200, 900),
-        size: Size(400, 300),
-        center: true,
-        title: "Simple Live - 弹幕浮窗",
-        backgroundColor: Colors.transparent,
-        skipTaskbar: true,
-      );
-      await WindowManagerPlus.current.waitUntilReadyToShow(windowOptions,
-          () async {
-        await WindowManagerPlus.current.show();
-        await WindowManagerPlus.current.focus();
-        await WindowManagerPlus.current.setAlwaysOnTop(true);
-        await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.hidden);
-        await WindowManagerPlus.current.setBackgroundColor(Colors.transparent);
-        await WindowManagerPlus.current.setOpacity(_opacity);
-        await WindowManagerPlus.current.setPreventClose(true);
-      });
-    }
+    const windowOptions = WindowOptions(
+      minimumSize: Size(200, 150),
+      maximumSize: Size(1200, 900),
+      size: Size(400, 300),
+      center: true,
+      title: "Simple Live - 弹幕浮窗",
+      backgroundColor: Colors.transparent,
+      skipTaskbar: true,
+    );
+    await WindowManagerPlus.current.waitUntilReadyToShow(windowOptions,
+        () async {
+      await WindowManagerPlus.current.show();
+      await WindowManagerPlus.current.focus();
+      await WindowManagerPlus.current.setAlwaysOnTop(true);
+      await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.hidden);
+      await WindowManagerPlus.current.setBackgroundColor(Colors.transparent);
+      await WindowManagerPlus.current.setOpacity(_opacity);
+      await WindowManagerPlus.current.setPreventClose(true);
+    });
   }
 
   @override
@@ -104,9 +102,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           if (value is num) {
             setState(() {
               _opacity = value.toDouble();
-              if (!(Platform.isAndroid || Platform.isIOS)) {
-                WindowManagerPlus.current.setOpacity(_opacity);
-              }
+              WindowManagerPlus.current.setOpacity(_opacity);
             });
           }
         }
@@ -369,9 +365,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     setState(() {
       _opacity = value;
     });
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      WindowManagerPlus.current.setOpacity(_opacity);
-    }
+    WindowManagerPlus.current.setOpacity(_opacity);
     _sendGhostSettings({'opacity': value});
   }
 

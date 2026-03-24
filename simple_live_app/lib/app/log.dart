@@ -144,12 +144,8 @@ class LogFileWriter {
         "App Version: ${Utils.packageInfo.version}+${Utils.packageInfo.buildNumber}");
     if (Platform.isAndroid) {
       write((await deviceInfo.androidInfo).data.toString());
-    } else if (Platform.isIOS) {
-      write((await deviceInfo.iosInfo).data.toString());
     } else if (Platform.isLinux) {
       write((await deviceInfo.linuxInfo).data.toString());
-    } else if (Platform.isMacOS) {
-      write((await deviceInfo.macOsInfo).data.toString());
     } else if (Platform.isWindows) {
       write((await deviceInfo.windowsInfo).data.toString());
     }

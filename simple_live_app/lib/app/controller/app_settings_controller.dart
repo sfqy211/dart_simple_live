@@ -192,11 +192,7 @@ class AppSettingsController extends GetxController {
               ? "pulse"
               : Platform.isWindows
                   ? "wasapi"
-                  : Platform.isIOS
-                      ? "audiounit"
-                      : Platform.isMacOS
-                          ? "coreaudio"
-                          : "sdl",
+                  : "sdl",
     );
 
     videoHardwareDecoder.value = LocalStorageService.instance.getValue(

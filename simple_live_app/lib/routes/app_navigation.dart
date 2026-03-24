@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -57,11 +55,7 @@ class AppNavigator {
 
   /// 跳转至哔哩哔哩登录
   static Future toBiliBiliLogin() async {
-    if (Platform.isAndroid || Platform.isIOS) {
-      await Get.toNamed(RoutePath.kBiliBiliWebLogin);
-    } else {
-      await Get.toNamed(RoutePath.kBiliBiliQRLogin);
-    }
+    await Get.toNamed(RoutePath.kBiliBiliQRLogin);
   }
 
   /// 跳转至同步设备

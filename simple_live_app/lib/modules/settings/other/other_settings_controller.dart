@@ -168,7 +168,7 @@ class OtherSettingsController extends BaseController {
       var bytes = Uint8List.fromList(utf8.encode(jsonEncode(data)));
 
       // FilePicker 直接写入
-      var inlineSave = Platform.isAndroid || Platform.isIOS || kIsWeb;
+      var inlineSave = Platform.isAndroid || kIsWeb;
 
       var path = await FilePicker.platform.saveFile(
         allowedExtensions: ['json'],

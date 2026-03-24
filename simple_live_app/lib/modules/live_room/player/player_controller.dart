@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:auto_orientation_v2/auto_orientation_v2.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
@@ -391,9 +388,7 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
 
   /// 发送弹幕到幽灵窗口
   void sendDanmakuToGhostWindow(DanmakuContentItem item, {String? userName}) {
-    if (ghostModeState.value &&
-        !(Platform.isAndroid || Platform.isIOS) &&
-        ghostWindowId != null) {
+    if (ghostModeState.value && ghostWindowId != null) {
       try {
         WindowManagerPlus.current.invokeMethodToWindow(
           ghostWindowId!,
@@ -413,9 +408,7 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
   }
 
   void sendGhostConfig() {
-    if (ghostModeState.value &&
-        !(Platform.isAndroid || Platform.isIOS) &&
-        ghostWindowId != null) {
+    if (ghostModeState.value && ghostWindowId != null) {
       try {
         WindowManagerPlus.current.invokeMethodToWindow(
           ghostWindowId!,
@@ -443,8 +436,6 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
   }
 }
 mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
-  final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-
   final pip = Floating();
   StreamSubscription<PiPStatus>? _pipSubscription;
 
@@ -452,10 +443,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   /// 初始化一些系统状态
   void initSystem() async {
-    if (Platform.isAndroid || Platform.isIOS) {
-      VolumeController.instance.showSystemUI = false;
-    }
-
     // 屏幕常亮
     //WakelockPlus.enable();
 
@@ -478,14 +465,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     );
 
     await setPortraitOrientation();
-    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
-      // 亮度重置,桌面平台可能会报错,暂时不处理桌面平台的亮度
-      try {
-        await ScreenBrightness.instance.resetApplicationScreenBrightness();
-      } catch (e) {
-        Log.logPrint(e);
-      }
-    }
 
     await WakelockPlus.disable();
   }
@@ -493,28 +472,13 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 进入全屏
   void enterFullScreen() async {
     fullScreenState.value = true;
-    if (Platform.isAndroid || Platform.isIOS) {
-      //全屏
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-      if (!isVertical.value) {
-        //横屏
-        await setLandscapeOrientation();
-      }
-    } else {
-      await WindowManagerPlus.current.setFullScreen(true);
-    }
+    await WindowManagerPlus.current.setFullScreen(true);
     //danmakuController?.clear();
   }
 
   /// 退出全屏
   void exitFull() async {
-    if (Platform.isAndroid || Platform.isIOS) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
-          overlays: SystemUiOverlay.values);
-      await setPortraitOrientation();
-    } else {
-      await WindowManagerPlus.current.setFullScreen(false);
-    }
+    await WindowManagerPlus.current.setFullScreen(false);
     fullScreenState.value = false;
 
     //danmakuController?.clear();
@@ -525,137 +489,128 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   ///小窗模式()
   void enterSmallWindow() async {
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      fullScreenState.value = true;
-      smallWindowState.value = true;
+    fullScreenState.value = true;
+    smallWindowState.value = true;
 
-      // 读取窗口大小
-      _lastWindowSize = await WindowManagerPlus.current.getSize();
-      _lastWindowPosition = await WindowManagerPlus.current.getPosition();
+    // 读取窗口大小
+    _lastWindowSize = await WindowManagerPlus.current.getSize();
+    _lastWindowPosition = await WindowManagerPlus.current.getPosition();
 
-      await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.hidden);
-      // 获取视频窗口大小
-      var width = player.state.width ?? 16;
-      var height = player.state.height ?? 9;
+    await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.hidden);
+    // 获取视频窗口大小
+    var width = player.state.width ?? 16;
+    var height = player.state.height ?? 9;
 
-      // 横屏还是竖屏
-      if (height > width) {
-        var aspectRatio = width / height;
-        await WindowManagerPlus.current.setSize(Size(400, 400 / aspectRatio));
-      } else {
-        var aspectRatio = height / width;
-        await WindowManagerPlus.current.setSize(Size(280 / aspectRatio, 280));
-      }
-
-      await WindowManagerPlus.current.setAlwaysOnTop(true);
+    // 横屏还是竖屏
+    if (height > width) {
+      var aspectRatio = width / height;
+      await WindowManagerPlus.current.setSize(Size(400, 400 / aspectRatio));
+    } else {
+      var aspectRatio = height / width;
+      await WindowManagerPlus.current.setSize(Size(280 / aspectRatio, 280));
     }
+
+    await WindowManagerPlus.current.setAlwaysOnTop(true);
   }
 
   ///退出小窗模式()
   void exitSmallWindow() async {
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      fullScreenState.value = false;
-      smallWindowState.value = false;
-      await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.normal);
-      await WindowManagerPlus.current.setSize(_lastWindowSize!);
-      await WindowManagerPlus.current.setPosition(_lastWindowPosition!);
-      await WindowManagerPlus.current.setAlwaysOnTop(false);
-      //windowManager.setAlignment(Alignment.center);
-    }
+    fullScreenState.value = false;
+    smallWindowState.value = false;
+    await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.normal);
+    await WindowManagerPlus.current.setSize(_lastWindowSize!);
+    await WindowManagerPlus.current.setPosition(_lastWindowPosition!);
+    await WindowManagerPlus.current.setAlwaysOnTop(false);
+    //windowManager.setAlignment(Alignment.center);
   }
 
-  /// 进入透明“幽灵”模式
+  /// 进入透明”幽灵”模式
   void enterGhostMode() async {
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      if (_ghostModeTransitioning) {
-        return;
+    if (_ghostModeTransitioning) {
+      return;
+    }
+    _ghostModeTransitioning = true;
+    try {
+      if (ghostWindowController != null && ghostWindowId != null) {
+        Log.d('复用幽灵窗口: $ghostWindowController');
+      } else {
+        Log.d('开始创建幽灵窗口');
+        ghostWindowController = await WindowManagerPlus.createWindow();
+        ghostWindowId = ghostWindowController?.id;
+        Log.d('幽灵窗口创建成功: $ghostWindowController');
       }
-      _ghostModeTransitioning = true;
-      try {
-        if (ghostWindowController != null && ghostWindowId != null) {
-          Log.d('复用幽灵窗口: $ghostWindowController');
-        } else {
-          Log.d('开始创建幽灵窗口');
-          ghostWindowController = await WindowManagerPlus.createWindow();
-          ghostWindowId = ghostWindowController?.id;
-          Log.d('幽灵窗口创建成功: $ghostWindowController');
-        }
 
-        // 设置窗口属性
-        await ghostWindowController
-            ?.setBounds(const Offset(0, 0) & const Size(400, 300));
-        await ghostWindowController?.center();
-        await ghostWindowController?.show();
-        await ghostWindowController?.setIgnoreMouseEvents(false);
-        await ghostWindowController?.setAlwaysOnTop(true);
-        await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
-        await ghostWindowController?.setBackgroundColor(Colors.transparent);
-        await ghostWindowController?.setOpacity(ghostModeOpacity.value);
-        _mainWindowOpacityBeforeGhost ??=
-            await WindowManagerPlus.current.getOpacity();
-        _mainWindowSkipTaskbarBeforeGhost ??=
-            await WindowManagerPlus.current.isSkipTaskbar();
-        _mainWindowAlwaysOnTopBeforeGhost ??=
-            await WindowManagerPlus.current.isAlwaysOnTop();
-        Log.logPrint(
-          '进入透明模式 main opacity=$_mainWindowOpacityBeforeGhost skipTaskbar=$_mainWindowSkipTaskbarBeforeGhost alwaysOnTop=$_mainWindowAlwaysOnTopBeforeGhost',
-        );
-        await WindowManagerPlus.current
-            .setIgnoreMouseEvents(true, forward: true);
-        await WindowManagerPlus.current.setSkipTaskbar(true);
-        await WindowManagerPlus.current.setOpacity(0);
-        Log.logPrint('进入透明模式 main hidden');
+      // 设置窗口属性
+      await ghostWindowController
+          ?.setBounds(const Offset(0, 0) & const Size(400, 300));
+      await ghostWindowController?.center();
+      await ghostWindowController?.show();
+      await ghostWindowController?.setIgnoreMouseEvents(false);
+      await ghostWindowController?.setAlwaysOnTop(true);
+      await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
+      await ghostWindowController?.setBackgroundColor(Colors.transparent);
+      await ghostWindowController?.setOpacity(ghostModeOpacity.value);
+      _mainWindowOpacityBeforeGhost ??=
+          await WindowManagerPlus.current.getOpacity();
+      _mainWindowSkipTaskbarBeforeGhost ??=
+          await WindowManagerPlus.current.isSkipTaskbar();
+      _mainWindowAlwaysOnTopBeforeGhost ??=
+          await WindowManagerPlus.current.isAlwaysOnTop();
+      Log.logPrint(
+        '进入透明模式 main opacity=$_mainWindowOpacityBeforeGhost skipTaskbar=$_mainWindowSkipTaskbarBeforeGhost alwaysOnTop=$_mainWindowAlwaysOnTopBeforeGhost',
+      );
+      await WindowManagerPlus.current.setIgnoreMouseEvents(true, forward: true);
+      await WindowManagerPlus.current.setSkipTaskbar(true);
+      await WindowManagerPlus.current.setOpacity(0);
+      Log.logPrint('进入透明模式 main hidden');
 
-        ghostModeState.value = true;
-        sendGhostConfig();
-        Log.d('幽灵窗口显示成功');
-      } catch (e, stackTrace) {
-        Log.e('创建幽灵窗口失败: $e', stackTrace);
-        SmartDialog.showToast('创建透明模式窗口失败: $e');
-      } finally {
-        _ghostModeTransitioning = false;
-      }
+      ghostModeState.value = true;
+      sendGhostConfig();
+      Log.d('幽灵窗口显示成功');
+    } catch (e, stackTrace) {
+      Log.e('创建幽灵窗口失败: $e', stackTrace);
+      SmartDialog.showToast('创建透明模式窗口失败: $e');
+    } finally {
+      _ghostModeTransitioning = false;
     }
   }
 
-  /// 退出透明“幽灵”模式
+  /// 退出透明”幽灵”模式
   void exitGhostMode() async {
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      if (_ghostModeTransitioning) {
+    if (_ghostModeTransitioning) {
+      return;
+    }
+    _ghostModeTransitioning = true;
+    final controller = ghostWindowController;
+    Log.logPrint(
+      '退出透明模式 start ghostId=$ghostWindowId controller=$controller',
+    );
+    ghostModeState.value = false;
+    try {
+      if (controller == null) {
+        await _restoreMainWindowAfterGhost();
+        Log.logPrint('退出透明模式 幽灵窗口为空，已恢复主窗口');
         return;
       }
-      _ghostModeTransitioning = true;
-      final controller = ghostWindowController;
-      Log.logPrint(
-        '退出透明模式 start ghostId=$ghostWindowId controller=$controller',
-      );
-      ghostModeState.value = false;
-      try {
-        if (controller == null) {
-          await _restoreMainWindowAfterGhost();
-          Log.logPrint('退出透明模式 幽灵窗口为空，已恢复主窗口');
-          return;
-        }
-        await _restoreMainWindowAfterGhost();
-        await controller?.setAlwaysOnTop(false);
-        await controller?.setIgnoreMouseEvents(true, forward: true);
-        await controller?.setOpacity(0.0);
-        await controller?.hide();
-        Log.logPrint('退出透明模式 隐藏幽灵窗口 ok');
-      } catch (e) {
-        Log.logPrint('关闭幽灵窗口失败: $e');
-      } finally {
-        _ghostModeTransitioning = false;
-      }
-      _mainWindowOpacityBeforeGhost = null;
-      _mainWindowSkipTaskbarBeforeGhost = null;
-      _mainWindowAlwaysOnTopBeforeGhost = null;
-      Log.logPrint('退出透明模式 end');
+      await _restoreMainWindowAfterGhost();
+      await controller?.setAlwaysOnTop(false);
+      await controller?.setIgnoreMouseEvents(true, forward: true);
+      await controller?.setOpacity(0.0);
+      await controller?.hide();
+      Log.logPrint('退出透明模式 隐藏幽灵窗口 ok');
+    } catch (e) {
+      Log.logPrint('关闭幽灵窗口失败: $e');
+    } finally {
+      _ghostModeTransitioning = false;
     }
+    _mainWindowOpacityBeforeGhost = null;
+    _mainWindowSkipTaskbarBeforeGhost = null;
+    _mainWindowAlwaysOnTopBeforeGhost = null;
+    Log.logPrint('退出透明模式 end');
   }
 
   Future<void> allowMainWindowInteractionForGhost() async {
-    if (!ghostModeState.value || Platform.isAndroid || Platform.isIOS) {
+    if (!ghostModeState.value) {
       return;
     }
     await _restoreMainWindowAfterGhost();
@@ -672,7 +627,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   }
 
   Future<void> restoreGhostInteractionAfterMainWindow() async {
-    if (!ghostModeState.value || Platform.isAndroid || Platform.isIOS) {
+    if (!ghostModeState.value) {
       return;
     }
     try {
@@ -711,9 +666,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 调整透明模式透明度
   void setGhostModeOpacity(double opacity) {
     ghostModeOpacity.value = opacity;
-    if (ghostModeState.value &&
-        !(Platform.isAndroid || Platform.isIOS) &&
-        ghostWindowId != null) {
+    if (ghostModeState.value && ghostWindowId != null) {
       try {
         WindowManagerPlus.current.invokeMethodToWindow(
           ghostWindowId!,
@@ -736,9 +689,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   void setGhostModeLocked(bool locked) {
     ghostModeLocked.value = locked;
-    if (ghostModeState.value &&
-        !(Platform.isAndroid || Platform.isIOS) &&
-        ghostWindowId != null) {
+    if (ghostModeState.value && ghostWindowId != null) {
       try {
         WindowManagerPlus.current.invokeMethodToWindow(
           ghostWindowId!,
@@ -755,47 +706,20 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   /// 设置横屏
   Future setLandscapeOrientation() async {
-    if (await beforeIOS16()) {
-      AutoOrientation.landscapeAutoMode();
-    } else {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-    }
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
   }
 
   /// 设置竖屏
   Future setPortraitOrientation() async {
-    if (await beforeIOS16()) {
-      AutoOrientation.portraitAutoMode();
-    } else {
-      await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    }
-  }
-
-  /// 是否是IOS16以下
-  Future<bool> beforeIOS16() async {
-    if (Platform.isIOS) {
-      var info = await deviceInfo.iosInfo;
-      var version = info.systemVersion;
-      var versionInt = int.tryParse(version.split('.').first) ?? 0;
-      return versionInt < 16;
-    } else {
-      return false;
-    }
+    await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
   }
 
   Future saveScreenshot() async {
     try {
       SmartDialog.showLoading(msg: "正在保存截图");
-      //检查相册权限,仅iOS需要
-      var permission = await Utils.checkPhotoPermission();
-      if (!permission) {
-        SmartDialog.showToast("没有相册权限");
-        SmartDialog.dismiss(status: SmartStatus.loading);
-        return;
-      }
 
       var imageData = await player.screenshot();
       if (imageData == null) {
@@ -804,27 +728,20 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
         return;
       }
 
-      if (Platform.isIOS || Platform.isAndroid) {
-        await ImageGallerySaverPlus.saveImage(
-          imageData,
-        );
-        SmartDialog.showToast("已保存截图至相册");
-      } else {
-        //选择保存文件夹
-        var path = await FilePicker.platform.saveFile(
-          allowedExtensions: ["jpg"],
-          type: FileType.image,
-          fileName: "${DateTime.now().millisecondsSinceEpoch}.jpg",
-        );
-        if (path == null) {
-          SmartDialog.showToast("取消保存");
-          SmartDialog.dismiss(status: SmartStatus.loading);
-          return;
-        }
-        var file = File(path);
-        await file.writeAsBytes(imageData);
-        SmartDialog.showToast("已保存截图至${file.path}");
+      //选择保存文件夹
+      var path = await FilePicker.platform.saveFile(
+        allowedExtensions: ["jpg"],
+        type: FileType.image,
+        fileName: "${DateTime.now().millisecondsSinceEpoch}.jpg",
+      );
+      if (path == null) {
+        SmartDialog.showToast("取消保存");
+        SmartDialog.dismiss(status: SmartStatus.loading);
+        return;
       }
+      var file = File(path);
+      await file.writeAsBytes(imageData);
+      SmartDialog.showToast("已保存截图至${file.path}");
     } catch (e) {
       Log.logPrint(e);
       SmartDialog.showToast("截图失败");
@@ -927,8 +844,8 @@ mixin PlayerGestureControlMixin
 
   bool verticalDragging = false;
   bool leftVerticalDrag = false;
-  var _currentVolume = 0.0;
-  var _currentBrightness = 1.0;
+  final double _currentVolume = 0.0;
+  final double _currentBrightness = 1.0;
   var verStartPosition = 0.0;
 
   DelayedThrottle? throttle;
@@ -951,15 +868,6 @@ mixin PlayerGestureControlMixin
     throttle = DelayedThrottle(200);
 
     verticalDragging = true;
-    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
-      showGestureTip.value = true;
-    }
-    if (Platform.isAndroid || Platform.isIOS) {
-      _currentVolume = await VolumeController.instance.getVolume();
-    }
-    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
-      _currentBrightness = await ScreenBrightness.instance.application;
-    }
   }
 
   /// 竖向手势更新
@@ -968,9 +876,6 @@ mixin PlayerGestureControlMixin
       return;
     }
     if (verticalDragging == false) return;
-    if (!Platform.isAndroid && !Platform.isIOS) {
-      return;
-    }
     //String text = "";
     //double value = 0.0;
 

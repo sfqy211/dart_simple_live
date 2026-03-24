@@ -1302,9 +1302,7 @@ class LiveRoomController extends PlayerController
     loadData();
 
     scrollController.addListener(scrollListener);
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      WindowManagerPlus.current.addListener(this);
-    }
+    WindowManagerPlus.current.addListener(this);
     _subtitleWorkers.add(
       ever(AppSettingsController.instance.subtitleEnable, (value) {
         subtitleEnabled.value = value;
@@ -1610,10 +1608,7 @@ class LiveRoomController extends PlayerController
   }
 
   void _sendGhostSubtitle(String text, bool partial) {
-    if (!ghostModeState.value ||
-        Platform.isAndroid ||
-        Platform.isIOS ||
-        ghostWindowId == null) {
+    if (!ghostModeState.value || ghostWindowId == null) {
       return;
     }
     try {
@@ -2346,7 +2341,7 @@ class LiveRoomController extends PlayerController
                 },
               ),
             ),
-            if (Platform.isLinux || Platform.isWindows || Platform.isMacOS)
+            if (Platform.isLinux || Platform.isWindows)
               Positioned(
                 right: 12,
                 bottom: 12,
@@ -2537,9 +2532,7 @@ ${errorStackTrace?.toString()}''');
     scrollController.removeListener(scrollListener);
     scrollController.dispose();
     chatInputController.dispose();
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      WindowManagerPlus.current.removeListener(this);
-    }
+    WindowManagerPlus.current.removeListener(this);
     autoExitTimer?.cancel();
     _subtitleClearTimer?.cancel();
     for (final worker in _subtitleWorkers) {

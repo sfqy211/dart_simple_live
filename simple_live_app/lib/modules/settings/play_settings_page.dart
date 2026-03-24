@@ -137,7 +137,7 @@ class PlaySettingsPage extends GetView<AppSettingsController> {
                 AppStyle.divider,
                 Obx(
                   () => Visibility(
-                    visible: !Platform.isAndroid && !Platform.isIOS,
+                    visible: !Platform.isAndroid,
                     child: SettingsSwitch(
                       title: "Windows 托盘集成",
                       subtitle: "点击关闭按钮最小化到托盘",
@@ -151,7 +151,7 @@ class PlaySettingsPage extends GetView<AppSettingsController> {
                 AppStyle.divider,
                 Obx(
                   () => Visibility(
-                    visible: !Platform.isAndroid && !Platform.isIOS,
+                    visible: !Platform.isAndroid,
                     child: SettingsSwitch(
                       title: "透明模式",
                       subtitle: "边工作边看弹幕",

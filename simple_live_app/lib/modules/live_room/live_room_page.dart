@@ -1469,9 +1469,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         ),
       ),
       padding: AppStyle.edgeInsetsA8.copyWith(
-        bottom: Platform.isAndroid || Platform.isIOS
-            ? AppStyle.bottomBarHeight + 8
-            : 8,
+        bottom: 8,
       ),
       child: Row(
         children: [
@@ -1741,7 +1739,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               AppStyle.divider,
               Obx(
                 () => Visibility(
-                  visible: !Platform.isAndroid && !Platform.isIOS,
+                  visible: true,
                   child: Column(
                     children: [
                       ListTile(
@@ -1810,7 +1808,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               },
             ),
           ),
-          if (Platform.isLinux || Platform.isWindows || Platform.isMacOS)
+          if (Platform.isLinux || Platform.isWindows)
             Positioned(
               right: 12,
               bottom: 12,

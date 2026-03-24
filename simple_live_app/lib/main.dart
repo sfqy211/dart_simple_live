@@ -39,13 +39,13 @@ void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 初始化 window_manager_plus
-  if (!Platform.isAndroid && !Platform.isIOS) {
+  if (!Platform.isAndroid) {
     await WindowManagerPlus.ensureInitialized(
         args.isEmpty ? 0 : int.tryParse(args[0]) ?? 0);
   }
 
   // 检查是否是主窗口（通过参数判断）
-  bool isMainWindow = args.isEmpty || (Platform.isAndroid || Platform.isIOS);
+  bool isMainWindow = args.isEmpty || Platform.isAndroid;
 
   if (isMainWindow) {
     // 主窗口：运行完整应用
@@ -53,7 +53,7 @@ void main(List<String> args) async {
     await initWindow();
     MediaKit.ensureInitialized();
     await Hive.initFlutter(
-      (!Platform.isAndroid && !Platform.isIOS)
+      !Platform.isAndroid
           ? (await getApplicationSupportDirectory()).path
           : null,
     );
@@ -79,7 +79,7 @@ void main(List<String> args) async {
 
 /// 将Hive数据迁移到Application Support
 Future migrateData() async {
-  if (Platform.isAndroid || Platform.isIOS) {
+  if (Platform.isAndroid) {
     return;
   }
   var hiveFileList = [
@@ -150,7 +150,7 @@ final _windowCloseListener = _WindowCloseListener();
 bool _windowsTrayListenerAttached = false;
 
 Future initWindow() async {
-  if (!(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+  if (!(Platform.isWindows || Platform.isLinux)) {
     return;
   }
   WindowOptions windowOptions = const WindowOptions(
@@ -317,7 +317,7 @@ class MyApp extends StatelessWidget {
                         (FourthButtonTapGestureRecognizer instance) {
                           instance.onTapDown = (TapDownDetails details) async {
                             //如果处于全屏状态，退出全屏
-                            if (!Platform.isAndroid && !Platform.isIOS) {
+                            if (!Platform.isAndroid) {
                               if (await WindowManagerPlus.current
                                   .isFullScreen()) {
                                 await WindowManagerPlus.current
@@ -337,7 +337,7 @@ class MyApp extends StatelessWidget {
                             event.logicalKey == LogicalKeyboardKey.escape) {
                           // ESC退出全屏
                           // 如果处于全屏状态，退出全屏
-                          if (!Platform.isAndroid && !Platform.isIOS) {
+                          if (!Platform.isAndroid) {
                             if (await WindowManagerPlus.current
                                 .isFullScreen()) {
                               await WindowManagerPlus.current
@@ -379,7 +379,7 @@ class MyApp extends StatelessWidget {
 
         child = smartDialogBuilder(context, child);
 
-        if (!Platform.isAndroid && !Platform.isIOS) {
+        if (!Platform.isAndroid) {
           return ExcludeSemantics(child: child);
         }
         return child;

@@ -8,6 +8,7 @@ import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/services/signalr_service.dart';
+import 'package:simple_live_app/widgets/desktop_page_header.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class MinePage extends StatelessWidget {
@@ -40,62 +41,6 @@ class MinePage extends StatelessWidget {
     await signalRService.connect();
     final room = await signalRService.createRoom();
     Log.logPrint(room);
-  }
-
-  Widget _buildBadge(BuildContext context, String text) {
-    final theme = Theme.of(context);
-    final borderColor =
-        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
-
-    return Container(
-      height: 30,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDesktopHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    final borderColor =
-        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
-
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border(
-          bottom: BorderSide(color: borderColor),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              "我的",
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          _buildBadge(
-            context,
-            Get.isDarkMode ? "深色主题" : "浅色主题",
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSectionHeader(
@@ -377,7 +322,15 @@ class MinePage extends StatelessWidget {
               ),
         body: Column(
           children: [
-            if (isDesktop) _buildDesktopHeader(context),
+            if (isDesktop)
+              DesktopPageHeader(
+                title: "我的",
+                actions: [
+                  DesktopPageHeaderBadge(
+                    text: Get.isDarkMode ? "深色主题" : "浅色主题",
+                  ),
+                ],
+              ),
             Expanded(
               child: _buildBody(context),
             ),

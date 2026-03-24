@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/constant.dart';
@@ -75,11 +72,6 @@ class BiliBiliAccountService extends GetxService {
     LocalStorageService.instance
         .setValue(LocalStorageService.kBilibiliCookie, "");
     logined.value = false;
-
-    if (Platform.isAndroid || Platform.isIOS) {
-      CookieManager cookieManager = CookieManager.instance();
-      await cookieManager.deleteAllCookies();
-    }
   }
 
   /// 获取 CSRF Token (bili_jct)

@@ -9,6 +9,7 @@ import 'package:simple_live_app/models/db/follow_user_tag.dart';
 import 'package:simple_live_app/modules/follow_user/follow_user_controller.dart';
 import 'package:simple_live_app/routes/app_navigation.dart';
 import 'package:simple_live_app/services/follow_service.dart';
+import 'package:simple_live_app/widgets/desktop_page_header.dart';
 import 'package:simple_live_app/widgets/filter_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/page_grid_view.dart';
@@ -114,6 +115,29 @@ class FollowUserPage extends GetView<FollowUserController> {
     );
   }
 
+  Widget _buildDesktopRefreshAction() {
+    return Obx(
+      () => FollowService.instance.updating.value
+          ? const DesktopPageHeaderBadge(text: "同步中")
+          : DesktopPageHeaderButton(
+              onTap: controller.refreshData,
+              icon: Icons.refresh,
+              label: "刷新",
+            ),
+    );
+  }
+
+  Widget _buildDesktopMoreAction() {
+    return PopupMenuButton<int>(
+      tooltip: "更多",
+      itemBuilder: (_) => _buildPageActionItems(),
+      onSelected: _handlePageAction,
+      child: const DesktopPageHeaderIconButton(
+        icon: Icons.more_horiz,
+      ),
+    );
+  }
+
   Widget _buildFilterBar(BuildContext context, {required bool desktop}) {
     final theme = Theme.of(context);
     final borderColor =
@@ -146,43 +170,6 @@ class FollowUserPage extends GetView<FollowUserController> {
             }).toList(),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDesktopHeader(BuildContext context) {
-    final theme = Theme.of(context);
-    final borderColor =
-        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
-
-    return Container(
-      height: 60,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border(
-          bottom: BorderSide(color: borderColor),
-        ),
-      ),
-      child: Row(
-        children: [
-          _buildRefreshButton(),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              "关注用户",
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          PopupMenuButton<int>(
-            tooltip: "更多",
-            itemBuilder: (_) => _buildPageActionItems(),
-            onSelected: _handlePageAction,
-            icon: const Icon(Icons.more_horiz),
-          ),
-        ],
       ),
     );
   }
@@ -242,7 +229,14 @@ class FollowUserPage extends GetView<FollowUserController> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (isDesktop) _buildDesktopHeader(context),
+          if (isDesktop)
+            DesktopPageHeader(
+              title: "关注用户",
+              actions: [
+                _buildDesktopRefreshAction(),
+                _buildDesktopMoreAction(),
+              ],
+            ),
           _buildFilterBar(context, desktop: isDesktop),
           Expanded(
             child: _buildFollowList(context, count: count),

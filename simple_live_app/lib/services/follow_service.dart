@@ -7,7 +7,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
@@ -268,12 +267,7 @@ class FollowService extends GetxService {
         return;
       }
 
-      var dir = "";
-      if (Platform.isIOS) {
-        dir = (await getApplicationDocumentsDirectory()).path;
-      } else {
-        dir = await FilePicker.platform.getDirectoryPath() ?? "";
-      }
+      var dir = await FilePicker.platform.getDirectoryPath() ?? "";
 
       if (dir.isEmpty) {
         return;
