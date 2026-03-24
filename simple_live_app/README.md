@@ -25,6 +25,7 @@
 ## 🛠️ 开发与构建
 
 ### 环境要求
+
 - Flutter SDK: `>=3.0.5 <4.0.0`
 - Dart SDK: 配套版本
 
@@ -32,7 +33,7 @@
 
 ```powershell
 # 1. 克隆项目
-git clone https://github.com/your-repo/simple_live_app.git
+git clone https://github.com/sfqy211/simple_live_app.git
 cd simple_live_app
 
 # 2. 安装依赖
@@ -66,6 +67,7 @@ keytool -genkey -v -keystore android/app/upload-keystore.jks -storetype JKS -key
 ```
 
 默认配置参考：
+
 - 密钥库口令：`123456`
 - 别名：`upload`
 - 密码：`123456`

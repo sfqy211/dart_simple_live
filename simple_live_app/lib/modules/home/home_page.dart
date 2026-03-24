@@ -33,15 +33,6 @@ class HomePage extends GetView<HomeController> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  "面向长期观看的桌面直播浏览页，保留内容密度，用线条完成分区。",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppStyle.mutedTextColor(context),
-                  ),
-                ),
               ],
             ),
           ),

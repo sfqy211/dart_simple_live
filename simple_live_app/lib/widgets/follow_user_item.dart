@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:remixicon/remixicon.dart';
-import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/log.dart';
-import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
-import 'dart:ui' as ui;
 
 class FollowUserItem extends StatelessWidget {
   final FollowUser item;
@@ -14,6 +11,7 @@ class FollowUserItem extends StatelessWidget {
   final Function()? onTap;
   final Function()? onLongPress;
   final bool playing;
+
   const FollowUserItem({
     required this.item,
     this.onRemove,
@@ -25,127 +23,169 @@ class FollowUserItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var site = Sites.allSites[item.siteId]!;
-    return ListTile(
-      contentPadding: AppStyle.edgeInsetsL16.copyWith(right: 4),
-      leading: NetImage(
-        item.face,
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-      ),
-      title: Text.rich(
-        TextSpan(
-          text: item.userName,
-          children: [
-            WidgetSpan(
-              alignment: ui.PlaceholderAlignment.middle,
-              child: Obx(
-                () => Offstage(
-                  offstage: item.liveStatus.value == 0,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppStyle.hGap12,
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: item.liveStatus.value == 2
-                              ? Colors.green
-                              : Colors.grey,
-                          borderRadius: AppStyle.radius12,
-                        ),
-                      ),
-                      AppStyle.hGap4,
-                      Text(
-                        getStatus(item.liveStatus.value),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                          color:
-                              item.liveStatus.value == 2 ? null : Colors.grey,
-                        ),
-                      ),
-                    ],
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Obx(() {
+      final liveStatus = item.liveStatus.value;
+      final isLive = liveStatus == 2;
+      final borderColor = playing
+          ? scheme.primary.withAlpha(isDark ? 82 : 58)
+          : theme.dividerColor.withAlpha(isDark ? 120 : 180);
+      final fillColor = playing
+          ? scheme.primary.withAlpha(isDark ? 18 : 10)
+          : theme.cardColor;
+      final statusColor = isLive
+          ? const Color(0xFF4CAF50)
+          : (liveStatus == 0
+              ? scheme.onSurfaceVariant.withAlpha(160)
+              : scheme.onSurfaceVariant);
+
+      return Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+              child: Row(
+                children: [
+                  NetImage(
+                    item.face,
+                    width: 46,
+                    height: 46,
+                    borderRadius: 23,
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.userName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _statusText(liveStatus),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: statusColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          playing
+                              ? "正在观看"
+                              : _metaText(liveStatus, item.liveStartTime),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: playing
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                            fontWeight:
+                                playing ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (playing)
+                    Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: scheme.primary.withAlpha(isDark ? 28 : 16),
+                        border: Border.all(
+                          color: scheme.primary.withAlpha(isDark ? 70 : 50),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.play_arrow,
+                        size: 20,
+                        color: scheme.primary,
+                      ),
+                    )
+                  else if (onRemove != null)
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          onRemove?.call();
+                        },
+                        tooltip: "取消关注",
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Remix.dislike_line,
+                          size: 18,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-      ),
-      subtitle: Wrap(
-        runSpacing: 1.0,
-        children: [
-          Image.asset(
-            site.logo,
-            width: 20,
-          ),
-          AppStyle.hGap4,
-          Text(
-            site.name,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (playing)
-            Padding(
-              padding: AppStyle.edgeInsetsL8,
-              child: Text(
-                "正在观看",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          else if (item.liveStatus.value == 2 && item.liveStartTime != null)
-            Padding(
-              padding: AppStyle.edgeInsetsL8,
-              child: Text(
-                '开播了${formatLiveDuration(item.liveStartTime)}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-        ],
-      ),
-      trailing: playing
-          ? const SizedBox(
-              width: 64,
-              child: Center(
-                child: Icon(
-                  Icons.play_arrow,
-                ),
-              ),
-            )
-          : (onRemove == null
-              ? null
-              : IconButton(
-                  onPressed: () {
-                    onRemove?.call();
-                  },
-                  icon: const Icon(Remix.dislike_line),
-                )),
-      onTap: onTap,
-      onLongPress: onLongPress,
-    );
+      );
+    });
   }
 
-  String getStatus(int status) {
+  String _statusText(int status) {
     if (status == 0) {
       return "读取中";
-    } else if (status == 1) {
-      return "未开播";
-    } else {
-      return "直播中";
     }
+    if (status == 1) {
+      return "未开播";
+    }
+    return "直播中";
+  }
+
+  String _metaText(int status, String? liveStartTime) {
+    if (status == 0) {
+      return "正在同步状态";
+    }
+    if (status == 2 && liveStartTime != null) {
+      return "开播${formatLiveDuration(liveStartTime)}";
+    }
+    return "等待开播";
   }
 
   String formatLiveDuration(String? startTimeStampString) {
@@ -155,23 +195,23 @@ class FollowUserItem extends StatelessWidget {
       return "";
     }
     try {
-      int startTimeStamp = int.parse(startTimeStampString);
-      int currentTimeStamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      int durationInSeconds = currentTimeStamp - startTimeStamp;
+      final startTimeStamp = int.parse(startTimeStampString);
+      final currentTimeStamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final durationInSeconds = currentTimeStamp - startTimeStamp;
 
-      int hours = durationInSeconds ~/ 3600;
-      int minutes = (durationInSeconds % 3600) ~/ 60;
+      final hours = durationInSeconds ~/ 3600;
+      final minutes = (durationInSeconds % 3600) ~/ 60;
 
-      String hourText = hours > 0 ? '$hours小时' : '';
-      String minuteText = minutes > 0 ? '$minutes分钟' : '';
+      final hourText = hours > 0 ? "$hours小时" : "";
+      final minuteText = minutes > 0 ? "$minutes分钟" : "";
 
       if (hours == 0 && minutes == 0) {
         return "不足1分钟";
       }
 
-      return '$hourText$minuteText';
+      return "$hourText$minuteText";
     } catch (e) {
-      Log.logPrint('格式化开播时长出错: $e');
+      Log.logPrint("格式化开播时长出错: $e");
       return "--小时--分钟";
     }
   }

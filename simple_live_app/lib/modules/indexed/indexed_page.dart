@@ -17,107 +17,108 @@ class IndexedPage extends GetView<IndexedController> {
     );
   }
 
-  Widget _buildDesktopRail(BuildContext context) {
+  Widget _buildDesktopNavItem(
+    BuildContext context, {
+    required int index,
+    required bool selected,
+    required bool extended,
+  }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final item = controller.items[index];
+    final fillColor = selected
+        ? scheme.primary.withAlpha(Get.isDarkMode ? 24 : 14)
+        : Colors.transparent;
+    final borderColor = selected
+        ? scheme.primary.withAlpha(Get.isDarkMode ? 72 : 48)
+        : Colors.transparent;
+    final foregroundColor =
+        selected ? scheme.onSurface : scheme.onSurfaceVariant;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => controller.setIndex(index),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          height: 48,
+          padding: EdgeInsets.symmetric(horizontal: extended ? 14 : 0),
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisAlignment:
+                extended ? MainAxisAlignment.start : MainAxisAlignment.center,
+            children: [
+              Icon(
+                item.iconData,
+                size: 20,
+                color: foregroundColor,
+              ),
+              if (extended) ...[
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: foregroundColor,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopRail(BuildContext context) {
+    final theme = Theme.of(context);
     final isExtended = MediaQuery.of(context).size.width >= 1180;
     final borderColor =
         AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return Container(
-      width: isExtended ? 252 : 92,
+      width: isExtended ? 224 : 84,
       decoration: BoxDecoration(
         color: theme.cardColor,
         border: Border(
           right: BorderSide(color: borderColor),
         ),
       ),
-      child: Column(
-        children: [
-          Container(
-            height: 64,
-            padding: EdgeInsets.symmetric(horizontal: isExtended ? 16 : 0),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: borderColor),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: isExtended
-                  ? MainAxisAlignment.start
-                  : MainAxisAlignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.asset(
-                    "assets/logo.png",
-                    width: 26,
-                    height: 26,
-                    fit: BoxFit.cover,
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+        child: Obx(
+          () {
+            final selectedIndex = controller.index.value;
+            final items = controller.items.toList(growable: false);
+            return ListView.separated(
+              padding: EdgeInsets.zero,
+              itemCount: items.length,
+              separatorBuilder: (_, __) => Padding(
+                padding: EdgeInsets.symmetric(horizontal: isExtended ? 6 : 10),
+                child: Divider(
+                  height: 10,
+                  thickness: 1,
+                  color: borderColor.withAlpha(Get.isDarkMode ? 96 : 150),
                 ),
-                if (isExtended) ...[
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      "Simple Live",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.1,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Expanded(
-            child: Obx(
-              () => NavigationRail(
+              ),
+              itemBuilder: (context, index) => _buildDesktopNavItem(
+                context,
+                index: index,
+                selected: selectedIndex == index,
                 extended: isExtended,
-                selectedIndex: controller.index.value,
-                onDestinationSelected: controller.setIndex,
-                useIndicator: true,
-                minWidth: 92,
-                minExtendedWidth: 252,
-                groupAlignment: -1,
-                leading: const SizedBox(height: 8),
-                backgroundColor: Colors.transparent,
-                indicatorShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                destinations: controller.items
-                    .map(
-                      (item) => NavigationRailDestination(
-                        icon: _buildRailIcon(item.iconData),
-                        label: Text(
-                          item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                      ),
-                    )
-                    .toList(),
-                trailing: isExtended
-                    ? Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Desktop",
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      )
-                    : null,
               ),
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
