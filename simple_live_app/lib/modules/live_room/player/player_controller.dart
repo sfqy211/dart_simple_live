@@ -647,6 +647,9 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   /// 切换透明“幽灵”模式
   void toggleGhostMode() {
+    if (!Platform.isWindows) {
+      return;
+    }
     // 只有在黑听模式下才能开启透明模式
     if (!ghostModeState.value && !audioOnlyMode.value) {
       return;

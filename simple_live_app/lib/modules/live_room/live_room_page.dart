@@ -1660,6 +1660,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildSettings() {
+    final canUseGhostMode = Platform.isWindows;
     return ListView(
       padding: AppStyle.edgeInsetsA12,
       children: [
@@ -1697,7 +1698,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   },
                 ),
               ),
-              AppStyle.divider,
+              if (canUseGhostMode) AppStyle.divider,
               Obx(
                 () => SettingsNumber(
                   title: "上下间隔",
@@ -1781,7 +1782,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               AppStyle.divider,
               Obx(
                 () => Visibility(
-                  visible: true,
+                  visible: canUseGhostMode,
                   child: Column(
                     children: [
                       ListTile(
