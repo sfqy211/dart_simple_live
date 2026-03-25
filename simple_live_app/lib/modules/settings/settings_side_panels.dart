@@ -70,16 +70,6 @@ class _AboutPanelView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        const _PanelBlock(
-          title: "产品定位",
-          content: "面向长期看直播的桌面端观看工具，强调克制、稳定，以及长时间使用时的舒适感。",
-        ),
-        const SizedBox(height: 12),
-        const _PanelBlock(
-          title: "当前方向",
-          content: "保留浅色 / 深色两套主题，减少圆角，改为更贴近桌面工具的线性分隔与满铺式布局。",
-        ),
       ],
     );
   }

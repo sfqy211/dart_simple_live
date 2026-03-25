@@ -424,7 +424,6 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
             },
             'panelColor': AppSettingsController.instance.ghostPanelColor.value,
             'volume': AppSettingsController.instance.playerVolume.value,
-            'fontFamily': AppSettingsController.instance.appFontFamily.value,
             'subtitleEnable':
                 AppSettingsController.instance.subtitleEnable.value,
           },

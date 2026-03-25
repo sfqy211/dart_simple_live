@@ -7,9 +7,13 @@ import 'package:get/get.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/log.dart';
-import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/mine/account/account_controller.dart';
 import 'package:simple_live_app/modules/mine/account/account_page.dart';
+import 'package:simple_live_app/modules/mine/history/history_controller.dart';
+import 'package:simple_live_app/modules/mine/history/history_page.dart';
+import 'package:simple_live_app/modules/mine/parse/parse_controller.dart';
+import 'package:simple_live_app/modules/mine/parse/parse_page.dart';
+import 'package:simple_live_app/modules/settings/about_settings_page.dart';
 import 'package:simple_live_app/modules/settings/appstyle_setting_page.dart';
 import 'package:simple_live_app/modules/settings/auto_exit_settings_page.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
@@ -19,34 +23,36 @@ import 'package:simple_live_app/modules/settings/indexed_settings/indexed_settin
 import 'package:simple_live_app/modules/settings/other/other_settings_controller.dart';
 import 'package:simple_live_app/modules/settings/other/other_settings_page.dart';
 import 'package:simple_live_app/modules/settings/play_settings_page.dart';
-import 'package:simple_live_app/modules/settings/settings_side_panels.dart';
 import 'package:simple_live_app/modules/sync/sync_page.dart';
 import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/services/signalr_service.dart';
 import 'package:simple_live_app/widgets/desktop_page_header.dart';
+import 'package:simple_live_app/widgets/desktop_workbench.dart';
 import 'package:simple_live_app/widgets/settings/settings_workspace.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 enum _MineDesktopEntry {
+  history,
   account,
   sync,
+  tools,
+  appearance,
   indexed,
   play,
   danmu,
   follow,
+  autoExit,
   other,
+  about,
 }
 
-enum _MineActionType {
-  workspace,
-  panel,
+enum _MineMobileActionType {
   route,
-  external,
+  page,
   callback,
 }
 
 class MinePage extends StatefulWidget {
-  const MinePage({Key? key}) : super(key: key);
+  const MinePage({super.key});
 
   @override
   State<MinePage> createState() => _MinePageState();
@@ -55,28 +61,6 @@ class MinePage extends StatefulWidget {
 class _MinePageState extends State<MinePage> {
   _MineDesktopEntry _selectedEntry = _MineDesktopEntry.indexed;
 
-  void _showAboutDialog() {
-    Get.dialog(
-      AboutDialog(
-        applicationIcon: Image.asset(
-          'assets/images/logo.png',
-          width: 48,
-          height: 48,
-        ),
-        applicationName: "Simple Live",
-        applicationVersion: "Ver ${Utils.packageInfo.version}",
-        applicationLegalese: "简简单单看直播",
-      ),
-    );
-  }
-
-  Future<void> _openGithub() {
-    return launchUrlString(
-      "https://github.com/xiaoyaocz/dart_simple_live",
-      mode: LaunchMode.externalApplication,
-    );
-  }
-
   Future<void> _runDebugAction() async {
     final signalRService = SignalRService();
     await signalRService.connect();
@@ -84,259 +68,232 @@ class _MinePageState extends State<MinePage> {
     Log.logPrint(room);
   }
 
-  List<_MineActionSection> _desktopSections() {
+  List<DesktopWorkbenchSectionData> _desktopSections() {
     return [
-      const _MineActionSection(
+      DesktopWorkbenchSectionData(
         title: "资料",
-        description: "记录、账号、同步与工具。",
+        description: "记录、账号、同步与工具入口。",
         items: [
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.history,
             icon: Remix.history_line,
             title: "观看记录",
             hint: "最近浏览",
-            type: _MineActionType.route,
-            routeName: RoutePath.kHistory,
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.account,
             icon: Remix.account_circle_line,
             title: "账号管理",
             hint: "登录与权限",
-            type: _MineActionType.workspace,
-            entry: _MineDesktopEntry.account,
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.sync,
             icon: Icons.sync,
             title: "数据同步",
             hint: "设备与配置",
-            type: _MineActionType.workspace,
-            entry: _MineDesktopEntry.sync,
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.tools,
             icon: Remix.link,
             title: "链接解析",
             hint: "通过链接直达",
-            type: _MineActionType.route,
-            routeName: RoutePath.kTools,
           ),
         ],
       ),
-      const _MineActionSection(
+      DesktopWorkbenchSectionData(
         title: "偏好",
-        description: "界面、首页、播放和跟播设置。",
+        description: "界面、首页、播放和关注相关设置。",
         items: [
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.appearance,
             icon: Remix.moon_line,
             title: "外观设置",
-            hint: "侧滑面板",
-            type: _MineActionType.panel,
-            panelAction: showAppstyleSettingsPanel,
+            hint: "浅色 / 深色",
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.indexed,
             icon: Remix.home_2_line,
             title: "主页设置",
-            hint: "工作台",
-            type: _MineActionType.workspace,
-            entry: _MineDesktopEntry.indexed,
+            hint: "导航与排序",
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.play,
             icon: Remix.play_circle_line,
             title: "直播设置",
-            hint: "工作台",
-            type: _MineActionType.workspace,
-            entry: _MineDesktopEntry.play,
+            hint: "播放与浮窗",
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.danmu,
             icon: Remix.text,
             title: "弹幕设置",
-            hint: "工作台",
-            type: _MineActionType.workspace,
-            entry: _MineDesktopEntry.danmu,
+            hint: "显示与屏蔽",
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.follow,
             icon: Remix.heart_line,
             title: "关注设置",
-            hint: "工作台",
-            type: _MineActionType.workspace,
-            entry: _MineDesktopEntry.follow,
+            hint: "刷新与并发",
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.autoExit,
             icon: Remix.timer_2_line,
             title: "定时关闭",
-            hint: "侧滑面板",
-            type: _MineActionType.panel,
-            panelAction: showAutoExitSettingsPanel,
+            hint: "自动退出",
           ),
-          _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.other,
             icon: Remix.apps_line,
             title: "其他设置",
-            hint: "工作台",
-            type: _MineActionType.workspace,
-            entry: _MineDesktopEntry.other,
+            hint: "系统与附加项",
           ),
         ],
       ),
-      _MineActionSection(
+      DesktopWorkbenchSectionData(
         title: "项目",
-        description: "说明、源码与调试入口。",
+        description: "版本信息、说明与调试入口。",
         items: [
-          const _MineActionItem(
+          _desktopItem(
+            entry: _MineDesktopEntry.about,
             icon: Remix.information_line,
             title: "关于",
-            hint: "侧滑面板",
-            type: _MineActionType.panel,
-            panelAction: showAboutPanel,
-          ),
-          const _MineActionItem(
-            icon: Remix.error_warning_line,
-            title: "免责声明",
-            hint: "侧滑面板",
-            type: _MineActionType.panel,
-            panelAction: showStatementPanel,
-          ),
-          _MineActionItem(
-            icon: Remix.github_line,
-            title: "项目主页",
-            hint: "GitHub",
-            type: _MineActionType.external,
-            callback: _openGithub,
+            hint: "说明与项目主页",
           ),
           if (kDebugMode)
-            _MineActionItem(
+            DesktopWorkbenchItemData(
               icon: Remix.bug_line,
               title: "调试",
               hint: "SignalR 检查",
-              type: _MineActionType.callback,
-              callback: _runDebugAction,
+              selected: false,
+              onTap: _runDebugAction,
             ),
         ],
       ),
     ];
   }
 
-  List<_MineActionSection> _mobileSections() {
+  DesktopWorkbenchItemData _desktopItem({
+    required _MineDesktopEntry entry,
+    required IconData icon,
+    required String title,
+    required String hint,
+  }) {
+    return DesktopWorkbenchItemData(
+      icon: icon,
+      title: title,
+      hint: hint,
+      selected: _selectedEntry == entry,
+      onTap: () => _selectDesktopEntry(entry),
+    );
+  }
+
+  List<_MineMobileSection> _mobileSections() {
     return [
-      const _MineActionSection(
+      _MineMobileSection(
         title: "资料",
         description: "记录、账号、同步和工具入口。",
         items: [
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.history_line,
             title: "观看记录",
             hint: "最近浏览",
-            type: _MineActionType.route,
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kHistory,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.account_circle_line,
             title: "账号管理",
             hint: "登录与权限",
-            type: _MineActionType.route,
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsAccount,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Icons.sync,
             title: "数据同步",
             hint: "设备与配置",
-            type: _MineActionType.route,
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSync,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.link,
             title: "链接解析",
             hint: "通过链接直达",
-            type: _MineActionType.route,
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kTools,
           ),
         ],
       ),
-      _MineActionSection(
+      _MineMobileSection(
         title: "偏好",
-        description: "界面、首页、播放和跟播设置。",
+        description: "界面、首页、播放和关注相关设置。",
         items: [
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.moon_line,
             title: "外观设置",
             hint: "浅色 / 深色",
-            type: _MineActionType.route,
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kAppstyleSetting,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.home_2_line,
             title: "主页设置",
-            hint: "导航与首页",
-            type: _MineActionType.route,
+            hint: "导航与排序",
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsIndexed,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.play_circle_line,
             title: "直播设置",
-            hint: "播放与窗口",
-            type: _MineActionType.route,
+            hint: "播放与浮窗",
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsPlay,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.text,
             title: "弹幕设置",
-            hint: "显示与样式",
-            type: _MineActionType.route,
+            hint: "显示与屏蔽",
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsDanmu,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.heart_line,
             title: "关注设置",
-            hint: "关注页行为",
-            type: _MineActionType.route,
+            hint: "刷新与并发",
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsFollow,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.timer_2_line,
             title: "定时关闭",
             hint: "自动退出",
-            type: _MineActionType.route,
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsAutoExit,
           ),
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.apps_line,
             title: "其他设置",
             hint: "系统与附加项",
-            type: _MineActionType.route,
+            type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsOther,
           ),
         ],
       ),
-      _MineActionSection(
+      _MineMobileSection(
         title: "项目",
-        description: "说明、源码与调试入口。",
+        description: "版本信息、说明与调试入口。",
         items: [
-          _MineActionItem(
+          _MineMobileItem(
             icon: Remix.information_line,
             title: "关于",
-            hint: "版本信息",
-            type: _MineActionType.callback,
-            callback: () async => _showAboutDialog(),
-          ),
-          _MineActionItem(
-            icon: Remix.error_warning_line,
-            title: "免责声明",
-            hint: "使用说明",
-            type: _MineActionType.callback,
-            callback: () async {
-              await Utils.showStatement();
-            },
-          ),
-          _MineActionItem(
-            icon: Remix.github_line,
-            title: "项目主页",
-            hint: "GitHub",
-            type: _MineActionType.external,
-            callback: _openGithub,
+            hint: "说明与项目主页",
+            type: _MineMobileActionType.page,
+            pageBuilder: () => const AboutSettingsPage(),
           ),
           if (kDebugMode)
-            _MineActionItem(
+            _MineMobileItem(
               icon: Remix.bug_line,
               title: "调试",
               hint: "SignalR 检查",
-              type: _MineActionType.callback,
+              type: _MineMobileActionType.callback,
               callback: _runDebugAction,
             ),
         ],
@@ -351,6 +308,16 @@ class _MinePageState extends State<MinePage> {
           Get.put(AccountController());
         }
         break;
+      case _MineDesktopEntry.history:
+        if (!Get.isRegistered<HistoryController>()) {
+          Get.put(HistoryController());
+        }
+        break;
+      case _MineDesktopEntry.tools:
+        if (!Get.isRegistered<ParseController>()) {
+          Get.put(ParseController());
+        }
+        break;
       case _MineDesktopEntry.indexed:
         if (!Get.isRegistered<IndexedSettingsController>()) {
           Get.put(IndexedSettingsController());
@@ -362,175 +329,58 @@ class _MinePageState extends State<MinePage> {
         }
         break;
       case _MineDesktopEntry.sync:
+      case _MineDesktopEntry.appearance:
       case _MineDesktopEntry.play:
       case _MineDesktopEntry.danmu:
       case _MineDesktopEntry.follow:
+      case _MineDesktopEntry.autoExit:
+      case _MineDesktopEntry.about:
         break;
     }
   }
 
-  Future<void> _handleDesktopAction(_MineActionItem item) async {
+  void _selectDesktopEntry(_MineDesktopEntry entry) {
+    _ensureEntryBinding(entry);
+    setState(() {
+      _selectedEntry = entry;
+    });
+  }
+
+  Future<void> _handleMobileAction(_MineMobileItem item) async {
     switch (item.type) {
-      case _MineActionType.workspace:
-        if (item.entry == null) return;
-        _ensureEntryBinding(item.entry!);
-        setState(() {
-          _selectedEntry = item.entry!;
-        });
-        break;
-      case _MineActionType.panel:
-        item.panelAction?.call();
-        break;
-      case _MineActionType.route:
+      case _MineMobileActionType.route:
         if (item.routeName != null) {
           await Get.toNamed(item.routeName!);
         }
         break;
-      case _MineActionType.external:
-      case _MineActionType.callback:
-        await item.callback?.call();
-        break;
-    }
-  }
-
-  Future<void> _handleMobileAction(_MineActionItem item) async {
-    switch (item.type) {
-      case _MineActionType.route:
-        if (item.routeName != null) {
-          await Get.toNamed(item.routeName!);
+      case _MineMobileActionType.page:
+        if (item.pageBuilder != null) {
+          await Get.to<dynamic>(item.pageBuilder!);
         }
         break;
-      case _MineActionType.panel:
-        item.panelAction?.call();
-        break;
-      case _MineActionType.external:
-      case _MineActionType.callback:
+      case _MineMobileActionType.callback:
         await item.callback?.call();
         break;
-      case _MineActionType.workspace:
-        break;
     }
-  }
-
-  Widget _buildDesktopSidebar() {
-    final sections = _desktopSections();
-    final borderColor =
-        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
-
-    return Container(
-      width: 312,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border(
-          right: BorderSide(color: borderColor),
-        ),
-      ),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-        children: [
-          for (final section in sections) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
-              child: Text(
-                section.title,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              child: Text(
-                section.description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppStyle.mutedTextColor(context),
-                    ),
-              ),
-            ),
-            ...section.items.map(_buildDesktopSidebarItem),
-            const SizedBox(height: 8),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopSidebarItem(_MineActionItem item) {
-    final selected =
-        item.type == _MineActionType.workspace && item.entry == _selectedEntry;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final fillColor = selected
-        ? scheme.primary.withAlpha(Get.isDarkMode ? 24 : 14)
-        : Colors.transparent;
-    final borderColor = selected
-        ? scheme.primary.withAlpha(Get.isDarkMode ? 72 : 48)
-        : Colors.transparent;
-    final textColor = selected ? scheme.onSurface : theme.colorScheme.onSurface;
-    final hintColor =
-        selected ? scheme.onSurfaceVariant : AppStyle.mutedTextColor(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _handleDesktopAction(item),
-          borderRadius: BorderRadius.circular(8),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            curve: Curves.easeOutCubic,
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: fillColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: borderColor),
-            ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: Icon(
-                    item.icon,
-                    size: 20,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    item.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: textColor,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  item.hint,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: hintColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildWorkspaceContent() {
     _ensureEntryBinding(_selectedEntry);
 
     switch (_selectedEntry) {
+      case _MineDesktopEntry.history:
+        return SettingsWorkspace(
+          title: "观看记录",
+          subtitle: "最近访问过的直播间",
+          actions: [
+            TextButton.icon(
+              onPressed: Get.find<HistoryController>().clean,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text("清空"),
+            ),
+          ],
+          child: const HistoryView(),
+        );
       case _MineDesktopEntry.account:
         return const SettingsWorkspace(
           title: "账号管理",
@@ -542,6 +392,18 @@ class _MinePageState extends State<MinePage> {
           title: "数据同步",
           subtitle: "局域网、房间与 WebDAV 同步",
           child: SyncView(),
+        );
+      case _MineDesktopEntry.tools:
+        return const SettingsWorkspace(
+          title: "链接解析",
+          subtitle: "通过链接直达直播间或提取播放直链",
+          child: ParseView(),
+        );
+      case _MineDesktopEntry.appearance:
+        return const SettingsWorkspace(
+          title: "外观设置",
+          subtitle: "浅色 / 深色主题与字体细节",
+          child: AppstyleSettingView(),
         );
       case _MineDesktopEntry.indexed:
         return const SettingsWorkspace(
@@ -572,34 +434,41 @@ class _MinePageState extends State<MinePage> {
           subtitle: "关注列表自动刷新与并发控制",
           child: FollowSettingsView(),
         );
+      case _MineDesktopEntry.autoExit:
+        return const SettingsWorkspace(
+          title: "定时关闭",
+          subtitle: "适合长时间挂机观看时控制退出节奏",
+          child: AutoExitSettingsView(),
+        );
       case _MineDesktopEntry.other:
         return const SettingsWorkspace(
           title: "其他设置",
           subtitle: "配置维护、播放内核与日志记录",
           child: OtherSettingsView(),
         );
+      case _MineDesktopEntry.about:
+        return const SettingsWorkspace(
+          title: "关于",
+          subtitle: "版本信息、项目主页与使用说明",
+          child: AboutSettingsView(),
+        );
     }
   }
 
   Widget _buildDesktopBody() {
-    return Row(
-      children: [
-        _buildDesktopSidebar(),
-        Expanded(
-          child: Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 160),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeOutCubic,
-              child: KeyedSubtree(
-                key: ValueKey(_selectedEntry),
-                child: _buildWorkspaceContent(),
-              ),
-            ),
-          ),
+    return DesktopWorkbenchLayout(
+      sidebar: DesktopWorkbenchSidebar(
+        sections: _desktopSections(),
+      ),
+      content: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 160),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeOutCubic,
+        child: KeyedSubtree(
+          key: ValueKey(_selectedEntry),
+          child: _buildWorkspaceContent(),
         ),
-      ],
+      ),
     );
   }
 
@@ -647,7 +516,7 @@ class _MinePageState extends State<MinePage> {
 
   Widget _buildMobileActionRow(
     BuildContext context, {
-    required _MineActionItem item,
+    required _MineMobileItem item,
     required bool showDivider,
   }) {
     final theme = Theme.of(context);
@@ -708,7 +577,7 @@ class _MinePageState extends State<MinePage> {
               ] else
                 const SizedBox(width: 10),
               Icon(
-                item.type == _MineActionType.external
+                item.type == _MineMobileActionType.page
                     ? Icons.open_in_new
                     : Icons.chevron_right,
                 size: 18,
@@ -774,11 +643,6 @@ class _MinePageState extends State<MinePage> {
             if (isDesktop)
               DesktopPageHeader(
                 title: "我的",
-                actions: [
-                  DesktopPageHeaderBadge(
-                    text: Get.isDarkMode ? "深色主题" : "浅色主题",
-                  ),
-                ],
               ),
             Expanded(
               child: isDesktop ? _buildDesktopBody() : _buildMobileBody(),
@@ -790,36 +654,34 @@ class _MinePageState extends State<MinePage> {
   }
 }
 
-class _MineActionSection {
+class _MineMobileSection {
   final String title;
   final String description;
-  final List<_MineActionItem> items;
+  final List<_MineMobileItem> items;
 
-  const _MineActionSection({
+  const _MineMobileSection({
     required this.title,
     required this.description,
     required this.items,
   });
 }
 
-class _MineActionItem {
+class _MineMobileItem {
   final IconData icon;
   final String title;
   final String hint;
-  final _MineActionType type;
-  final _MineDesktopEntry? entry;
+  final _MineMobileActionType type;
   final String? routeName;
-  final VoidCallback? panelAction;
+  final Widget Function()? pageBuilder;
   final Future<void> Function()? callback;
 
-  const _MineActionItem({
+  const _MineMobileItem({
     required this.icon,
     required this.title,
     required this.hint,
     required this.type,
-    this.entry,
     this.routeName,
-    this.panelAction,
+    this.pageBuilder,
     this.callback,
   });
 }

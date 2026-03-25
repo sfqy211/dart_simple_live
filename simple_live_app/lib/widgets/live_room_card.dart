@@ -10,13 +10,34 @@ import 'package:simple_live_core/simple_live_core.dart';
 class LiveRoomCard extends StatelessWidget {
   final Site site;
   final LiveRoomItem item;
-  const LiveRoomCard(this.site, this.item, {Key? key}) : super(key: key);
+  final int titleMaxLines;
+  final bool reserveTitleHeight;
+  const LiveRoomCard(
+    this.site,
+    this.item, {
+    this.titleMaxLines = 2,
+    this.reserveTitleHeight = false,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final borderColor = theme.dividerColor.withAlpha(165);
+    final titleStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+      height: 1.25,
+    );
+    final titleBoxHeight = (titleStyle?.fontSize ?? 14) *
+        (titleStyle?.height ?? 1.25) *
+        titleMaxLines;
+    final titleText = Text(
+      item.title,
+      maxLines: titleMaxLines,
+      overflow: TextOverflow.ellipsis,
+      style: titleStyle,
+    );
 
     return ShadowCard(
       radius: 4,
@@ -42,15 +63,16 @@ class LiveRoomCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    height: 1.25,
-                  ),
-                ),
+                if (reserveTitleHeight)
+                  SizedBox(
+                    height: titleBoxHeight,
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: titleText,
+                    ),
+                  )
+                else
+                  titleText,
                 const SizedBox(height: 10),
                 Row(
                   children: [

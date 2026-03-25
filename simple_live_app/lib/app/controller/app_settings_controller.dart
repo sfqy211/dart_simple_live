@@ -23,14 +23,6 @@ class AppSettingsController extends GetxController {
       Get.find<AppSettingsController>();
 
   /// 缩放模式
-  var appFontFamily = "".obs;
-  void setAppFontFamily(String value) {
-    appFontFamily.value = value;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAppFontFamily, value);
-    Get.forceAppUpdate();
-  }
-
   var scaleMode = 0.obs;
 
   var themeMode = 0.obs;
@@ -136,9 +128,6 @@ class AppSettingsController extends GetxController {
 
     playerForceHttps.value = LocalStorageService.instance
         .getValue(LocalStorageService.kPlayerForceHttps, false);
-
-    appFontFamily.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kAppFontFamily, "");
 
     autoFullScreen.value = LocalStorageService.instance
         .getValue(LocalStorageService.kAutoFullScreen, false);

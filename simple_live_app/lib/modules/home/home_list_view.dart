@@ -34,7 +34,12 @@ class HomeListView extends StatelessWidget {
             crossAxisCount: c,
             itemBuilder: (_, i) {
               var item = controller.list[i];
-              return LiveRoomCard(controller.siteInfo, item);
+              return LiveRoomCard(
+                controller.siteInfo,
+                item,
+                titleMaxLines: 1,
+                reserveTitleHeight: true,
+              );
             },
           ),
         );

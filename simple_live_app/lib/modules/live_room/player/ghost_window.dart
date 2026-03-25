@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
@@ -21,7 +20,6 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   double _danmakuOpacity = 1.0;
   int _fontWeight = 4;
   int _panelColor = 0xBFD0D0D0;
-  String _fontFamily = '';
   String _subtitleText = '';
   bool _subtitleIsPartial = false;
   final List<DanmakuContentItem> _items = [];
@@ -131,14 +129,6 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           if (colorValue is int) {
             setState(() {
               _panelColor = colorValue;
-            });
-          }
-        }
-        if (message.containsKey('fontFamily')) {
-          final fontValue = message['fontFamily'];
-          if (fontValue is String) {
-            setState(() {
-              _fontFamily = fontValue;
             });
           }
         }
@@ -1567,9 +1557,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       scaffoldBackgroundColor: Colors.transparent,
     );
 
-    final fontFamily = _fontFamily.isEmpty
-        ? (Platform.isWindows ? "Microsoft YaHei" : null)
-        : _fontFamily;
+    final fontFamily = AppStyle.defaultFontFamily;
 
     final onPanel =
         panelIsDark ? const Color(0xFFE9EEF5) : const Color(0xFF0B0F14);

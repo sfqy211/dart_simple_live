@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import 'package:simple_live_app/app/controller/app_settings_controller.dart';
-
 class AppColors {
   static const Color seed = Color(0xFF0A64D6);
 
@@ -31,13 +29,8 @@ class AppColors {
 }
 
 class AppStyle {
-  static String? get _fontFamily {
-    final value = AppSettingsController.instance.appFontFamily.value;
-    if (value.isNotEmpty) {
-      return value;
-    }
-    return Platform.isWindows ? "Microsoft YaHei" : null;
-  }
+  static String? get defaultFontFamily =>
+      Platform.isWindows ? "Microsoft YaHei" : null;
 
   static ThemeData get lightTheme {
     final scheme = AppColors.lightColorScheme;
@@ -47,7 +40,7 @@ class AppStyle {
       colorScheme: scheme,
       visualDensity: VisualDensity.standard,
     );
-    final textTheme = base.textTheme.apply(fontFamily: _fontFamily);
+    final textTheme = base.textTheme.apply(fontFamily: defaultFontFamily);
 
     return base.copyWith(
       textTheme: textTheme,
@@ -177,7 +170,7 @@ class AppStyle {
       colorScheme: scheme,
       visualDensity: VisualDensity.standard,
     );
-    final textTheme = base.textTheme.apply(fontFamily: _fontFamily);
+    final textTheme = base.textTheme.apply(fontFamily: defaultFontFamily);
 
     return base.copyWith(
       textTheme: textTheme,
@@ -401,8 +394,7 @@ class AppStyle {
   static double get bottomBarHeight =>
       MediaQuery.of(Get.context!).padding.bottom;
 
-  static bool isDesktopPlatform() =>
-      Platform.isWindows;
+  static bool isDesktopPlatform() => Platform.isWindows;
 
   static bool isDesktopLayout(BuildContext context) =>
       isDesktopPlatform() && MediaQuery.of(context).size.width >= 960;

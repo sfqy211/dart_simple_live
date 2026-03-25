@@ -59,7 +59,6 @@ class IndexedSettingsView extends GetView<IndexedSettingsController> {
           AppStyle.vGap24,
           const SettingsSectionTitle(
             title: "平台排序",
-            subtitle: "当前版本只保留有效平台入口时，这一组会自动收起。",
           ),
           SettingsCard(
             child: Obx(

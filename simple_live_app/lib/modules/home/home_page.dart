@@ -3,11 +3,10 @@ import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/modules/home/home_controller.dart';
 import 'package:simple_live_app/modules/home/home_list_view.dart';
-import 'package:simple_live_app/modules/settings/appstyle_setting_page.dart';
 import 'package:simple_live_app/widgets/desktop_page_header.dart';
 
 class HomePage extends GetView<HomeController> {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +28,6 @@ class HomePage extends GetView<HomeController> {
                   onTap: controller.toSearch,
                   icon: Icons.search,
                   label: "搜索",
-                ),
-                const DesktopPageHeaderButton(
-                  onTap: showAppstyleSettingsPanel,
-                  icon: Icons.tune,
-                  label: "外观",
                 ),
               ],
             ),

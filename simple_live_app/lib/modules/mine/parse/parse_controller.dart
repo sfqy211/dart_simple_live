@@ -21,7 +21,7 @@ class ParseController extends GetxController {
     FocusManager.instance.primaryFocus?.unfocus();
 
     var parseResult = await parse(e);
-    if (parseResult.isEmpty && parseResult.first == "") {
+    if (parseResult.isEmpty || parseResult.first == "") {
       SmartDialog.showToast("无法解析此链接");
       return;
     }
@@ -39,7 +39,7 @@ class ParseController extends GetxController {
       return;
     }
     var parseResult = await parse(e);
-    if (parseResult.isEmpty && parseResult.first == "") {
+    if (parseResult.isEmpty || parseResult.first == "") {
       SmartDialog.showToast("无法解析此链接");
       return;
     }
