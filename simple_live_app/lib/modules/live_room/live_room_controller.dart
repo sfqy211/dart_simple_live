@@ -1302,7 +1302,9 @@ class LiveRoomController extends PlayerController
     loadData();
 
     scrollController.addListener(scrollListener);
-    WindowManagerPlus.current.addListener(this);
+    if (!Platform.isAndroid) {
+      WindowManagerPlus.current.addListener(this);
+    }
     _subtitleWorkers.add(
       ever(AppSettingsController.instance.subtitleEnable, (value) {
         subtitleEnabled.value = value;
@@ -2532,7 +2534,9 @@ ${errorStackTrace?.toString()}''');
     scrollController.removeListener(scrollListener);
     scrollController.dispose();
     chatInputController.dispose();
-    WindowManagerPlus.current.removeListener(this);
+    if (!Platform.isAndroid) {
+      WindowManagerPlus.current.removeListener(this);
+    }
     autoExitTimer?.cancel();
     _subtitleClearTimer?.cancel();
     for (final worker in _subtitleWorkers) {

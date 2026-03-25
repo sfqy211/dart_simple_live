@@ -148,8 +148,9 @@ class IndexedPage extends GetView<IndexedController> {
 
     return OrientationBuilder(
       builder: (context, orientation) {
+        final scaffoldColor = Theme.of(context).scaffoldBackgroundColor;
         return Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: scaffoldColor,
           body: Row(
             children: [
               Visibility(
@@ -180,6 +181,7 @@ class IndexedPage extends GetView<IndexedController> {
                 child: Obx(
                   () => Container(
                     decoration: BoxDecoration(
+                      color: scaffoldColor,
                       border: Border(
                         left: orientation == Orientation.landscape
                             ? BorderSide(

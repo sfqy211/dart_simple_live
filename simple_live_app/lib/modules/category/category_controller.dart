@@ -28,7 +28,8 @@ class CategoryController extends GetxController {
   void refreshOrScrollTop() {
     BasePageController controller;
     controller = Get.find<CategoryListController>(tag: site.id);
-    if (!controller.scrollController.hasClients) {
+    if (!controller.scrollController.hasClients ||
+        controller.scrollController.offset <= 0) {
       controller.refreshData();
       return;
     }

@@ -44,6 +44,7 @@ flutter pub get
 flutter run -d windows
 # Android
 flutter run -d android
+flutter run -d V2364A
 ```
 
 ### 构建发布包
