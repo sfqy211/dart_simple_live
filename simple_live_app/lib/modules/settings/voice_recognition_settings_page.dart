@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -52,13 +53,22 @@ class _VoiceRecognitionSettingsPageState
 
   Future<_VoiceModelCatalog> _loadCatalog({bool refresh = false}) async {
     final models = await _modelManager.loadLocalModels(refresh: refresh);
+    final primaryDirectory = await _modelManager.resolveModelsDirectoryLabel();
+    final searchDirectories =
+        await _modelManager.resolveSearchDirectoryLabels();
     final current =
         AppSettingsController.instance.subtitleModelName.value.trim();
+
     if (models.isNotEmpty &&
         (current.isEmpty || !models.any((model) => model.name == current))) {
       AppSettingsController.instance.setSubtitleModelName(models.first.name);
     }
-    return _VoiceModelCatalog(models: models);
+
+    return _VoiceModelCatalog(
+      models: models,
+      primaryDirectory: primaryDirectory,
+      searchDirectories: searchDirectories,
+    );
   }
 
   void _refreshCatalog() {
@@ -70,6 +80,31 @@ class _VoiceRecognitionSettingsPageState
   Future<void> _selectModel(LocalVoiceModel model) async {
     AppSettingsController.instance.setSubtitleModelName(model.name);
     _refreshCatalog();
+  }
+
+  Future<void> _importModelDirectory() async {
+    final selectedPath = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: "选择 sherpa-onnx 模型目录",
+    );
+    if (selectedPath == null || selectedPath.trim().isEmpty) {
+      return;
+    }
+
+    SmartDialog.showLoading(msg: "正在导入模型...");
+    try {
+      final imported = await _modelManager.importModelDirectories(selectedPath);
+      SmartDialog.dismiss();
+      AppSettingsController.instance.setSubtitleModelName(imported.first.name);
+      SmartDialog.showToast(
+        imported.length == 1
+            ? "已导入模型：${imported.first.name}"
+            : "已导入 ${imported.length} 个模型",
+      );
+      _refreshCatalog();
+    } catch (e) {
+      SmartDialog.dismiss();
+      SmartDialog.showToast("导入失败: $e");
+    }
   }
 
   String _formatLastModified(DateTime time) {
@@ -86,10 +121,12 @@ class _VoiceRecognitionSettingsPageState
   }
 
   String _modeLabel(SubtitleRecognitionMode mode) {
-    if (mode == SubtitleRecognitionMode.online) {
-      return "在线 API";
+    switch (mode) {
+      case SubtitleRecognitionMode.online:
+        return "在线 API";
+      case SubtitleRecognitionMode.local:
+        return "本地引擎";
     }
-    return "本地引擎";
   }
 
   String _providerLabel(SubtitleOnlineProvider provider) {
@@ -156,6 +193,11 @@ class _VoiceRecognitionSettingsPageState
     bool obscureText = false,
     required ValueChanged<String> onChanged,
   }) {
+    final fillColor = Theme.of(context)
+        .colorScheme
+        .surfaceContainerHighest
+        .withAlpha(Get.isDarkMode ? 76 : 120);
+
     return Padding(
       padding: AppStyle.edgeInsetsH12.copyWith(top: 8, bottom: 8),
       child: TextField(
@@ -169,7 +211,7 @@ class _VoiceRecognitionSettingsPageState
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: Colors.grey.withAlpha(25),
+          fillColor: fillColor,
           contentPadding: AppStyle.edgeInsetsH12,
         ),
         onChanged: onChanged,
@@ -184,7 +226,7 @@ class _VoiceRecognitionSettingsPageState
       SmartDialog.showToast("请先填写在线识别地址");
       return;
     }
-    SmartDialog.showLoading(msg: "测试连接中");
+    SmartDialog.showLoading(msg: "测试连接中...");
     try {
       final headers = <String, dynamic>{};
       final apiKey =
@@ -213,6 +255,75 @@ class _VoiceRecognitionSettingsPageState
       SmartDialog.dismiss();
       SmartDialog.showToast("连接失败: $e");
     }
+  }
+
+  Widget _buildLocalModelHint(_VoiceModelCatalog catalog) {
+    final helperText = (Platform.isAndroid || Platform.isIOS)
+        ? "移动端不会读取工程目录。你可以选择单个模型目录，也可以直接选择一个包含多个模型子目录的上层文件夹，应用会自动导入到：\n${catalog.primaryDirectory}\n\n当前扫描目录：\n${catalog.searchDirectories.join("\n")}"
+        : "当前扫描目录：\n${catalog.searchDirectories.join("\n")}";
+
+    return Text(
+      helperText,
+      style: Get.textTheme.bodySmall?.copyWith(
+        color: AppStyle.mutedTextColor(context),
+        height: 1.5,
+      ),
+    );
+  }
+
+  Widget _buildLocalModelList(_VoiceModelCatalog catalog) {
+    if (catalog.models.isEmpty) {
+      return SettingsCard(
+        child: Padding(
+          padding: AppStyle.edgeInsetsA12,
+          child: Text(
+            Platform.isAndroid || Platform.isIOS
+                ? "未检测到本地模型。请先下载 sherpa-onnx 模型，然后使用上方“导入目录”选择单个模型目录，或选择包含多个模型的上层文件夹。"
+                : "未检测到本地模型，请先下载 sherpa-onnx 模型并放入 models 目录。",
+            style: Get.textTheme.bodyMedium,
+          ),
+        ),
+      );
+    }
+
+    return SettingsCard(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: catalog.models.map((model) {
+          return Obx(
+            () => ListTile(
+              title: Text(model.name),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      "${model.sizeText} · ${_formatLastModified(model.lastModified)}"),
+                  Text(
+                    "模型目录: ${model.modelPath}",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+              trailing:
+                  AppSettingsController.instance.subtitleModelName.value ==
+                          model.name
+                      ? const Icon(
+                          Icons.check_circle,
+                          size: 20,
+                          color: Colors.green,
+                        )
+                      : null,
+              selected:
+                  AppSettingsController.instance.subtitleModelName.value ==
+                      model.name,
+              onTap: () => _selectModel(model),
+              onLongPress: () => _openUrl(model.downloadUrl),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   @override
@@ -253,8 +364,9 @@ class _VoiceRecognitionSettingsPageState
                               ),
                               Text(
                                 "${(AppSettingsController.instance.subtitleBackgroundOpacity.value * 100).toInt()}%",
-                                style: Get.textTheme.bodySmall
-                                    ?.copyWith(color: Colors.grey),
+                                style: Get.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -306,8 +418,9 @@ class _VoiceRecognitionSettingsPageState
                               ),
                               Text(
                                 "${AppSettingsController.instance.subtitleDelay.value.toInt()} ms",
-                                style: Get.textTheme.bodySmall
-                                    ?.copyWith(color: Colors.grey),
+                                style: Get.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -427,19 +540,45 @@ class _VoiceRecognitionSettingsPageState
                 children: [
                   Padding(
                     padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "本地模型",
-                          style: Get.textTheme.titleSmall,
-                        ),
-                        TextButton.icon(
-                          onPressed: _refreshCatalog,
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text("重新扫描"),
-                        ),
-                      ],
+                    child: FutureBuilder<_VoiceModelCatalog>(
+                      future: _catalogFuture,
+                      builder: (context, snapshot) {
+                        final catalog = snapshot.data;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "本地模型",
+                                  style: Get.textTheme.titleSmall,
+                                ),
+                                Wrap(
+                                  spacing: 4,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: _importModelDirectory,
+                                      icon: const Icon(Icons.folder_open,
+                                          size: 18),
+                                      label: const Text("导入目录"),
+                                    ),
+                                    TextButton.icon(
+                                      onPressed: _refreshCatalog,
+                                      icon: const Icon(Icons.refresh, size: 18),
+                                      label: const Text("重新扫描"),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            if (catalog != null) ...[
+                              const SizedBox(height: 8),
+                              _buildLocalModelHint(catalog),
+                            ],
+                          ],
+                        );
+                      },
                     ),
                   ),
                   FutureBuilder<_VoiceModelCatalog>(
@@ -461,53 +600,7 @@ class _VoiceRecognitionSettingsPageState
                           ),
                         );
                       }
-                      final catalog = snapshot.data!;
-                      if (catalog.models.isEmpty) {
-                        return SettingsCard(
-                          child: Padding(
-                            padding: AppStyle.edgeInsetsA12,
-                            child: Text(
-                              "未检测到本地模型，请先下载 sherpa-onnx 模型并放入simple_live_app\\models",
-                              style: Get.textTheme.bodyMedium,
-                            ),
-                          ),
-                        );
-                      }
-                      return SettingsCard(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: catalog.models.map((model) {
-                            return Obx(
-                              () => ListTile(
-                                title: Text(model.name),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "${model.sizeText} · ${_formatLastModified(model.lastModified)}",
-                                    ),
-                                    Text(
-                                      "官方下载: ${model.downloadUrl}",
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                                trailing: const Icon(
-                                  Icons.check_circle,
-                                  size: 20,
-                                  color: Colors.green,
-                                ),
-                                selected: AppSettingsController
-                                        .instance.subtitleModelName.value ==
-                                    model.name,
-                                onTap: () => _selectModel(model),
-                                onLongPress: () => _openUrl(model.downloadUrl),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      );
+                      return _buildLocalModelList(snapshot.data!);
                     },
                   ),
                   Padding(
@@ -546,8 +639,12 @@ class _VoiceRecognitionSettingsPageState
 
 class _VoiceModelCatalog {
   final List<LocalVoiceModel> models;
+  final String primaryDirectory;
+  final List<String> searchDirectories;
 
-  _VoiceModelCatalog({
+  const _VoiceModelCatalog({
     required this.models,
+    required this.primaryDirectory,
+    required this.searchDirectories,
   });
 }
