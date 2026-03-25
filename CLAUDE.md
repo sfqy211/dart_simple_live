@@ -10,7 +10,7 @@ Simple Live is a Flutter-based cross-platform live streaming aggregation client 
 
 - **Flutter Version**: 3.38.3 (managed via FVM - see `.fvmrc`)
 - **Dart SDK**: >=3.0.5 <4.0.0 for app, >=3.10.0 for core
-- **Platforms**: Android, iOS, Windows (beta), macOS (beta), Linux (beta)
+- **Platforms**: Android, Windows
 
 ## Package Structure
 
@@ -49,9 +49,8 @@ Key directories:
 flutter pub get
 
 # Run the app
-flutter run -d windows    # Windows
-flutter run -d android    # Android
-flutter run -d ios        # iOS
+flutter run -d windows                              # Windows
+flutter run -d <device_id>                          # Android (e.g. flutter run -d V2364A)
 
 # Build releases
 flutter build windows --release
@@ -60,9 +59,6 @@ flutter build appbundle --release
 
 # Static analysis
 flutter analyze
-
-# Run tests
-flutter test
 ```
 
 ## Development Notes

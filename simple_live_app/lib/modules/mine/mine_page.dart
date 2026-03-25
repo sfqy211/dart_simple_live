@@ -632,7 +632,9 @@ class _MinePageState extends State<MinePage> {
               systemNavigationBarColor: Colors.transparent,
             ),
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: isDesktop
+            ? Colors.transparent
+            : Theme.of(context).scaffoldBackgroundColor,
         appBar: isDesktop
             ? null
             : AppBar(

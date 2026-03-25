@@ -19,8 +19,8 @@ Simple Live App is a Flutter-based cross-platform live streaming client for **Bi
 flutter pub get
 
 # Run the app
-flutter run -d windows    # Windows
-flutter run -d android    # Android
+flutter run -d windows                              # Windows
+flutter run -d <device_id>                          # Android (e.g. flutter run -d V2364A)
 
 # Build releases
 flutter build windows --release
@@ -93,6 +93,6 @@ The `live_room` module is the most complex, containing:
 ## Development Notes
 
 - **FVM**: Use `fvm flutter` instead of `flutter` when running commands
-- **Multi-window**: Desktop builds support multiple windows (main window + ghost/PIP window). Window creation is handled in `main.dart` based on command-line args
-- **Platform-specific storage paths**: Desktop stores Hive data in `ApplicationSupportDirectory`, mobile uses default path
+- **Multi-window**: Windows builds support multiple windows (main window + ghost/PIP window). Window creation is handled in `main.dart` based on command-line args
+- **Platform-specific storage paths**: Windows stores Hive data in `ApplicationSupportDirectory`, Android uses default path
 - **Windows tray**: System tray integration on Windows uses `system_tray` package

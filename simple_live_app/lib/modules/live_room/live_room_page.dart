@@ -119,7 +119,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       builder: (context, orientation) {
         final isDesktop = AppStyle.isDesktopLayout(context);
         return Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: isDesktop
+              ? Colors.transparent
+              : Theme.of(context).scaffoldBackgroundColor,
           appBar: isDesktop
               ? null
               : AppBar(
@@ -638,6 +640,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildPhoneUI(BuildContext context) {
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return Stack(
       children: [
         Obx(() {
@@ -651,7 +655,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     color: Theme.of(context).cardColor,
                     border: Border(
                       bottom: BorderSide(
-                        color: Colors.grey.withAlpha(25),
+                        color: borderColor,
                       ),
                     ),
                   ),
@@ -749,6 +753,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildTabletUI(BuildContext context) {
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return Stack(
       children: [
         Column(
@@ -764,7 +770,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                           color: Theme.of(context).cardColor,
                           border: Border(
                             right: BorderSide(
-                              color: Colors.grey.withAlpha(25),
+                              color: borderColor,
                             ),
                           ),
                         ),
@@ -775,7 +781,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                 color: Theme.of(context).cardColor,
                                 border: Border(
                                   bottom: BorderSide(
-                                    color: Colors.grey.withAlpha(25),
+                                    color: borderColor,
                                   ),
                                 ),
                               ),
@@ -887,7 +893,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 color: Theme.of(context).cardColor,
                 border: Border(
                   top: BorderSide(
-                    color: Colors.grey.withAlpha(25),
+                    color: borderColor,
                   ),
                 ),
               ),
@@ -1267,12 +1273,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildBottomActions(BuildContext context) {
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(
           top: BorderSide(
-            color: Colors.grey.withAlpha(25),
+            color: borderColor,
           ),
         ),
       ),
@@ -1327,129 +1335,163 @@ class LiveRoomPage extends GetView<LiveRoomController> {
 
   Widget buildMessageArea() {
     final context = Get.context!;
+    final theme = Theme.of(context);
     final isDesktop = AppStyle.isDesktopLayout(context);
     final borderColor =
         AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
-    return DefaultTabController(
-      length: controller.site.id == Constant.kBiliBili ? 4 : 3,
-      child: Column(
-        children: [
-          if (isDesktop)
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                border: Border(
-                  bottom: BorderSide(color: borderColor),
-                ),
-              ),
-              child: TabBar(
-                indicatorSize: TabBarIndicatorSize.label,
-                labelPadding: const EdgeInsets.symmetric(horizontal: 10),
-                indicatorWeight: 2,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                dividerColor: Colors.transparent,
-                tabs: [
-                  const Tab(
-                    text: "聊天",
-                  ),
-                  if (controller.site.id == Constant.kBiliBili)
-                    Tab(
-                      child: Obx(
-                        () => Text(
-                          controller.superChats.isNotEmpty
-                              ? "SC(${controller.superChats.length})"
-                              : "SC",
-                        ),
-                      ),
-                    ),
-                  const Tab(
-                    text: "关注",
-                  ),
-                  const Tab(
-                    text: "设置",
-                  ),
-                ],
-              ),
-            )
-          else
-            TabBar(
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelPadding: EdgeInsets.zero,
-              indicatorWeight: 1.0,
-              tabs: [
-                const Tab(
-                  text: "聊天",
-                ),
-                if (controller.site.id == Constant.kBiliBili)
-                  Tab(
-                    child: Obx(
-                      () => Text(
-                        controller.superChats.isNotEmpty
-                            ? "SC(${controller.superChats.length})"
-                            : "SC",
-                      ),
-                    ),
-                  ),
-                const Tab(
-                  text: "关注",
-                ),
-                const Tab(
-                  text: "设置",
-                ),
-              ],
-            ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                Obx(
-                  () => Stack(
-                    children: [
-                      ListView.separated(
-                        controller: controller.scrollController,
-                        separatorBuilder: (_, i) => Obx(
-                          () => SizedBox(
-                            // *2与原来的EdgeInsets.symmetric(vertical: )做兼容
-                            height: AppSettingsController
-                                    .instance.chatTextGap.value *
-                                2,
-                          ),
-                        ),
-                        padding: isDesktop
-                            ? const EdgeInsets.fromLTRB(16, 12, 16, 12)
-                            : AppStyle.edgeInsetsA12,
-                        itemCount: controller.messages.length,
-                        itemBuilder: (_, i) {
-                          var item = controller.messages[i];
-                          return buildMessageItem(item);
-                        },
-                      ),
-                      Visibility(
-                        visible: controller.disableAutoScroll.value,
-                        child: Positioned(
-                          right: 12,
-                          bottom: 12,
-                          child: FilledButton.tonalIcon(
-                            onPressed: () {
-                              controller.disableAutoScroll.value = false;
-                              controller.chatScrollToBottom();
-                            },
-                            icon: const Icon(Icons.expand_more),
-                            label: const Text("最新"),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (controller.site.id == Constant.kBiliBili) buildSuperChats(),
-                buildFollowList(),
-                buildSettings(),
-              ],
+    final tabs = <Widget>[
+      const Tab(text: "鑱婂ぉ"),
+      if (controller.site.id == Constant.kBiliBili)
+        Tab(
+          child: Obx(
+            () => Text(
+              controller.superChats.isNotEmpty
+                  ? "SC(${controller.superChats.length})"
+                  : "SC",
             ),
           ),
-          if (controller.site.id == Constant.kBiliBili) buildChatInput(),
-        ],
+        ),
+      const Tab(text: "鍏虫敞"),
+      const Tab(text: "璁剧疆"),
+    ];
+    return DefaultTabController(
+      length: tabs.length,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+        ),
+        child: Column(
+          children: [
+            if (isDesktop)
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  border: Border(
+                    bottom: BorderSide(color: borderColor),
+                  ),
+                ),
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 10),
+                  indicatorWeight: 2,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  dividerColor: Colors.transparent,
+                  tabs: [
+                    const Tab(
+                      text: "聊天",
+                    ),
+                    if (controller.site.id == Constant.kBiliBili)
+                      Tab(
+                        child: Obx(
+                          () => Text(
+                            controller.superChats.isNotEmpty
+                                ? "SC(${controller.superChats.length})"
+                                : "SC",
+                          ),
+                        ),
+                      ),
+                    const Tab(
+                      text: "关注",
+                    ),
+                    const Tab(
+                      text: "设置",
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  border: Border(
+                    bottom: BorderSide(color: borderColor),
+                  ),
+                ),
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelPadding: EdgeInsets.zero,
+                  indicatorWeight: 1.0,
+                  dividerColor: Colors.transparent,
+                  tabs: [
+                    const Tab(
+                      text: "聊天",
+                    ),
+                    if (controller.site.id == Constant.kBiliBili)
+                      Tab(
+                        child: Obx(
+                          () => Text(
+                            controller.superChats.isNotEmpty
+                                ? "SC(${controller.superChats.length})"
+                                : "SC",
+                          ),
+                        ),
+                      ),
+                    const Tab(
+                      text: "关注",
+                    ),
+                    const Tab(
+                      text: "设置",
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: ColoredBox(
+                color: theme.scaffoldBackgroundColor,
+                child: TabBarView(
+                  children: [
+                    Obx(
+                      () => Stack(
+                        children: [
+                          ListView.separated(
+                            controller: controller.scrollController,
+                            separatorBuilder: (_, i) => Obx(
+                              () => SizedBox(
+                                // *2与原来的EdgeInsets.symmetric(vertical: )做兼容
+                                height: AppSettingsController
+                                        .instance.chatTextGap.value *
+                                    2,
+                              ),
+                            ),
+                            padding: isDesktop
+                                ? const EdgeInsets.fromLTRB(16, 12, 16, 12)
+                                : AppStyle.edgeInsetsA12,
+                            itemCount: controller.messages.length,
+                            itemBuilder: (_, i) {
+                              var item = controller.messages[i];
+                              return buildMessageItem(item);
+                            },
+                          ),
+                          Visibility(
+                            visible: controller.disableAutoScroll.value,
+                            child: Positioned(
+                              right: 12,
+                              bottom: 12,
+                              child: FilledButton.tonalIcon(
+                                onPressed: () {
+                                  controller.disableAutoScroll.value = false;
+                                  controller.chatScrollToBottom();
+                                },
+                                icon: const Icon(Icons.expand_more),
+                                label: const Text("最新"),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (controller.site.id == Constant.kBiliBili)
+                      buildSuperChats(),
+                    buildFollowList(),
+                    buildSettings(),
+                  ],
+                ),
+              ),
+            ),
+            if (controller.site.id == Constant.kBiliBili) buildChatInput(),
+          ],
+        ),
       ),
     );
   }

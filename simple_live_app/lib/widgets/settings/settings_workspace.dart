@@ -31,7 +31,7 @@ class SettingsPageScaffold extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(title),
         actions: actions.isEmpty ? null : actions,
