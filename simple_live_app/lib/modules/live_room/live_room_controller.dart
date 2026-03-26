@@ -79,6 +79,9 @@ class LiveRoomController extends PlayerController
   bool _subtitleAudioHeaderSkipped = false;
   bool _subtitleAudioStopping = false;
   Future<void>? _subtitleAudioStopTask;
+  final List<Pattern> _shieldPatterns = [];
+  bool _chatScrollScheduled = false;
+  bool _danmakuStarted = false;
 
   /// 滚动控制
   final ScrollController scrollController = ScrollController();
@@ -1309,12 +1312,18 @@ class LiveRoomController extends PlayerController
     showDanmakuState.value = AppSettingsController.instance.danmuEnable.value;
     subtitleEnabled.value = AppSettingsController.instance.subtitleEnable.value;
     followed.value = DBService.instance.getFollowExist("${site.id}_$roomId");
+    _refreshShieldPatterns();
     loadData();
 
     scrollController.addListener(scrollListener);
     if (!Platform.isAndroid) {
       WindowManagerPlus.current.addListener(this);
     }
+    _subtitleWorkers.add(
+      ever(AppSettingsController.instance.shieldList, (_) {
+        _refreshShieldPatterns();
+      }),
+    );
     _subtitleWorkers.add(
       ever(AppSettingsController.instance.subtitleEnable, (value) {
         subtitleEnabled.value = value;
@@ -1403,6 +1412,69 @@ class LiveRoomController extends PlayerController
       url = url.replaceAll("http://", "https://");
     }
     return url;
+  }
+
+  void _refreshShieldPatterns() {
+    _shieldPatterns.clear();
+    for (final keyword in AppSettingsController.instance.shieldList) {
+      if (Utils.isRegexFormat(keyword)) {
+        final removedSlash = Utils.removeRegexFormat(keyword);
+        try {
+          _shieldPatterns.add(RegExp(removedSlash));
+        } catch (e) {
+          Log.d("关键词：$keyword 正则格式错误");
+        }
+        continue;
+      }
+      _shieldPatterns.add(keyword);
+    }
+  }
+
+  bool _shouldDeferDanmakuStartup() {
+    final context = Get.context;
+    if (!Platform.isWindows || context == null) {
+      return false;
+    }
+    return AppStyle.isDesktopLayout(context) &&
+        showDanmakuState.value &&
+        liveStatus.value;
+  }
+
+  void _startDanmakuConnection() {
+    if (_danmakuStarted) {
+      return;
+    }
+    _danmakuStarted = true;
+    addSysMsg("开始连接弹幕服务器");
+    initDanmau();
+    liveDanmaku.start(detail.value?.danmakuData);
+  }
+
+  void _maybeStartDanmakuConnection({bool afterPlayback = false}) {
+    if (_danmakuStarted || detail.value == null) {
+      return;
+    }
+    if (!afterPlayback && _shouldDeferDanmakuStartup()) {
+      return;
+    }
+    if (afterPlayback && _shouldDeferDanmakuStartup()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startDanmakuConnection();
+      });
+      return;
+    }
+    _startDanmakuConnection();
+  }
+
+  void _scheduleChatScrollToBottom() {
+    if (_chatScrollScheduled) {
+      return;
+    }
+    _chatScrollScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _chatScrollScheduled = false;
+      chatScrollToBottom();
+    });
   }
 
   Future<void> _readSubtitleAudioDump() async {
@@ -1691,6 +1763,9 @@ class LiveRoomController extends PlayerController
     //messages.clear();
     superChats.clear();
     liveDanmaku.stop();
+    setDanmakuRenderReady(false);
+    _danmakuStarted = false;
+    _chatScrollScheduled = false;
 
     loadData();
   }
@@ -1721,31 +1796,45 @@ class LiveRoomController extends PlayerController
       }
 
       // 关键词屏蔽检查
-      for (var keyword in AppSettingsController.instance.shieldList) {
-        Pattern? pattern;
-        if (Utils.isRegexFormat(keyword)) {
-          String removedSlash = Utils.removeRegexFormat(keyword);
-          try {
-            pattern = RegExp(removedSlash);
-          } catch (e) {
-            // should avoid this during add keyword
-            Log.d("关键词：$keyword 正则格式错误");
+      if (_shieldPatterns.isNotEmpty) {
+        for (final pattern in _shieldPatterns) {
+          if (msg.message.contains(pattern)) {
+            return;
           }
-        } else {
-          pattern = keyword;
         }
-        if (pattern != null && msg.message.contains(pattern)) {
-          Log.d("关键词：$keyword\n已屏蔽消息内容：${msg.message}");
-          return;
+      } else {
+        for (var keyword in AppSettingsController.instance.shieldList) {
+          Pattern? pattern;
+          if (Utils.isRegexFormat(keyword)) {
+            String removedSlash = Utils.removeRegexFormat(keyword);
+            try {
+              pattern = RegExp(removedSlash);
+            } catch (e) {
+              // should avoid this during add keyword
+              Log.d("关键词：$keyword 正则格式错误");
+            }
+          } else {
+            pattern = keyword;
+          }
+          if (pattern != null && msg.message.contains(pattern)) {
+            Log.d("关键词：$keyword\n已屏蔽消息内容：${msg.message}");
+            return;
+          }
         }
       }
 
       messages.add(msg);
 
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => chatScrollToBottom(),
-      );
+      _scheduleChatScrollToBottom();
       if (!liveStatus.value || isBackground) {
+        return;
+      }
+
+      final canRenderDanmaku = showDanmakuState.value &&
+          danmakuController != null &&
+          player.state.playing;
+      final canSendGhostDanmaku = ghostModeState.value;
+      if (!canRenderDanmaku && !canSendGhostDanmaku) {
         return;
       }
 
@@ -1758,8 +1847,12 @@ class LiveRoomController extends PlayerController
           msg.color.b,
         ),
       );
-      sendDanmakuToGhostWindow(item, userName: msg.userName);
-      addDanmaku([item]);
+      if (canSendGhostDanmaku) {
+        sendDanmakuToGhostWindow(item, userName: msg.userName);
+      }
+      if (canRenderDanmaku) {
+        addDanmaku([item]);
+      }
     } else if (msg.type == LiveMessageType.online) {
       online.value = msg.data;
     } else if (msg.type == LiveMessageType.superChat) {
@@ -1793,6 +1886,9 @@ class LiveRoomController extends PlayerController
   void loadData() async {
     try {
       SmartDialog.showLoading(msg: "");
+      setDanmakuRenderReady(false);
+      _danmakuStarted = false;
+      _chatScrollScheduled = false;
       loadError.value = false;
       error = null;
       errorStackTrace = null;
@@ -1813,9 +1909,7 @@ class LiveRoomController extends PlayerController
       if (detail.value!.isRecord) {
         addSysMsg("当前主播未开播，正在轮播录像");
       }
-      addSysMsg("开始连接弹幕服务器");
-      initDanmau();
-      liveDanmaku.start(detail.value?.danmakuData);
+      _maybeStartDanmakuConnection();
       startLiveDurationTimer(); // 启动开播时长定时器
     } catch (e, stackTrace) {
       Log.logPrint(e);
@@ -1906,6 +2000,7 @@ class LiveRoomController extends PlayerController
   void initPlaylist() async {
     currentLineInfo.value = "线路${currentLineIndex + 1}";
     errorMsg.value = "";
+    setDanmakuRenderReady(false);
 
     final mediaList = playUrls.map((url) {
       var finalUrl = url;
@@ -1924,18 +2019,20 @@ class LiveRoomController extends PlayerController
     }
 
     await player.open(Playlist(mediaList));
+    _maybeStartDanmakuConnection(afterPlayback: true);
     if (subtitleEnabled.value && liveStatus.value) {
-      restartVoiceRecognition();
+      unawaited(restartVoiceRecognition());
     }
   }
 
   void setPlayer() async {
     currentLineInfo.value = "线路${currentLineIndex + 1}";
     errorMsg.value = "";
+    setDanmakuRenderReady(false);
 
     await player.jump(currentLineIndex);
     if (subtitleEnabled.value && liveStatus.value) {
-      restartVoiceRecognition();
+      unawaited(restartVoiceRecognition());
     }
   }
 
@@ -2526,7 +2623,10 @@ class LiveRoomController extends PlayerController
     liveDanmaku.stop();
     messages.clear();
     superChats.clear();
+    setDanmakuRenderReady(false);
     danmakuController?.clear();
+    _danmakuStarted = false;
+    _chatScrollScheduled = false;
 
     // 重新设置LiveDanmaku
     liveDanmaku = site.liveSite.getDanmaku();

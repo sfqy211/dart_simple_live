@@ -353,6 +353,9 @@ mixin PlayerStateMixin on PlayerMixin {
 mixin PlayerDanmakuMixin on PlayerStateMixin {
   /// 弹幕控制器
   DanmakuController? danmakuController;
+  final List<DanmakuContentItem> _pendingDanmakuItems = [];
+  Timer? _danmakuFlushTimer;
+  bool _danmakuRenderReady = false;
 
   void initDanmakuController(DanmakuController e) {
     danmakuController = e;
@@ -367,6 +370,7 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
     //         .values[AppSettingsController.instance.danmuFontWeight.value],
     //   ),
     // );
+    _flushDanmakuQueue();
   }
 
   void updateDanmuOption(DanmakuOption? option) {
@@ -375,16 +379,66 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
   }
 
   void disposeDanmakuController() {
+    _danmakuFlushTimer?.cancel();
+    _danmakuFlushTimer = null;
+    _pendingDanmakuItems.clear();
     danmakuController?.clear();
   }
 
-  void addDanmaku(List<DanmakuContentItem> items) {
-    if (!showDanmakuState.value) {
+  void setDanmakuRenderReady(bool ready) {
+    if (_danmakuRenderReady == ready) {
       return;
     }
-    for (var item in items) {
+    _danmakuRenderReady = ready;
+    if (!ready) {
+      _danmakuFlushTimer?.cancel();
+      _danmakuFlushTimer = null;
+      _pendingDanmakuItems.clear();
+      danmakuController?.clear();
+      return;
+    }
+    _flushDanmakuQueue();
+  }
+
+  void _scheduleDanmakuFlush() {
+    if (_danmakuFlushTimer != null) {
+      return;
+    }
+    _danmakuFlushTimer = Timer(
+      const Duration(milliseconds: 16),
+      () {
+        _danmakuFlushTimer = null;
+        _flushDanmakuQueue();
+      },
+    );
+  }
+
+  void _flushDanmakuQueue() {
+    if (!_danmakuRenderReady || danmakuController == null) {
+      return;
+    }
+    if (_pendingDanmakuItems.isEmpty) {
+      return;
+    }
+    final items = List<DanmakuContentItem>.from(_pendingDanmakuItems);
+    _pendingDanmakuItems.clear();
+    for (final item in items) {
       danmakuController?.addDanmaku(item);
     }
+  }
+
+  void addDanmaku(List<DanmakuContentItem> items) {
+    if (!showDanmakuState.value || items.isEmpty) {
+      return;
+    }
+    _pendingDanmakuItems.addAll(items);
+    if (_pendingDanmakuItems.length > 40) {
+      _pendingDanmakuItems.removeRange(0, _pendingDanmakuItems.length - 40);
+    }
+    if (!_danmakuRenderReady || danmakuController == null) {
+      return;
+    }
+    _scheduleDanmakuFlush();
   }
 
   /// 发送弹幕到幽灵窗口
@@ -1022,6 +1076,7 @@ class PlayerController extends BaseController
       if (event) {
         WakelockPlus.enable();
         Log.d("Playing");
+        setDanmakuRenderReady(true);
       }
       // 更新后台服务的播放状态
       BackgroundServiceManager().setPlaybackState(event);

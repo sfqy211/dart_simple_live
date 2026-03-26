@@ -648,18 +648,74 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     );
   }
 
+  Widget buildSubtitleBubble(
+    BuildContext context, {
+    required Color backgroundColor,
+    required TextStyle textStyle,
+    Color? borderColor,
+    double? maxWidth,
+  }) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: maxWidth ?? MediaQuery.of(context).size.width - 32,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: borderColor == null ? null : Border.all(color: borderColor),
+        ),
+        child: Text(
+          controller.subtitleText.value,
+          textAlign: TextAlign.center,
+          style: textStyle,
+        ),
+      ),
+    );
+  }
+
   Widget buildSubtitleOverlay() {
     return Obx(
       () {
+        final context = Get.context;
+        final isDesktop = context != null && AppStyle.isDesktopLayout(context);
         if (!controller.subtitleEnabled.value) {
           return const SizedBox.shrink();
         }
         if (controller.subtitleText.value.isEmpty) {
           return const SizedBox.shrink();
         }
-        if (!controller.fullScreenState.value &&
+        if (!isDesktop &&
+            !controller.fullScreenState.value &&
             !controller.smallWindowState.value) {
           return const SizedBox.shrink();
+        }
+        final adaptiveMaxWidth = MediaQuery.of(Get.context!).size.width - 32;
+        if (adaptiveMaxWidth > 0) {
+          return Positioned(
+            left: 16,
+            right: 16,
+            bottom: 24,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: buildSubtitleBubble(
+                Get.context!,
+                maxWidth: adaptiveMaxWidth,
+                backgroundColor: Colors.black.withValues(
+                    alpha: AppSettingsController
+                        .instance.subtitleBackgroundOpacity.value),
+                textStyle: TextStyle(
+                  color: Colors.white,
+                  fontSize:
+                      AppSettingsController.instance.subtitleFontSize.value,
+                  fontWeight: controller.subtitleIsPartial.value
+                      ? FontWeight.normal
+                      : FontWeight.w600,
+                ),
+              ),
+            ),
+          );
         }
         return Positioned(
           left: 16,
@@ -751,6 +807,39 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   controller.subtitleText.value,
                   textAlign: TextAlign.center,
                   style: TextStyle(
+                    fontSize:
+                        AppSettingsController.instance.subtitleFontSize.value,
+                    fontWeight: controller.subtitleIsPartial.value
+                        ? FontWeight.normal
+                        : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final adaptiveMaxWidth = MediaQuery.of(context).size.width - 24;
+        if (adaptiveMaxWidth > 0) {
+          return Positioned(
+            left: 12,
+            right: 12,
+            bottom: bottomPadding,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: GestureDetector(
+                onPanStart: (details) {
+                  controller.subtitlePosition.value =
+                      details.globalPosition - const Offset(50, 20);
+                },
+                child: buildSubtitleBubble(
+                  context,
+                  maxWidth: adaptiveMaxWidth,
+                  backgroundColor: Theme.of(context).cardColor.withValues(
+                      alpha: AppSettingsController
+                          .instance.subtitleBackgroundOpacity.value),
+                  borderColor: Colors.grey.withAlpha(40),
+                  textStyle: TextStyle(
                     fontSize:
                         AppSettingsController.instance.subtitleFontSize.value,
                     fontWeight: controller.subtitleIsPartial.value
