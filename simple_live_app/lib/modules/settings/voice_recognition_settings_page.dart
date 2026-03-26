@@ -12,16 +12,30 @@ import 'package:simple_live_app/widgets/settings/settings_number.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-class VoiceRecognitionSettingsPage extends StatefulWidget {
+class VoiceRecognitionSettingsPage extends StatelessWidget {
   const VoiceRecognitionSettingsPage({super.key});
 
   @override
-  State<VoiceRecognitionSettingsPage> createState() =>
-      _VoiceRecognitionSettingsPageState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("字幕设置"),
+      ),
+      body: const VoiceRecognitionSettingsView(),
+    );
+  }
 }
 
-class _VoiceRecognitionSettingsPageState
-    extends State<VoiceRecognitionSettingsPage> {
+class VoiceRecognitionSettingsView extends StatefulWidget {
+  const VoiceRecognitionSettingsView({super.key});
+
+  @override
+  State<VoiceRecognitionSettingsView> createState() =>
+      _VoiceRecognitionSettingsViewState();
+}
+
+class _VoiceRecognitionSettingsViewState
+    extends State<VoiceRecognitionSettingsView> {
   final VoiceModelManager _modelManager = VoiceModelManager();
   late Future<_VoiceModelCatalog> _catalogFuture;
   late TextEditingController _apiUrlController;
@@ -328,311 +342,306 @@ class _VoiceRecognitionSettingsPageState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("字幕设置"),
-      ),
-      body: ListView(
-        padding: AppStyle.edgeInsetsA12,
-        children: [
-          SettingsCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Obx(
-                  () => SettingsSwitch(
-                    title: "字幕开关",
-                    value: AppSettingsController.instance.subtitleEnable.value,
-                    onChanged: AppSettingsController.instance.setSubtitleEnable,
+    return ListView(
+      padding: AppStyle.edgeInsetsA12,
+      children: [
+        SettingsCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Obx(
+                () => SettingsSwitch(
+                  title: "字幕开关",
+                  value: AppSettingsController.instance.subtitleEnable.value,
+                  onChanged: AppSettingsController.instance.setSubtitleEnable,
+                ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "背景透明度",
+                              style: Get.textTheme.bodyLarge,
+                            ),
+                            Text(
+                              "${(AppSettingsController.instance.subtitleBackgroundOpacity.value * 100).toInt()}%",
+                              style: Get.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Slider(
+                        value: AppSettingsController
+                            .instance.subtitleBackgroundOpacity.value,
+                        min: 0.0,
+                        max: 1.0,
+                        divisions: 20,
+                        onChanged: (value) {
+                          AppSettingsController.instance
+                              .setSubtitleBackgroundOpacity(value);
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                AppStyle.divider,
-                Obx(
-                  () => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "背景透明度",
-                                style: Get.textTheme.bodyLarge,
-                              ),
-                              Text(
-                                "${(AppSettingsController.instance.subtitleBackgroundOpacity.value * 100).toInt()}%",
-                                style: Get.textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Slider(
-                          value: AppSettingsController
-                              .instance.subtitleBackgroundOpacity.value,
-                          min: 0.0,
-                          max: 1.0,
-                          divisions: 20,
-                          onChanged: (value) {
-                            AppSettingsController.instance
-                                .setSubtitleBackgroundOpacity(value);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsNumber(
+                  title: "字体大小",
+                  value: AppSettingsController.instance.subtitleFontSize.value
+                      .toInt(),
+                  min: 10,
+                  max: 32,
+                  onChanged: (value) {
+                    AppSettingsController.instance
+                        .setSubtitleFontSize(value.toDouble());
+                  },
                 ),
-                AppStyle.divider,
-                Obx(
-                  () => SettingsNumber(
-                    title: "字体大小",
-                    value: AppSettingsController.instance.subtitleFontSize.value
-                        .toInt(),
-                    min: 10,
-                    max: 32,
-                    onChanged: (value) {
-                      AppSettingsController.instance
-                          .setSubtitleFontSize(value.toDouble());
-                    },
-                  ),
-                ),
-                AppStyle.divider,
-                Obx(
-                  () => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "字幕延迟",
-                                style: Get.textTheme.bodyLarge,
-                              ),
-                              Text(
-                                "${AppSettingsController.instance.subtitleDelay.value.toInt()} ms",
-                                style: Get.textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Slider(
-                          value: AppSettingsController
-                              .instance.subtitleDelay.value,
-                          min: 0.0,
-                          max: 5000.0,
-                          divisions: 50,
-                          label:
+              ),
+              AppStyle.divider,
+              Obx(
+                () => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "字幕延迟",
+                              style: Get.textTheme.bodyLarge,
+                            ),
+                            Text(
                               "${AppSettingsController.instance.subtitleDelay.value.toInt()} ms",
-                          onChanged: (value) {
-                            AppSettingsController.instance
-                                .setSubtitleDelay(value);
-                          },
+                              style: Get.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Slider(
+                        value:
+                            AppSettingsController.instance.subtitleDelay.value,
+                        min: 0.0,
+                        max: 5000.0,
+                        divisions: 50,
+                        label:
+                            "${AppSettingsController.instance.subtitleDelay.value.toInt()} ms",
+                        onChanged: (value) {
+                          AppSettingsController.instance
+                              .setSubtitleDelay(value);
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                AppStyle.divider,
-                Obx(
-                  () => ListTile(
-                    title: const Text("识别模式"),
-                    subtitle: Text(
-                      _modeLabel(AppSettingsController
-                          .instance.subtitleRecognitionMode.value),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _selectRecognitionMode,
+              ),
+              AppStyle.divider,
+              Obx(
+                () => ListTile(
+                  title: const Text("识别模式"),
+                  subtitle: Text(
+                    _modeLabel(AppSettingsController
+                        .instance.subtitleRecognitionMode.value),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _selectRecognitionMode,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Obx(
+          () => Visibility(
+            visible:
+                AppSettingsController.instance.subtitleRecognitionMode.value ==
+                    SubtitleRecognitionMode.online,
+            child: Column(
+              children: [
+                Padding(
+                  padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
+                  child: Text(
+                    "在线识别",
+                    style: Get.textTheme.titleSmall,
+                  ),
+                ),
+                SettingsCard(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        title: const Text("在线服务"),
+                        subtitle: Obx(
+                          () => Text(
+                            _providerLabel(AppSettingsController
+                                .instance.subtitleOnlineProvider.value),
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _selectOnlineProvider,
+                      ),
+                      _buildTextField(
+                        title: "API 地址",
+                        hintText: "wss://example.com/asr",
+                        controller: _apiUrlController,
+                        onChanged: (value) {
+                          AppSettingsController.instance
+                              .setSubtitleOnlineApiUrl(value);
+                        },
+                      ),
+                      _buildTextField(
+                        title: "API Key",
+                        controller: _apiKeyController,
+                        obscureText: true,
+                        onChanged: (value) {
+                          AppSettingsController.instance
+                              .setSubtitleOnlineApiKey(value);
+                        },
+                      ),
+                      _buildTextField(
+                        title: "API Key Header",
+                        hintText: "Authorization",
+                        controller: _apiKeyHeaderController,
+                        onChanged: (value) {
+                          AppSettingsController.instance
+                              .setSubtitleOnlineApiKeyHeader(value);
+                        },
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: AppStyle.edgeInsetsH12.copyWith(bottom: 8),
+                          child: TextButton.icon(
+                            onPressed: _testOnlineConnection,
+                            icon: const Icon(Icons.wifi_tethering, size: 18),
+                            label: const Text("测试连接"),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          Obx(
-            () => Visibility(
-              visible: AppSettingsController
-                      .instance.subtitleRecognitionMode.value ==
-                  SubtitleRecognitionMode.online,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-                    child: Text(
-                      "在线识别",
-                      style: Get.textTheme.titleSmall,
-                    ),
-                  ),
-                  SettingsCard(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: const Text("在线服务"),
-                          subtitle: Obx(
-                            () => Text(
-                              _providerLabel(AppSettingsController
-                                  .instance.subtitleOnlineProvider.value),
-                            ),
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: _selectOnlineProvider,
-                        ),
-                        _buildTextField(
-                          title: "API 地址",
-                          hintText: "wss://example.com/asr",
-                          controller: _apiUrlController,
-                          onChanged: (value) {
-                            AppSettingsController.instance
-                                .setSubtitleOnlineApiUrl(value);
-                          },
-                        ),
-                        _buildTextField(
-                          title: "API Key",
-                          controller: _apiKeyController,
-                          obscureText: true,
-                          onChanged: (value) {
-                            AppSettingsController.instance
-                                .setSubtitleOnlineApiKey(value);
-                          },
-                        ),
-                        _buildTextField(
-                          title: "API Key Header",
-                          hintText: "Authorization",
-                          controller: _apiKeyHeaderController,
-                          onChanged: (value) {
-                            AppSettingsController.instance
-                                .setSubtitleOnlineApiKeyHeader(value);
-                          },
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding: AppStyle.edgeInsetsH12.copyWith(bottom: 8),
-                            child: TextButton.icon(
-                              onPressed: _testOnlineConnection,
-                              icon: const Icon(Icons.wifi_tethering, size: 18),
-                              label: const Text("测试连接"),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Obx(
-            () => Visibility(
-              visible: AppSettingsController
-                      .instance.subtitleRecognitionMode.value ==
-                  SubtitleRecognitionMode.local,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-                    child: FutureBuilder<_VoiceModelCatalog>(
-                      future: _catalogFuture,
-                      builder: (context, snapshot) {
-                        final catalog = snapshot.data;
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "本地模型",
-                                  style: Get.textTheme.titleSmall,
-                                ),
-                                Wrap(
-                                  spacing: 4,
-                                  children: [
-                                    TextButton.icon(
-                                      onPressed: _importModelDirectory,
-                                      icon: const Icon(Icons.folder_open,
-                                          size: 18),
-                                      label: const Text("导入目录"),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: _refreshCatalog,
-                                      icon: const Icon(Icons.refresh, size: 18),
-                                      label: const Text("重新扫描"),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            if (catalog != null) ...[
-                              const SizedBox(height: 8),
-                              _buildLocalModelHint(catalog),
-                            ],
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  FutureBuilder<_VoiceModelCatalog>(
+        ),
+        Obx(
+          () => Visibility(
+            visible:
+                AppSettingsController.instance.subtitleRecognitionMode.value ==
+                    SubtitleRecognitionMode.local,
+            child: Column(
+              children: [
+                Padding(
+                  padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
+                  child: FutureBuilder<_VoiceModelCatalog>(
                     future: _catalogFuture,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: CircularProgressIndicator(),
+                      final catalog = snapshot.data;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "本地模型",
+                                style: Get.textTheme.titleSmall,
+                              ),
+                              Wrap(
+                                spacing: 4,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: _importModelDirectory,
+                                    icon:
+                                        const Icon(Icons.folder_open, size: 18),
+                                    label: const Text("导入目录"),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _refreshCatalog,
+                                    icon: const Icon(Icons.refresh, size: 18),
+                                    label: const Text("重新扫描"),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        );
-                      }
-                      if (!snapshot.hasData) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text("模型加载失败"),
-                          ),
-                        );
-                      }
-                      return _buildLocalModelList(snapshot.data!);
+                          if (catalog != null) ...[
+                            const SizedBox(height: 8),
+                            _buildLocalModelHint(catalog),
+                          ],
+                        ],
+                      );
                     },
                   ),
-                  Padding(
-                    padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
-                    child: Text(
-                      "下载来源",
-                      style: Get.textTheme.titleSmall,
-                    ),
-                  ),
-                  SettingsCard(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: const Text("sherpa-onnx 模型下载页"),
-                          subtitle: const Text(
-                            "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/",
-                          ),
-                          trailing: const Icon(Icons.open_in_new, size: 20),
-                          onTap: () => _openUrl(
-                            "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/",
-                          ),
+                ),
+                FutureBuilder<_VoiceModelCatalog>(
+                  future: _catalogFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(),
                         ),
-                      ],
-                    ),
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text("模型加载失败"),
+                        ),
+                      );
+                    }
+                    return _buildLocalModelList(snapshot.data!);
+                  },
+                ),
+                Padding(
+                  padding: AppStyle.edgeInsetsA12.copyWith(top: 24),
+                  child: Text(
+                    "下载来源",
+                    style: Get.textTheme.titleSmall,
                   ),
-                ],
-              ),
+                ),
+                SettingsCard(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        title: const Text("sherpa-onnx 模型下载页"),
+                        subtitle: const Text(
+                          "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/",
+                        ),
+                        trailing: const Icon(Icons.open_in_new, size: 20),
+                        onTap: () => _openUrl(
+                          "https://k2-fsa.github.io/sherpa/onnx/pretrained_models/",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

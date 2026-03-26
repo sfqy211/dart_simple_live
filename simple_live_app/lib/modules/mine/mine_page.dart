@@ -23,6 +23,7 @@ import 'package:simple_live_app/modules/settings/indexed_settings/indexed_settin
 import 'package:simple_live_app/modules/settings/other/other_settings_controller.dart';
 import 'package:simple_live_app/modules/settings/other/other_settings_page.dart';
 import 'package:simple_live_app/modules/settings/play_settings_page.dart';
+import 'package:simple_live_app/modules/settings/voice_recognition_settings_page.dart';
 import 'package:simple_live_app/modules/sync/sync_page.dart';
 import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/services/signalr_service.dart';
@@ -39,6 +40,7 @@ enum _MineDesktopEntry {
   indexed,
   play,
   danmu,
+  subtitle,
   follow,
   autoExit,
   other,
@@ -127,6 +129,12 @@ class _MinePageState extends State<MinePage> {
             icon: Remix.text,
             title: "弹幕设置",
             hint: "显示与屏蔽",
+          ),
+          _desktopItem(
+            entry: _MineDesktopEntry.subtitle,
+            icon: Icons.subtitles_outlined,
+            title: "字幕设置",
+            hint: "本地/在线识别",
           ),
           _desktopItem(
             entry: _MineDesktopEntry.follow,
@@ -255,6 +263,13 @@ class _MinePageState extends State<MinePage> {
             routeName: RoutePath.kSettingsDanmu,
           ),
           _MineMobileItem(
+            icon: Icons.subtitles_outlined,
+            title: "字幕设置",
+            hint: "本地/在线识别",
+            type: _MineMobileActionType.page,
+            pageBuilder: () => const VoiceRecognitionSettingsPage(),
+          ),
+          _MineMobileItem(
             icon: Remix.heart_line,
             title: "关注设置",
             hint: "刷新与并发",
@@ -335,6 +350,7 @@ class _MinePageState extends State<MinePage> {
       case _MineDesktopEntry.follow:
       case _MineDesktopEntry.autoExit:
       case _MineDesktopEntry.about:
+      case _MineDesktopEntry.subtitle:
         break;
     }
   }
@@ -427,6 +443,12 @@ class _MinePageState extends State<MinePage> {
               DanmuSettingsView(),
             ],
           ),
+        );
+      case _MineDesktopEntry.subtitle:
+        return const SettingsWorkspace(
+          title: "字幕设置",
+          subtitle: "本地模型与在线识别配置",
+          child: VoiceRecognitionSettingsView(),
         );
       case _MineDesktopEntry.follow:
         return const SettingsWorkspace(

@@ -660,6 +660,30 @@ class LiveRoomController extends PlayerController
     );
   }
 
+  Widget _buildEmoticonPackageSettingsContent(List<dynamic> emoticonPackages) {
+    return ListView.builder(
+      padding: AppStyle.edgeInsetsV12,
+      itemCount: emoticonPackages.length,
+      itemBuilder: (context, index) {
+        final pkg = emoticonPackages[index];
+        final id = _getEmoticonPackageId(pkg, index);
+        final title = _getEmoticonPackageName(pkg);
+        final subtitle = id == title ? null : "ID: $id";
+        return Obx(
+          () => SettingsSwitch(
+            value: AppSettingsController.instance.isEmoticonPackageEnabled(id),
+            title: title,
+            subtitle: subtitle,
+            onChanged: (value) {
+              AppSettingsController.instance
+                  .setEmoticonPackageEnabled(id, value);
+            },
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> showEmoticonPackageSettingsSheet() async {
     var emoticonPackages = await getEmoticons(applyFilter: false);
     if (emoticonPackages == null) {
@@ -671,31 +695,17 @@ class LiveRoomController extends PlayerController
       return;
     }
 
-    Utils.showBottomSheet(
-      title: "表情包筛选",
-      child: ListView.builder(
-        padding: AppStyle.edgeInsetsV12,
-        itemCount: emoticonPackages.length,
-        itemBuilder: (context, index) {
-          final pkg = emoticonPackages[index];
-          final id = _getEmoticonPackageId(pkg, index);
-          final title = _getEmoticonPackageName(pkg);
-          final subtitle = id == title ? null : "ID: $id";
-          return Obx(
-            () => SettingsSwitch(
-              value:
-                  AppSettingsController.instance.isEmoticonPackageEnabled(id),
-              title: title,
-              subtitle: subtitle,
-              onChanged: (value) {
-                AppSettingsController.instance
-                    .setEmoticonPackageEnabled(id, value);
-              },
-            ),
-          );
-        },
-      ),
-    );
+    final child = _buildEmoticonPackageSettingsContent(emoticonPackages);
+    if (_shouldUseDesktopWorkspace()) {
+      Utils.showRightDialog(
+        title: "表情包筛选",
+        width: 420,
+        useSystem: true,
+        child: child,
+      );
+      return;
+    }
+    Utils.showBottomSheet(title: "表情包筛选", child: child);
   }
 
   Future<void> showAutoSpamEmotionsSheet() async {
@@ -2140,100 +2150,163 @@ class LiveRoomController extends PlayerController
     );
   }
 
+  bool _shouldUseDesktopWorkspace() {
+    final context = Get.context;
+    if (context == null) {
+      return false;
+    }
+    return AppStyle.isDesktopLayout(context) && !isVertical.value;
+  }
+
+  Widget _buildQualitySelector({required VoidCallback onClose}) {
+    return RadioGroup(
+      groupValue: currentQuality,
+      onChanged: (e) {
+        onClose();
+        currentQuality = e ?? 0;
+        getPlayUrl();
+      },
+      child: ListView.builder(
+        itemCount: qualites.length,
+        itemBuilder: (_, i) {
+          final item = qualites[i];
+          return RadioListTile(
+            value: i,
+            title: Text(item.quality),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlayLineSelector({required VoidCallback onClose}) {
+    return RadioGroup(
+      groupValue: currentLineIndex,
+      onChanged: (e) {
+        onClose();
+        changePlayLine(e ?? 0);
+      },
+      child: ListView.builder(
+        itemCount: playUrls.length,
+        itemBuilder: (_, i) {
+          return RadioListTile(
+            value: i,
+            title: Text("线路${i + 1}"),
+            secondary: Text(
+              playUrls[i].contains(".flv") ? "FLV" : "HLS",
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildScaleModeSelector() {
+    return Obx(
+      () => RadioGroup(
+        groupValue: AppSettingsController.instance.scaleMode.value,
+        onChanged: (e) {
+          AppSettingsController.instance.setScaleMode(e ?? 0);
+          updateScaleMode();
+        },
+        child: ListView(
+          padding: AppStyle.edgeInsetsV12,
+          children: const [
+            RadioListTile(
+              value: 0,
+              title: Text("适应"),
+              visualDensity: VisualDensity.compact,
+            ),
+            RadioListTile(
+              value: 1,
+              title: Text("拉伸"),
+              visualDensity: VisualDensity.compact,
+            ),
+            RadioListTile(
+              value: 2,
+              title: Text("铺满"),
+              visualDensity: VisualDensity.compact,
+            ),
+            RadioListTile(
+              value: 3,
+              title: Text("16:9"),
+              visualDensity: VisualDensity.compact,
+            ),
+            RadioListTile(
+              value: 4,
+              title: Text("4:3"),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void showQualitySheet() {
+    if (_shouldUseDesktopWorkspace()) {
+      Utils.showRightDialog(
+        title: "清晰度",
+        width: 320,
+        useSystem: true,
+        child: _buildQualitySelector(onClose: Utils.hideRightDialog),
+      );
+      return;
+    }
+
     Utils.showBottomSheet(
       title: "切换清晰度",
-      child: RadioGroup(
-        groupValue: currentQuality,
-        onChanged: (e) {
+      child: _buildQualitySelector(
+        onClose: () {
           Get.back();
-          currentQuality = e ?? 0;
-          getPlayUrl();
         },
-        child: ListView.builder(
-          itemCount: qualites.length,
-          itemBuilder: (_, i) {
-            var item = qualites[i];
-            return RadioListTile(
-              value: i,
-              title: Text(item.quality),
-            );
-          },
-        ),
       ),
     );
   }
 
   void showPlayUrlsSheet() {
+    if (_shouldUseDesktopWorkspace()) {
+      Utils.showRightDialog(
+        title: "线路",
+        width: 320,
+        useSystem: true,
+        child: _buildPlayLineSelector(onClose: Utils.hideRightDialog),
+      );
+      return;
+    }
+
     Utils.showBottomSheet(
       title: "切换线路",
-      child: RadioGroup(
-        groupValue: currentLineIndex,
-        onChanged: (e) {
+      child: _buildPlayLineSelector(
+        onClose: () {
           Get.back();
-          //currentLineIndex = i;
-          //setPlayer();
-          changePlayLine(e ?? 0);
         },
-        child: ListView.builder(
-          itemCount: playUrls.length,
-          itemBuilder: (_, i) {
-            return RadioListTile(
-              value: i,
-              title: Text("线路${i + 1}"),
-              secondary: Text(
-                playUrls[i].contains(".flv") ? "FLV" : "HLS",
-              ),
-            );
-          },
-        ),
       ),
     );
   }
 
   void showPlayerSettingsSheet() {
+    if (_shouldUseDesktopWorkspace()) {
+      Utils.showRightDialog(
+        title: "画面尺寸",
+        width: 320,
+        useSystem: true,
+        child: _buildScaleModeSelector(),
+      );
+      return;
+    }
+
     Utils.showBottomSheet(
       title: "画面尺寸",
-      child: Obx(
-        () => RadioGroup(
-          groupValue: AppSettingsController.instance.scaleMode.value,
-          onChanged: (e) {
-            AppSettingsController.instance.setScaleMode(e ?? 0);
-            updateScaleMode();
-          },
-          child: ListView(
-            padding: AppStyle.edgeInsetsV12,
-            children: const [
-              RadioListTile(
-                value: 0,
-                title: Text("适应"),
-                visualDensity: VisualDensity.compact,
-              ),
-              RadioListTile(
-                value: 1,
-                title: Text("拉伸"),
-                visualDensity: VisualDensity.compact,
-              ),
-              RadioListTile(
-                value: 2,
-                title: Text("铺满"),
-                visualDensity: VisualDensity.compact,
-              ),
-              RadioListTile(
-                value: 3,
-                title: Text("16:9"),
-                visualDensity: VisualDensity.compact,
-              ),
-              RadioListTile(
-                value: 4,
-                title: Text("4:3"),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: _buildScaleModeSelector(),
     );
+  }
+
+  Future<void> toggleGhostModeQuick() async {
+    if (!Platform.isWindows) {
+      return;
+    }
+    toggleGhostMode();
   }
 
   void showDanmuShield() {

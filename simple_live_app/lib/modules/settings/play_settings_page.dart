@@ -28,6 +28,9 @@ class PlaySettingsView extends GetView<AppSettingsController> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Platform.isAndroid || Platform.isIOS;
+    final isWindows = Platform.isWindows;
+
     return ListView(
       padding: AppStyle.contentPadding(context),
       children: [
@@ -91,51 +94,46 @@ class PlaySettingsView extends GetView<AppSettingsController> {
                   onChanged: controller.setPlayerForceHttps,
                 ),
               ),
-              AppStyle.divider,
-              Obx(
-                () => SettingsSwitch(
-                  title: "纯净黑听模式",
-                  subtitle: "仅播放音频，降低资源占用",
-                  value: controller.audioOnlyMode.value,
-                  onChanged: controller.setAudioOnlyMode,
+              if (isMobile) AppStyle.divider,
+              if (isMobile)
+                Obx(
+                  () => SettingsSwitch(
+                    title: "黑听模式",
+                    subtitle: "仅播放音频，降低资源占用",
+                    value: controller.audioOnlyMode.value,
+                    onChanged: controller.setAudioOnlyMode,
+                  ),
                 ),
-              ),
-              AppStyle.divider,
-              Obx(
-                () => Visibility(
-                  visible: Platform.isAndroid,
-                  child: SettingsSwitch(
+              if (Platform.isAndroid) AppStyle.divider,
+              if (Platform.isAndroid)
+                Obx(
+                  () => SettingsSwitch(
                     title: "后台保活",
                     subtitle: "在黑听模式下保持后台运行",
                     value: controller.backgroundKeepAlive.value,
                     onChanged: controller.setBackgroundKeepAlive,
                   ),
                 ),
-              ),
-              AppStyle.divider,
-              Obx(
-                () => Visibility(
-                  visible: !Platform.isAndroid,
-                  child: SettingsSwitch(
+              if (isWindows) AppStyle.divider,
+              if (isWindows)
+                Obx(
+                  () => SettingsSwitch(
                     title: "Windows 任务栏托盘集成",
                     subtitle: "点击关闭按钮时最小化到托盘",
                     value: controller.windowsTrayIntegration.value,
                     onChanged: controller.setWindowsTrayIntegration,
                   ),
                 ),
-              ),
-              AppStyle.divider,
-              Obx(
-                () => Visibility(
-                  visible: !Platform.isAndroid,
-                  child: SettingsSwitch(
+              if (isWindows) AppStyle.divider,
+              if (isWindows)
+                Obx(
+                  () => SettingsSwitch(
                     title: "透明浮窗模式",
                     subtitle: "边工作边看直播的桌面模式",
                     value: controller.ghostMode.value,
                     onChanged: controller.setGhostMode,
                   ),
                 ),
-              ),
             ],
           ),
         ),

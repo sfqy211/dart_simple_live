@@ -196,8 +196,14 @@ class AppSettingsController extends GetxController {
     updateFollowThreadCount.value = LocalStorageService.instance
         .getValue(LocalStorageService.kUpdateFollowThreadCount, 0); // 默认 0 = 自动
 
-    audioOnlyMode.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kAudioOnlyMode, false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      audioOnlyMode.value = LocalStorageService.instance
+          .getValue(LocalStorageService.kAudioOnlyMode, false);
+    } else {
+      audioOnlyMode.value = false;
+      LocalStorageService.instance
+          .setValue(LocalStorageService.kAudioOnlyMode, false);
+    }
 
     backgroundKeepAlive.value = LocalStorageService.instance
         .getValue(LocalStorageService.kBackgroundKeepAlive, true);

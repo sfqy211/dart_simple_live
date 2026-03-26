@@ -12,10 +12,10 @@ import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
-import 'package:simple_live_app/modules/live_room/player/player_controls.dart';
 import 'package:simple_live_app/modules/live_room/player/audio_mode_cover.dart';
+import 'package:simple_live_app/modules/live_room/player/player_controls.dart';
+import 'package:simple_live_app/modules/settings/voice_recognition_settings_page.dart';
 import 'package:simple_live_app/services/follow_service.dart';
-import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
 import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/keep_alive_wrapper.dart';
@@ -23,7 +23,6 @@ import 'package:simple_live_app/widgets/net_image.dart';
 import 'package:simple_live_app/widgets/app_shell.dart';
 import 'package:simple_live_app/widgets/settings/settings_action.dart';
 import 'package:simple_live_app/widgets/settings/settings_card.dart';
-import 'package:simple_live_app/widgets/settings/settings_number.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 import 'package:simple_live_app/widgets/superchat_card.dart';
 import 'package:simple_live_core/simple_live_core.dart';
@@ -202,47 +201,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       );
     }
 
-    Widget buildStatTile({
-      required IconData icon,
-      required String label,
-      required String value,
-    }) {
-      return Container(
-        constraints: const BoxConstraints(minWidth: 140),
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: panelColor,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: borderColor),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
     return AppShellFrame(
       child: Column(
         children: [
@@ -265,6 +223,24 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 6),
+                    Obx(
+                      () => Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: borderColor),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: NetImage(
+                          controller.detail.value?.userAvatar ?? "",
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Obx(
                         () => Column(
@@ -285,17 +261,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Image.asset(
-                                    controller.site.logo,
-                                    width: 14,
-                                    height: 14,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
+                                Flexible(
                                   child: Text(
                                     controller.detail.value?.userName ?? "",
                                     maxLines: 1,
@@ -309,17 +275,28 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                   ),
                                 ),
                                 const SizedBox(width: 10),
-                                const Icon(
-                                  Remix.fire_fill,
-                                  size: 14,
-                                  color: Colors.orange,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  Utils.onlineToString(
-                                    controller.detail.value?.online ?? 0,
-                                  ),
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Remix.fire_fill,
+                                      size: 14,
+                                      color: Colors.orange,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      Utils.onlineToString(
+                                        controller.detail.value?.online ?? 0,
+                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -347,45 +324,27 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       ),
                     ),
                     IconButton(
-                      tooltip: "分享",
-                      onPressed: controller.share,
-                      icon: const Icon(Remix.share_line),
-                    ),
-                    IconButton(
-                      tooltip: "更多",
-                      onPressed: showMore,
-                      icon: const Icon(Icons.more_horiz),
+                      tooltip: "复制链接",
+                      onPressed: controller.copyUrl,
+                      icon: const Icon(Icons.link_outlined),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Obx(
                   () {
-                    final isAudio = controller.audioOnlyMode.value;
                     final isGhost = controller.ghostModeState.value;
                     final isMini = controller.smallWindowState.value;
                     final isSubtitle = controller.subtitleEnabled.value;
-                    final canToggleGhost = isAudio || isGhost;
                     return Wrap(
                       spacing: 10,
                       runSpacing: 10,
                       children: [
                         buildQuickChip(
-                          icon: isAudio
-                              ? Remix.video_line
-                              : Icons.headphones_outlined,
-                          label: isAudio ? "视频" : "黑听",
-                          selected: isAudio,
-                          onSelected: (_) => controller.toggleAudioMode(),
-                        ),
-                        buildQuickChip(
                           icon: Icons.blur_on_outlined,
                           label: "透明浮窗",
                           selected: isGhost,
-                          onSelected: canToggleGhost
-                              ? (_) => controller.toggleGhostMode()
-                              : null,
-                          tooltip: canToggleGhost ? null : "需先开启黑听模式",
+                          onSelected: (_) => controller.toggleGhostModeQuick(),
                         ),
                         buildQuickChip(
                           icon: Icons.picture_in_picture_alt_outlined,
@@ -440,71 +399,41 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                               ),
                             ),
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                            child: Obx(
-                              () => Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          controller.audioOnlyMode.value
-                                              ? "黑听工作区"
-                                              : "播放工作区",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          controller.audioOnlyMode.value
-                                              ? "保留聊天与字幕，把界面收束成更安静的桌面陪伴模式。"
-                                              : "让视频保持主角位置，把高频调整收纳到更克制的次级层。",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                color: scheme.onSurfaceVariant,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: buildSecondaryAction(
+                                    icon: Icons.high_quality_outlined,
+                                    label: "清晰度",
+                                    onPressed: controller.showQualitySheet,
                                   ),
-                                  const SizedBox(width: 16),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    alignment: WrapAlignment.end,
-                                    children: [
-                                      buildSecondaryAction(
-                                        icon: Icons.high_quality_outlined,
-                                        label: "清晰度",
-                                        onPressed: controller.showQualitySheet,
-                                      ),
-                                      buildSecondaryAction(
-                                        icon: Icons.route_outlined,
-                                        label: "线路",
-                                        onPressed: controller.showPlayUrlsSheet,
-                                      ),
-                                      buildSecondaryAction(
-                                        icon: Icons.crop_free_outlined,
-                                        label: "画面",
-                                        onPressed:
-                                            controller.showPlayerSettingsSheet,
-                                      ),
-                                      buildSecondaryAction(
-                                        icon: Icons.camera_alt_outlined,
-                                        label: "截图",
-                                        onPressed: controller.saveScreenshot,
-                                      ),
-                                    ],
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: buildSecondaryAction(
+                                    icon: Icons.route_outlined,
+                                    label: "线路",
+                                    onPressed: controller.showPlayUrlsSheet,
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: buildSecondaryAction(
+                                    icon: Icons.crop_free_outlined,
+                                    label: "画面",
+                                    onPressed:
+                                        controller.showPlayerSettingsSheet,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: buildSecondaryAction(
+                                    icon: Icons.camera_alt_outlined,
+                                    label: "截图",
+                                    onPressed: controller.saveScreenshot,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -516,117 +445,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     ),
                     SizedBox(
                       width: sideW,
-                      child: Column(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: panelColor,
-                              border: Border(
-                                bottom: BorderSide(color: borderColor),
-                              ),
-                            ),
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                            child: Obx(
-                              () => Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      NetImage(
-                                        controller.detail.value?.userAvatar ??
-                                            "",
-                                        width: 56,
-                                        height: 56,
-                                        borderRadius: 4,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              controller
-                                                      .detail.value?.userName ??
-                                                  "",
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              controller.detail.value?.title ??
-                                                  "直播间",
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        scheme.onSurfaceVariant,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      buildStatTile(
-                                        icon: Icons.public_outlined,
-                                        label: "平台",
-                                        value: controller.site.name,
-                                      ),
-                                      buildStatTile(
-                                        icon: Remix.fire_fill,
-                                        label: "热度",
-                                        value: Utils.onlineToString(
-                                          controller.detail.value?.online ?? 0,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          onPressed: controller.copyUrl,
-                                          icon: const Icon(Icons.link_outlined),
-                                          label: const Text("复制链接"),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          onPressed: controller.share,
-                                          icon: const Icon(Remix.share_line),
-                                          label: const Text("分享"),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              color: panelColor,
-                              child: buildMessageArea(),
-                            ),
-                          ),
-                        ],
+                      child: Container(
+                        color: panelColor,
+                        child: buildMessageArea(),
                       ),
                     ),
                   ],
@@ -640,113 +461,25 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildPhoneUI(BuildContext context) {
-    final borderColor =
-        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     return Stack(
       children: [
-        Obx(() {
-          if (controller.audioOnlyMode.value) {
-            // 黑听模式：显示控制界面和弹幕栏
-            return Column(
-              children: [
-                // 黑听模式控制界面
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: borderColor,
-                      ),
-                    ),
-                  ),
-                  padding: AppStyle.edgeInsetsA12,
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              "纯净黑听模式",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            onPressed: controller.toggleAudioMode,
-                            icon: const Icon(Remix.video_line),
-                            label: const Text("切换到视频模式"),
-                          ),
-                        ],
-                      ),
-                      AppStyle.vGap12,
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.volume_down,
-                            size: 20,
-                            color: Theme.of(context).iconTheme.color,
-                          ),
-                          Expanded(
-                            child: Obx(
-                              () => Slider(
-                                value: AppSettingsController
-                                    .instance.playerVolume.value,
-                                min: 0,
-                                max: 100,
-                                onChanged: (value) {
-                                  controller.player.setVolume(value);
-                                  AppSettingsController.instance
-                                      .setPlayerVolume(value);
-                                },
-                              ),
-                            ),
-                          ),
-                          Obx(
-                            () => Text(
-                              "${AppSettingsController.instance.playerVolume.value.toInt()}%",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                buildUserProfile(context),
-                Expanded(
-                  child: buildMessageArea(),
-                ),
-                buildBottomActions(context),
-              ],
-            );
-          } else {
-            // 正常模式：显示视频栏和弹幕栏
-            return Column(
-              children: [
-                AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: buildMediaPlayer(),
-                ),
-                buildUserProfile(context),
-                Expanded(
-                  child: buildMessageArea(),
-                ),
-                buildBottomActions(context),
-              ],
-            );
-          }
-        }),
+        Column(
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Obx(
+                () => controller.audioOnlyMode.value
+                    ? const AudioModeCover()
+                    : buildMediaPlayer(),
+              ),
+            ),
+            buildUserProfile(context),
+            Expanded(
+              child: buildMessageArea(),
+            ),
+            buildBottomActions(context),
+          ],
+        ),
         buildFloatingSubtitleBar(context),
       ],
     );
@@ -760,133 +493,34 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         Column(
           children: [
             Expanded(
-              child: Obx(() {
-                if (controller.audioOnlyMode.value) {
-                  return Row(
-                    children: [
-                      Container(
-                        width: 320,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          border: Border(
-                            right: BorderSide(
-                              color: borderColor,
-                            ),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: borderColor,
-                                  ),
-                                ),
-                              ),
-                              padding: AppStyle.edgeInsetsA12,
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Expanded(
-                                        child: Text(
-                                          "纯净黑听模式",
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      ElevatedButton.icon(
-                                        onPressed: controller.toggleAudioMode,
-                                        icon: const Icon(Remix.video_line),
-                                        label: const Text("切换到视频模式"),
-                                      ),
-                                    ],
-                                  ),
-                                  AppStyle.vGap12,
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.volume_down,
-                                        size: 20,
-                                        color:
-                                            Theme.of(context).iconTheme.color,
-                                      ),
-                                      Expanded(
-                                        child: Obx(
-                                          () => Slider(
-                                            value: AppSettingsController
-                                                .instance.playerVolume.value,
-                                            min: 0,
-                                            max: 100,
-                                            onChanged: (value) {
-                                              controller.player
-                                                  .setVolume(value);
-                                              AppSettingsController.instance
-                                                  .setPlayerVolume(value);
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                      Obx(
-                                        () => Text(
-                                          "${AppSettingsController.instance.playerVolume.value.toInt()}%",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.color,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            buildUserProfile(context),
-                          ],
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 7,
+                    child: Container(
+                      color: Colors.black,
+                      child: Obx(
+                        () => Center(
+                          child: controller.audioOnlyMode.value
+                              ? const AudioModeCover()
+                              : buildMediaPlayer(),
                         ),
                       ),
-                      Expanded(
-                        child: buildMessageArea(),
-                      ),
-                    ],
-                  );
-                } else {
-                  return Row(
-                    children: [
-                      Expanded(
-                        flex: 7,
-                        child: Container(
-                          color: Colors.black,
-                          child: Center(
-                            child: buildMediaPlayer(),
-                          ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      children: [
+                        buildUserProfile(context),
+                        Expanded(
+                          child: buildMessageArea(),
                         ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          children: [
-                            buildUserProfile(context),
-                            Expanded(
-                              child: buildMessageArea(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                }
-              }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             Container(
               decoration: BoxDecoration(
@@ -982,48 +616,36 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       aspectRatio = 4 / 3;
     }
 
-    return Obx(() {
-      return Stack(
-        children: [
-          Video(
-            key: controller.globalPlayerKey,
-            controller: controller.videoController,
-            pauseUponEnteringBackgroundMode:
-                AppSettingsController.instance.playerAutoPause.value,
-            resumeUponEnteringForegroundMode:
-                AppSettingsController.instance.playerAutoPause.value,
-            controls: (state) {
-              return Stack(
-                children: [
-                  Obx(
-                    () => Visibility(
-                      visible: controller.audioOnlyMode.value,
-                      child: const AudioModeCover(),
-                    ),
-                  ),
-                  playerControls(state, controller),
-                ],
-              );
-            },
-            aspectRatio: aspectRatio,
-            fit: boxFit,
-            wakelock: false,
-          ),
-          buildSubtitleOverlay(),
-          Obx(
-            () => Visibility(
-              visible: !controller.liveStatus.value,
-              child: const Center(
-                child: Text(
-                  "未开播",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
+    return Stack(
+      children: [
+        Video(
+          key: controller.globalPlayerKey,
+          controller: controller.videoController,
+          pauseUponEnteringBackgroundMode:
+              AppSettingsController.instance.playerAutoPause.value,
+          resumeUponEnteringForegroundMode:
+              AppSettingsController.instance.playerAutoPause.value,
+          controls: (state) {
+            return Stack(children: [playerControls(state, controller)]);
+          },
+          aspectRatio: aspectRatio,
+          fit: boxFit,
+          wakelock: false,
+        ),
+        buildSubtitleOverlay(),
+        Obx(
+          () => Visibility(
+            visible: !controller.liveStatus.value,
+            child: const Center(
+              child: Text(
+                "未开播",
+                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
             ),
           ),
-        ],
-      );
-    });
+        ),
+      ],
+    );
   }
 
   Widget buildSubtitleOverlay() {
@@ -1229,21 +851,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   AppStyle.vGap4,
-                  Row(
-                    children: [
-                      Image.asset(
-                        controller.site.logo,
-                        width: 20,
-                      ),
-                      AppStyle.hGap4,
-                      Text(
-                        controller.site.name,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppStyle.mutedTextColor(context),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    controller.detail.value?.title ?? "",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppStyle.mutedTextColor(context),
+                    ),
                   ),
                 ],
               ),
@@ -1371,11 +986,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   ),
                 ),
                 child: TabBar(
-                  indicatorSize: TabBarIndicatorSize.label,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 10),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelPadding: EdgeInsets.zero,
                   indicatorWeight: 2,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
                   dividerColor: Colors.transparent,
                   tabs: [
                     const Tab(
@@ -1489,9 +1102,154 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 ),
               ),
             ),
-            if (controller.site.id == Constant.kBiliBili) buildChatInput(),
+            if (controller.site.id == Constant.kBiliBili)
+              buildOptimizedChatInput(),
           ],
         ),
+      ),
+    );
+  }
+
+  void _submitChatMessage() {
+    final message = controller.chatInputController.text.trim();
+    if (message.isNotEmpty) {
+      controller.sendChatMessage(message);
+    }
+  }
+
+  Widget _buildChatInputActionButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    bool active = false,
+  }) {
+    final context = Get.context!;
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 90 : 140);
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: AppStyle.radius12,
+        child: InkWell(
+          borderRadius: AppStyle.radius12,
+          onTap: onPressed,
+          child: Ink(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: active
+                  ? scheme.primary.withAlpha(Get.isDarkMode ? 36 : 18)
+                  : Colors.transparent,
+              borderRadius: AppStyle.radius12,
+              border: Border.all(
+                color: active ? scheme.primary.withAlpha(120) : borderColor,
+              ),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: active ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildOptimizedChatInput() {
+    final context = Get.context!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDesktop = AppStyle.isDesktopLayout(context);
+    final borderColor =
+        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
+    final inputBackground =
+        scheme.surfaceContainerHighest.withAlpha(Get.isDarkMode ? 70 : 120);
+    final inputShape = RoundedRectangleBorder(borderRadius: AppStyle.radius12);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        border: Border(
+          top: BorderSide(color: borderColor),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Row(
+        children: [
+          _buildChatInputActionButton(
+            icon: Remix.emotion_line,
+            tooltip: "表情包",
+            onPressed: controller.showEmotionPanel,
+          ),
+          const SizedBox(width: 8),
+          Obx(
+            () {
+              final running = controller.autoSpamTextRunning.value ||
+                  controller.autoSpamEmotionRunning.value ||
+                  controller.autoSpamFavoritesRunning.value;
+              return _buildChatInputActionButton(
+                icon: Icons.repeat,
+                tooltip: running ? "自动发送运行中" : "自动发送",
+                onPressed: controller.showAutoSpamSheet,
+                active: running,
+              );
+            },
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 44,
+              child: TextField(
+                controller: controller.chatInputController,
+                maxLines: 1,
+                textInputAction: TextInputAction.send,
+                textAlignVertical: TextAlignVertical.center,
+                decoration: InputDecoration(
+                  hintText: "发送弹幕...",
+                  isDense: true,
+                  filled: true,
+                  fillColor: inputBackground,
+                  constraints: const BoxConstraints(
+                    minHeight: 44,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: AppStyle.radius12,
+                    borderSide: BorderSide(
+                      color: borderColor.withAlpha(Get.isDarkMode ? 110 : 150),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: AppStyle.radius12,
+                    borderSide: BorderSide(
+                      color:
+                          scheme.primary.withAlpha(Get.isDarkMode ? 180 : 220),
+                    ),
+                  ),
+                ),
+                onSubmitted: (_) => _submitChatMessage(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Tooltip(
+            message: "发送",
+            child: FilledButton(
+              onPressed: _submitChatMessage,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                padding: EdgeInsets.symmetric(horizontal: isDesktop ? 14 : 12),
+                shape: inputShape,
+              ),
+              child: const Icon(Icons.send_rounded, size: 18),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1501,6 +1259,39 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     final scheme = Theme.of(context).colorScheme;
     final borderColor =
         AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
+    final inputFill = scheme.surfaceContainerHighest.withAlpha(
+      Get.isDarkMode ? 96 : 150,
+    );
+
+    Widget buildActionButton({
+      required IconData icon,
+      required String tooltip,
+      required VoidCallback onTap,
+    }) {
+      return Tooltip(
+        message: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          child: Ink(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: inputFill,
+              border: Border.all(
+                color: borderColor.withAlpha(Get.isDarkMode ? 120 : 180),
+              ),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onTap,
+              child: Icon(icon, size: 20),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -1515,30 +1306,42 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: controller.showEmotionPanel,
-            icon: const Icon(Remix.emotion_line),
+          buildActionButton(
+            icon: Remix.emotion_line,
             tooltip: "表情包",
+            onTap: controller.showEmotionPanel,
           ),
+          AppStyle.hGap8,
+          buildActionButton(
+            icon: Icons.auto_awesome_outlined,
+            tooltip: "自动发送",
+            onTap: controller.showAutoSpamSheet,
+          ),
+          AppStyle.hGap8,
           Expanded(
-            child: TextField(
-              controller: controller.chatInputController,
-              decoration: InputDecoration(
-                hintText: "发送弹幕...",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide.none,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: inputFill,
+                border: Border.all(
+                  color: borderColor.withAlpha(Get.isDarkMode ? 120 : 170),
                 ),
-                filled: true,
-                fillColor: scheme.surfaceContainerHighest
-                    .withAlpha(Get.isDarkMode ? 80 : 120),
-                contentPadding: AppStyle.edgeInsetsH12,
               ),
-              onSubmitted: (value) {
-                if (value.trim().isNotEmpty) {
-                  controller.sendChatMessage(value.trim());
-                }
-              },
+              child: TextField(
+                controller: controller.chatInputController,
+                decoration: const InputDecoration(
+                  hintText: "发送弹幕...",
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) {
+                    controller.sendChatMessage(value.trim());
+                  }
+                },
+              ),
             ),
           ),
           AppStyle.hGap8,
@@ -1551,11 +1354,12 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             },
             style: FilledButton.styleFrom(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(10),
               ),
-              padding: AppStyle.edgeInsetsH16,
+              minimumSize: const Size(44, 38),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
-            child: const Text("发送"),
+            child: const Icon(Icons.send_rounded, size: 18),
           ),
         ],
       ),
@@ -1661,6 +1465,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
 
   Widget buildSettings() {
     final canUseGhostMode = Platform.isWindows;
+    final canUseAudioOnlyMode = Platform.isAndroid || Platform.isIOS;
     return ListView(
       padding: AppStyle.edgeInsetsA12,
       children: [
@@ -1677,7 +1482,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         Padding(
           padding: AppStyle.edgeInsetsA12,
           child: Text(
-            "聊天区",
+            "直播内显示",
             style: Get.textTheme.titleSmall,
           ),
         ),
@@ -1685,46 +1490,21 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Obx(
-                () => SettingsNumber(
-                  title: "文字大小",
-                  value:
-                      AppSettingsController.instance.chatTextSize.value.toInt(),
-                  min: 8,
-                  max: 36,
-                  onChanged: (e) {
-                    AppSettingsController.instance
-                        .setChatTextSize(e.toDouble());
-                  },
+              if (canUseAudioOnlyMode)
+                Obx(
+                  () => SettingsSwitch(
+                    title: controller.audioOnlyMode.value ? "关闭黑听模式" : "开启黑听模式",
+                    subtitle: "移动端仅保留音频播放，不再显示视频画面",
+                    value: controller.audioOnlyMode.value,
+                    onChanged: (_) {
+                      controller.toggleAudioMode();
+                    },
+                  ),
                 ),
-              ),
-              if (canUseGhostMode) AppStyle.divider,
-              Obx(
-                () => SettingsNumber(
-                  title: "上下间隔",
-                  value:
-                      AppSettingsController.instance.chatTextGap.value.toInt(),
-                  min: 0,
-                  max: 12,
-                  onChanged: (e) {
-                    AppSettingsController.instance.setChatTextGap(e.toDouble());
-                  },
-                ),
-              ),
-              AppStyle.divider,
+              if (canUseAudioOnlyMode) AppStyle.divider,
               Obx(
                 () => SettingsSwitch(
-                  title: "气泡样式",
-                  value: AppSettingsController.instance.chatBubbleStyle.value,
-                  onChanged: (e) {
-                    AppSettingsController.instance.setChatBubbleStyle(e);
-                  },
-                ),
-              ),
-              AppStyle.divider,
-              Obx(
-                () => SettingsSwitch(
-                  title: "播放器中显示SC",
+                  title: "播放区显示SC",
                   value:
                       AppSettingsController.instance.playershowSuperChat.value,
                   onChanged: (e) {
@@ -1732,13 +1512,25 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   },
                 ),
               ),
+              if (canUseGhostMode) AppStyle.divider,
+              if (canUseGhostMode)
+                Obx(
+                  () => SettingsSwitch(
+                    title:
+                        controller.ghostModeState.value ? "关闭透明浮窗" : "开启透明浮窗",
+                    value: controller.ghostModeState.value,
+                    onChanged: (value) {
+                      controller.toggleGhostModeQuick();
+                    },
+                  ),
+                ),
             ],
           ),
         ),
         Padding(
           padding: AppStyle.edgeInsetsA12,
           child: Text(
-            "更多设置",
+            "房间工具",
             style: Get.textTheme.titleSmall,
           ),
         ),
@@ -1746,77 +1538,20 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SettingsAction(
-                title: "关键词屏蔽",
-                onTap: controller.showDanmuShield,
-              ),
-              AppStyle.divider,
-              SettingsAction(
-                title: "弹幕设置",
-                onTap: controller.showDanmuSettingsSheet,
-              ),
-              AppStyle.divider,
-              SettingsAction(
-                title: "字幕设置",
-                onTap: () => Get.toNamed(RoutePath.kSettingsSubtitle),
-              ),
-              AppStyle.divider,
-              SettingsAction(
-                title: "定时关闭",
-                onTap: controller.showAutoExitSheet,
-              ),
-              AppStyle.divider,
-              Obx(
-                () => ListTile(
-                  leading: const Icon(Icons.audiotrack),
-                  title: Text(
-                      controller.audioOnlyMode.value ? "切换到视频模式" : "切换到黑听模式"),
-                  trailing: Switch(
-                    value: controller.audioOnlyMode.value,
-                    onChanged: (value) {
-                      controller.toggleAudioMode();
-                    },
-                  ),
-                ),
-              ),
-              AppStyle.divider,
-              Obx(
-                () => Visibility(
-                  visible: canUseGhostMode,
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.visibility),
-                        title: Text(controller.ghostModeState.value
-                            ? "关闭透明模式"
-                            : "开启透明模式"),
-                        trailing: Switch(
-                          value: controller.ghostModeState.value,
-                          onChanged: controller.audioOnlyMode.value
-                              ? (value) {
-                                  controller.toggleGhostMode();
-                                }
-                              : null,
-                          activeThumbColor: controller.audioOnlyMode.value
-                              ? null
-                              : Colors.grey,
-                          inactiveTrackColor: Colors.grey,
-                        ),
-                      ),
-                      AppStyle.divider,
-                    ],
-                  ),
-                ),
-              ),
               if (controller.site.id == Constant.kBiliBili)
                 SettingsAction(
-                  title: "自动发送",
-                  onTap: controller.showAutoSpamSheet,
+                  title: "表情包筛选",
+                  onTap: controller.showEmoticonPackageSettingsSheet,
                 ),
               if (controller.site.id == Constant.kBiliBili) AppStyle.divider,
               SettingsAction(
-                title: "画面尺寸",
-                onTap: controller.showPlayerSettingsSheet,
+                title: "字幕设置",
+                onTap: showSubtitleSettings,
+              ),
+              AppStyle.divider,
+              SettingsAction(
+                title: "播放信息",
+                onTap: controller.showDebugInfo,
               ),
             ],
           ),
@@ -1878,9 +1613,26 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     ];
   }
 
+  void showSubtitleSettings() {
+    if (AppStyle.isDesktopLayout(Get.context!)) {
+      Utils.showRightDialog(
+        title: "字幕设置",
+        width: 420,
+        useSystem: true,
+        child: const VoiceRecognitionSettingsView(),
+      );
+      return;
+    }
+    Get.to(() => const VoiceRecognitionSettingsPage());
+  }
+
   void showMore() {
+    final rootContext = Get.context!;
+    final isDesktop = AppStyle.isDesktopLayout(rootContext);
+    final showEmoticonSettings = controller.site.id == Constant.kBiliBili;
+
     showModalBottomSheet(
-      context: Get.context!,
+      context: rootContext,
       constraints: const BoxConstraints(
         maxWidth: 600,
       ),
@@ -1898,6 +1650,16 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               }
             }
 
+            Widget buildSectionTitle(String title) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              );
+            }
+
             return Container(
               padding: EdgeInsets.only(
                 bottom: AppStyle.bottomBarHeight,
@@ -1912,58 +1674,67 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       icon: const Icon(Remix.close_line),
                     ),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.refresh),
-                    title: const Text("刷新"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      controller.refreshRoom();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.play_circle_outline),
-                    trailing: const Icon(Icons.chevron_right),
-                    title: const Text("切换清晰度"),
-                    onTap: () {
-                      Get.back();
-                      controller.showQualitySheet();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.emoji_emotions_outlined),
-                    title: const Text("表情包筛选"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Get.back();
-                      controller.showEmoticonPackageSettingsSheet();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.switch_video_outlined),
-                    title: const Text("切换线路"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Get.back();
-                      controller.showPlayUrlsSheet();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.aspect_ratio_outlined),
-                    title: const Text("画面尺寸"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Get.back();
-                      controller.showPlayerSettingsSheet();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.camera_alt_outlined),
-                    title: const Text("截图"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      controller.saveScreenshot();
-                    },
-                  ),
+                  buildSectionTitle("房间工具"),
+                  if (!isDesktop)
+                    ListTile(
+                      leading: const Icon(Icons.refresh),
+                      title: const Text("刷新"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        closeSheet();
+                        controller.refreshRoom();
+                      },
+                    ),
+                  if (!isDesktop)
+                    ListTile(
+                      leading: const Icon(Icons.play_circle_outline),
+                      trailing: const Icon(Icons.chevron_right),
+                      title: const Text("切换清晰度"),
+                      onTap: () {
+                        Get.back();
+                        controller.showQualitySheet();
+                      },
+                    ),
+                  if (showEmoticonSettings)
+                    ListTile(
+                      leading: const Icon(Icons.emoji_emotions_outlined),
+                      title: const Text("表情包筛选"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Get.back();
+                        controller.showEmoticonPackageSettingsSheet();
+                      },
+                    ),
+                  if (!isDesktop)
+                    ListTile(
+                      leading: const Icon(Icons.switch_video_outlined),
+                      title: const Text("切换线路"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Get.back();
+                        controller.showPlayUrlsSheet();
+                      },
+                    ),
+                  if (!isDesktop)
+                    ListTile(
+                      leading: const Icon(Icons.aspect_ratio_outlined),
+                      title: const Text("画面尺寸"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Get.back();
+                        controller.showPlayerSettingsSheet();
+                      },
+                    ),
+                  if (!isDesktop)
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt_outlined),
+                      title: const Text("截图"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        closeSheet();
+                        controller.saveScreenshot();
+                      },
+                    ),
                   Visibility(
                     visible: Platform.isAndroid,
                     child: ListTile(
@@ -1976,24 +1747,17 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       },
                     ),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.timer_outlined),
-                    title: const Text("定时关闭"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Get.back();
-                      controller.showAutoExitSheet();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.share_sharp),
-                    title: const Text("分享直播间"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Get.back();
-                      controller.share();
-                    },
-                  ),
+                  buildSectionTitle("分享与打开"),
+                  if (!isDesktop)
+                    ListTile(
+                      leading: const Icon(Icons.share_sharp),
+                      title: const Text("分享直播间"),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Get.back();
+                        controller.share();
+                      },
+                    ),
                   ListTile(
                     leading: const Icon(Icons.copy),
                     title: const Text("复制链接"),
@@ -2012,6 +1776,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                       controller.openNaviteAPP();
                     },
                   ),
+                  buildSectionTitle("调试信息"),
                   ListTile(
                     leading: const Icon(Icons.info_outline_rounded),
                     title: const Text("播放信息"),

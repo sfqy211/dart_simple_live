@@ -11,6 +11,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:volume_controller/volume_controller.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/custom_throttle.dart';
@@ -650,10 +651,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     if (!Platform.isWindows) {
       return;
     }
-    // 只有在黑听模式下才能开启透明模式
-    if (!ghostModeState.value && !audioOnlyMode.value) {
-      return;
-    }
     if (_ghostModeTransitioning) {
       return;
     }
@@ -1194,102 +1191,124 @@ class PlayerController extends BaseController
     }
   }
 
+  Widget _buildDebugInfoContent() {
+    return ListView(
+      children: [
+        ListTile(
+          title: const Text("Resolution"),
+          subtitle: Text('${player.state.width}x${player.state.height}'),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text:
+                    "Resolution\n${player.state.width}x${player.state.height}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("VideoParams"),
+          subtitle: Text(player.state.videoParams.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "VideoParams\n${player.state.videoParams}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("AudioParams"),
+          subtitle: Text(player.state.audioParams.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "AudioParams\n${player.state.audioParams}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("Media"),
+          subtitle: Text(player.state.playlist.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "Media\n${player.state.playlist}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("AudioTrack"),
+          subtitle: Text(player.state.track.audio.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "AudioTrack\n${player.state.track.audio}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("VideoTrack"),
+          subtitle: Text(player.state.track.video.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "VideoTrack\n${player.state.track.video}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("AudioBitrate"),
+          subtitle: Text(player.state.audioBitrate.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "AudioBitrate\n${player.state.audioBitrate}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("Volume"),
+          subtitle: Text(player.state.volume.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "Volume\n${player.state.volume}",
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  bool _shouldUseDesktopWorkspace() {
+    final context = Get.context;
+    if (context == null) {
+      return false;
+    }
+    return AppStyle.isDesktopLayout(context);
+  }
+
   void showDebugInfo() {
+    final child = _buildDebugInfoContent();
+    if (_shouldUseDesktopWorkspace()) {
+      Utils.showRightDialog(
+        title: "播放信息",
+        width: 420,
+        useSystem: true,
+        child: child,
+      );
+      return;
+    }
     Utils.showBottomSheet(
       title: "播放信息",
-      child: ListView(
-        children: [
-          ListTile(
-            title: const Text("Resolution"),
-            subtitle: Text('${player.state.width}x${player.state.height}'),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text:
-                      "Resolution\n${player.state.width}x${player.state.height}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("VideoParams"),
-            subtitle: Text(player.state.videoParams.toString()),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text: "VideoParams\n${player.state.videoParams}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("AudioParams"),
-            subtitle: Text(player.state.audioParams.toString()),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text: "AudioParams\n${player.state.audioParams}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("Media"),
-            subtitle: Text(player.state.playlist.toString()),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text: "Media\n${player.state.playlist}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("AudioTrack"),
-            subtitle: Text(player.state.track.audio.toString()),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text: "AudioTrack\n${player.state.track.audio}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("VideoTrack"),
-            subtitle: Text(player.state.track.video.toString()),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text: "VideoTrack\n${player.state.track.audio}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("AudioBitrate"),
-            subtitle: Text(player.state.audioBitrate.toString()),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text: "AudioBitrate\n${player.state.audioBitrate}",
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("Volume"),
-            subtitle: Text(player.state.volume.toString()),
-            onTap: () {
-              Clipboard.setData(
-                ClipboardData(
-                  text: "Volume\n${player.state.volume}",
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      child: child,
     );
   }
 

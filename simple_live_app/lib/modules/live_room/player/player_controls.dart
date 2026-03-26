@@ -699,86 +699,11 @@ Widget buildDanmuView(VideoState videoState, LiveRoomController controller) {
 }
 
 void showLinesInfo(LiveRoomController controller) {
-  if (controller.isVertical.value) {
-    controller.showPlayUrlsSheet();
-    return;
-  }
-  Utils.showRightDialog(
-    title: "线路",
-    useSystem: true,
-    child: ListView.builder(
-      padding: EdgeInsets.zero,
-      itemCount: controller.playUrls.length,
-      itemBuilder: (_, i) {
-        return ListTile(
-          selected: controller.currentLineIndex == i,
-          title: Text.rich(
-            TextSpan(
-              text: "线路${i + 1}",
-              children: [
-                WidgetSpan(
-                    child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: AppStyle.radius4,
-                    border: Border.all(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  padding: AppStyle.edgeInsetsH4,
-                  margin: AppStyle.edgeInsetsL8,
-                  child: Text(
-                    controller.playUrls[i].contains(".flv") ? "FLV" : "HLS",
-                    style: const TextStyle(
-                      fontSize: 12,
-                    ),
-                  ),
-                )),
-              ],
-            ),
-            style: const TextStyle(fontSize: 14),
-          ),
-          minLeadingWidth: 16,
-          onTap: () {
-            Utils.hideRightDialog();
-            //controller.currentLineIndex = i;
-            //controller.setPlayer();
-            controller.changePlayLine(i);
-          },
-        );
-      },
-    ),
-  );
+  controller.showPlayUrlsSheet();
 }
 
 void showQualitesInfo(LiveRoomController controller) {
-  if (controller.isVertical.value) {
-    controller.showQualitySheet();
-    return;
-  }
-  Utils.showRightDialog(
-    title: "清晰度",
-    useSystem: true,
-    child: ListView.builder(
-      padding: EdgeInsets.zero,
-      itemCount: controller.qualites.length,
-      itemBuilder: (_, i) {
-        var item = controller.qualites[i];
-        return ListTile(
-          selected: controller.currentQuality == i,
-          title: Text(
-            item.quality,
-            style: const TextStyle(fontSize: 14),
-          ),
-          minLeadingWidth: 16,
-          onTap: () {
-            Utils.hideRightDialog();
-            controller.currentQuality = i;
-            controller.getPlayUrl();
-          },
-        );
-      },
-    ),
-  );
+  controller.showQualitySheet();
 }
 
 void showDanmakuSettings(LiveRoomController controller) {
@@ -802,66 +727,7 @@ void showDanmakuSettings(LiveRoomController controller) {
 }
 
 void showPlayerSettings(LiveRoomController controller) {
-  if (controller.isVertical.value) {
-    controller.showPlayerSettingsSheet();
-    return;
-  }
-  Utils.showRightDialog(
-    title: "设置",
-    width: 320,
-    useSystem: true,
-    child: Obx(
-      () => RadioGroup(
-        groupValue: AppSettingsController.instance.scaleMode.value,
-        onChanged: (e) {
-          AppSettingsController.instance.setScaleMode(e ?? 0);
-          controller.updateScaleMode();
-        },
-        child: ListView(
-          padding: AppStyle.edgeInsetsV12,
-          children: [
-            Padding(
-              padding: AppStyle.edgeInsetsH16,
-              child: Text(
-                "画面尺寸",
-                style: Get.textTheme.titleMedium,
-              ),
-            ),
-            const RadioListTile(
-              value: 0,
-              contentPadding: AppStyle.edgeInsetsH4,
-              title: Text("适应"),
-              visualDensity: VisualDensity.compact,
-            ),
-            const RadioListTile(
-              value: 1,
-              contentPadding: AppStyle.edgeInsetsH4,
-              title: Text("拉伸"),
-              visualDensity: VisualDensity.compact,
-            ),
-            const RadioListTile(
-              value: 2,
-              contentPadding: AppStyle.edgeInsetsH4,
-              title: Text("铺满"),
-              visualDensity: VisualDensity.compact,
-            ),
-            const RadioListTile(
-              value: 3,
-              contentPadding: AppStyle.edgeInsetsH4,
-              title: Text("16:9"),
-              visualDensity: VisualDensity.compact,
-            ),
-            const RadioListTile(
-              value: 4,
-              contentPadding: AppStyle.edgeInsetsH4,
-              title: Text("4:3"),
-              visualDensity: VisualDensity.compact,
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+  controller.showPlayerSettingsSheet();
 }
 
 void showFollowUser(LiveRoomController controller) {
