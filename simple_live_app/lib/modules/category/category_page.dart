@@ -263,11 +263,6 @@ class _DesktopCategoryWorkbenchState extends State<_DesktopCategoryWorkbench> {
                     onTap: _selectSubCategory,
                   ),
                 ] else ...[
-                  const SettingsSectionTitle(
-                    title: "当前二级分区",
-                    subtitle: "已自动收起二级菜单，方便继续选择直播间。",
-                    padding: EdgeInsets.zero,
-                  ),
                   const SizedBox(height: 12),
                   SettingsCard(
                     child: ListTile(
@@ -344,6 +339,8 @@ class _DesktopCategoryWorkbenchState extends State<_DesktopCategoryWorkbench> {
                                 return LiveRoomCard(
                                   widget.site,
                                   roomController.list[index],
+                                  titleMaxLines: 1,
+                                  reserveTitleHeight: true,
                                 );
                               },
                             );

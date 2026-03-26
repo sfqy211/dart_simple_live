@@ -27,7 +27,7 @@ class AboutSettingsView extends StatelessWidget {
 
   Future<void> _openProjectHomepage() {
     return launchUrlString(
-      "https://github.com/xiaoyaocz/dart_simple_live",
+      "https://github.com/sfqy211/dart_simple_live",
       mode: LaunchMode.externalApplication,
     );
   }

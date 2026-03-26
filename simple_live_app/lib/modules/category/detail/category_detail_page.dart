@@ -30,7 +30,12 @@ class CategoryDetailPage extends GetView<CategoryDetailController> {
           crossAxisCount: c,
           itemBuilder: (_, i) {
             var item = controller.list[i];
-            return LiveRoomCard(controller.site, item);
+            return LiveRoomCard(
+              controller.site,
+              item,
+              titleMaxLines: 1,
+              reserveTitleHeight: true,
+            );
           },
         ),
       ),
