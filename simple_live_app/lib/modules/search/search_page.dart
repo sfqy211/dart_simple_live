@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
-import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/modules/search/search_controller.dart';
 import 'package:simple_live_app/modules/search/search_list_view.dart';
 
@@ -10,6 +9,7 @@ class SearchPage extends GetView<AppSearchController> {
 
   @override
   Widget build(BuildContext context) {
+    final isSingleSite = controller.isSingleSite;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -61,42 +61,41 @@ class SearchPage extends GetView<AppSearchController> {
             controller.doSearch();
           },
         ),
-        bottom: TabBar(
-          controller: controller.tabController,
-          padding: EdgeInsets.zero,
-          tabAlignment: TabAlignment.center,
-          tabs: Sites.supportSites
-              .map(
-                (e) => Tab(
-                  //text: e.name,
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        e.logo,
-                        width: 24,
+        bottom: isSingleSite
+            ? null
+            : TabBar(
+                controller: controller.tabController,
+                padding: EdgeInsets.zero,
+                tabAlignment: TabAlignment.center,
+                tabs: controller.sites
+                    .map(
+                      (e) => Tab(
+                        child: Row(
+                          children: [
+                            Image.asset(
+                              e.logo,
+                              width: 24,
+                            ),
+                            AppStyle.hGap8,
+                            Text(e.name),
+                          ],
+                        ),
                       ),
-                      AppStyle.hGap8,
-                      Text(e.name),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-          labelPadding: AppStyle.edgeInsetsH20,
-          isScrollable: true,
-          indicatorSize: TabBarIndicatorSize.label,
-        ),
-      ),
-      body: TabBarView(
-        physics: const NeverScrollableScrollPhysics(),
-        controller: controller.tabController,
-        children: Sites.supportSites
-            .map((e) => SearchListView(
-                      e.id,
                     )
-                )
-            .toList(),
+                    .toList(),
+                labelPadding: AppStyle.edgeInsetsH20,
+                isScrollable: true,
+                indicatorSize: TabBarIndicatorSize.label,
+              ),
       ),
+      body: isSingleSite
+          ? SearchListView(controller.primarySite.id)
+          : TabBarView(
+              physics: const NeverScrollableScrollPhysics(),
+              controller: controller.tabController,
+              children:
+                  controller.sites.map((e) => SearchListView(e.id)).toList(),
+            ),
     );
   }
 }

@@ -50,3 +50,4 @@ pubspec.lock
 .fvm/
 
 /android/app/.cxx
+installer/

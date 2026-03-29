@@ -8,14 +8,17 @@ import 'package:simple_live_app/modules/search/search_list_controller.dart';
 
 class AppSearchController extends GetxController
     with GetSingleTickerProviderStateMixin {
+  final List<Site> sites = Sites.supportSites;
   late TabController tabController;
   int index = 0;
 
   var searchMode = 0.obs;
 
+  bool get isSingleSite => sites.length == 1;
+  Site get primarySite => sites.first;
+
   AppSearchController() {
-    tabController =
-        TabController(length: Sites.supportSites.length, vsync: this);
+    tabController = TabController(length: sites.length, vsync: this);
     tabController.animation?.addListener(() {
       var currentIndex = (tabController.animation?.value ?? 0).round();
       if (index == currentIndex) {
@@ -24,8 +27,7 @@ class AppSearchController extends GetxController
 
       index = currentIndex;
 
-      var controller =
-          Get.find<SearchListController>(tag: Sites.supportSites[index].id);
+      var controller = Get.find<SearchListController>(tag: sites[index].id);
 
       if (controller.list.isEmpty &&
           !controller.pageEmpty.value &&
@@ -41,7 +43,7 @@ class AppSearchController extends GetxController
 
   @override
   void onInit() {
-    for (var site in Sites.supportSites) {
+    for (var site in sites) {
       Get.put(
         SearchListController(site),
         tag: site.id,
@@ -56,15 +58,14 @@ class AppSearchController extends GetxController
     if (searchController.text.isEmpty) {
       return;
     }
-    for (var site in Sites.supportSites) {
+    for (var site in sites) {
       var controller = Get.find<SearchListController>(tag: site.id);
       controller.clear();
       controller.keyword = searchController.text;
       controller.searchMode.value = searchMode.value;
       //}
     }
-    var controller =
-        Get.find<SearchListController>(tag: Sites.supportSites[index].id);
+    var controller = Get.find<SearchListController>(tag: sites[index].id);
     controller.refreshData();
     //}
   }

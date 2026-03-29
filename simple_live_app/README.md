@@ -59,6 +59,38 @@ flutter build apk --release
 flutter build appbundle --release
 ```
 
+### Windows 一键安装包
+
+项目已内置 Inno Setup 安装脚本 [installer.iss](C:/Users/sfqy/Documents/code/dart_simple_live/simple_live_app/installer.iss)，并提供了一键打包脚本 [build_installer.ps1](C:/Users/sfqy/Documents/code/dart_simple_live/simple_live_app/build_installer.ps1)。
+
+前置要求：
+
+- 已安装 Flutter Windows 桌面构建环境
+- 已安装 Inno Setup 6
+
+生成安装包：
+
+```powershell
+.\build_installer.ps1
+```
+
+如果你已经提前执行过 `flutter build windows --release`，也可以跳过 Flutter 构建，直接生成安装包：
+
+```powershell
+.\build_installer.ps1 -SkipFlutterBuild
+```
+
+默认输出位置：
+
+- 安装包：`installer\SimpleLiveSetup.exe`
+- Windows release 目录：`build\windows\x64\runner\Release\`
+
+说明：
+
+- 脚本会自动读取 `pubspec.yaml` 中的 `version`
+- 安装包版本号会自动使用 `version` 的主版本部分，例如 `2.0.0+20000` 会生成 `2.0.0`
+- 安装程序会打包 Windows release 目录下的所有运行文件，并保留现有 WebView2 检测与安装逻辑
+
 ## 🔑 签名配置 (Android)
 
 如果你需要构建签名的 Android release 包，请参考以下命令生成密钥库：
