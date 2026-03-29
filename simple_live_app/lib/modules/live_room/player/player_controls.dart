@@ -6,10 +6,12 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
+import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
+import 'package:simple_live_app/modules/live_room/widgets/live_room_chat_input_bar.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
@@ -43,6 +45,8 @@ Widget buildFullControls(
   LiveRoomController controller,
 ) {
   var padding = MediaQuery.of(videoState.context).padding;
+  final showFullscreenChatInput =
+      Platform.isWindows && controller.site.id == Constant.kBiliBili;
   GlobalKey volumeButtonkey = GlobalKey();
   return Obx(() => GestureDetector(
         onPanStart: controller.ghostModeLocked.value ||
@@ -229,7 +233,7 @@ Widget buildFullControls(
                 bottom: (controller.showControlsState.value &&
                         !controller.lockControlsState.value)
                     ? 0
-                    : -(80 + padding.bottom),
+                    : -((showFullscreenChatInput ? 96 : 80) + padding.bottom),
                 duration: const Duration(milliseconds: 200),
                 child: Container(
                   decoration: const BoxDecoration(
@@ -245,6 +249,7 @@ Widget buildFullControls(
                   padding: EdgeInsets.only(
                     left: padding.left + 12,
                     right: padding.right + 12,
+                    top: showFullscreenChatInput ? 8 : 0,
                     bottom: padding.bottom,
                   ),
                   child: Row(
@@ -302,7 +307,26 @@ Widget buildFullControls(
                           ),
                         ),
                       ),
-                      const Expanded(child: Center()),
+                      if (showFullscreenChatInput) ...[
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Center(
+                            child: SizedBox(
+                              width: 680,
+                              child: LiveRoomChatInputBar(
+                                controller: controller,
+                                overlayStyle: true,
+                                inputHeight: 40,
+                                actionButtonSize: 40,
+                                spacing: 10,
+                                expandedSendButton: true,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                      ] else
+                        const Expanded(child: Center()),
                       Visibility(
                         visible: true,
                         child: IconButton(

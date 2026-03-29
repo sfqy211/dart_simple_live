@@ -14,6 +14,7 @@ import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_app/modules/live_room/player/audio_mode_cover.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controls.dart';
+import 'package:simple_live_app/modules/live_room/widgets/live_room_chat_input_bar.dart';
 import 'package:simple_live_app/modules/settings/voice_recognition_settings_page.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_refresh_button.dart';
@@ -691,12 +692,14 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             !controller.smallWindowState.value) {
           return const SizedBox.shrink();
         }
+        final subtitleBottom =
+            isDesktop ? (controller.fullScreenState.value ? 96.0 : 40.0) : 24.0;
         final adaptiveMaxWidth = MediaQuery.of(Get.context!).size.width - 32;
         if (adaptiveMaxWidth > 0) {
           return Positioned(
             left: 16,
             right: 16,
-            bottom: 24,
+            bottom: subtitleBottom,
             child: Align(
               alignment: Alignment.bottomCenter,
               child: buildSubtitleBubble(
@@ -720,7 +723,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         return Positioned(
           left: 16,
           right: 16,
-          bottom: 24,
+          bottom: subtitleBottom,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
@@ -773,40 +776,32 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         final offset = controller.subtitlePosition.value;
 
         if (offset != null) {
+          final maxWidth = MediaQuery.of(context).size.width - 40;
           return Positioned(
             left: offset.dx,
             top: offset.dy,
             child: GestureDetector(
               onPanUpdate: (details) {
-                // 更新位置
                 final newOffset =
                     controller.subtitlePosition.value! + details.delta;
-                // 简单的边界限制，防止完全拖出屏幕
                 final size = MediaQuery.of(context).size;
-                if (newOffset.dx > -100 &&
+                if (newOffset.dx > 20 &&
                     newOffset.dx < size.width - 20 &&
                     newOffset.dy > 50 &&
                     newOffset.dy < size.height - 50) {
                   controller.subtitlePosition.value = newOffset;
                 }
               },
-              child: Container(
-                constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width - 40),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                decoration: BoxDecoration(
-                  // 【修改 2】将 withOpacity 改为 withValues(alpha: ...)
-                  color: Theme.of(context).cardColor.withValues(
+              child: FractionalTranslation(
+                translation: const Offset(-0.5, -0.5),
+                child: buildSubtitleBubble(
+                  context,
+                  maxWidth: maxWidth,
+                  backgroundColor: Theme.of(context).cardColor.withValues(
                       alpha: AppSettingsController
                           .instance.subtitleBackgroundOpacity.value),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.withAlpha(40)),
-                ),
-                child: Text(
-                  controller.subtitleText.value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
+                  borderColor: Colors.grey.withAlpha(40),
+                  textStyle: TextStyle(
                     fontSize:
                         AppSettingsController.instance.subtitleFontSize.value,
                     fontWeight: controller.subtitleIsPartial.value
@@ -829,8 +824,10 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               alignment: Alignment.bottomCenter,
               child: GestureDetector(
                 onPanStart: (details) {
-                  controller.subtitlePosition.value =
-                      details.globalPosition - const Offset(50, 20);
+                  final renderBox = context.findRenderObject() as RenderBox?;
+                  controller.subtitlePosition.value = renderBox == null
+                      ? details.globalPosition
+                      : renderBox.globalToLocal(details.globalPosition);
                 },
                 child: buildSubtitleBubble(
                   context,
@@ -1199,64 +1196,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
     );
   }
 
-  void _submitChatMessage() {
-    final message = controller.chatInputController.text.trim();
-    if (message.isNotEmpty) {
-      controller.sendChatMessage(message);
-    }
-  }
-
-  Widget _buildChatInputActionButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-    bool active = false,
-  }) {
-    final context = Get.context!;
-    final scheme = Theme.of(context).colorScheme;
-    final borderColor =
-        AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 90 : 140);
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppStyle.radius12,
-        child: InkWell(
-          borderRadius: AppStyle.radius12,
-          onTap: onPressed,
-          child: Ink(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: active
-                  ? scheme.primary.withAlpha(Get.isDarkMode ? 36 : 18)
-                  : Colors.transparent,
-              borderRadius: AppStyle.radius12,
-              border: Border.all(
-                color: active ? scheme.primary.withAlpha(120) : borderColor,
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: active ? scheme.primary : scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget buildOptimizedChatInput() {
     final context = Get.context!;
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final isDesktop = AppStyle.isDesktopLayout(context);
     final borderColor =
         AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
-    final inputBackground =
-        scheme.surfaceContainerHighest.withAlpha(Get.isDarkMode ? 70 : 120);
-    final inputShape = RoundedRectangleBorder(borderRadius: AppStyle.radius12);
     return Container(
       decoration: BoxDecoration(
         color: theme.cardColor,
@@ -1265,80 +1209,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         ),
       ),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Row(
-        children: [
-          _buildChatInputActionButton(
-            icon: Remix.emotion_line,
-            tooltip: "表情包",
-            onPressed: controller.showEmotionPanel,
-          ),
-          const SizedBox(width: 8),
-          Obx(
-            () {
-              final running = controller.autoSpamTextRunning.value ||
-                  controller.autoSpamEmotionRunning.value ||
-                  controller.autoSpamFavoritesRunning.value;
-              return _buildChatInputActionButton(
-                icon: Icons.repeat,
-                tooltip: running ? "自动发送运行中" : "自动发送",
-                onPressed: controller.showAutoSpamSheet,
-                active: running,
-              );
-            },
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SizedBox(
-              height: 44,
-              child: TextField(
-                controller: controller.chatInputController,
-                maxLines: 1,
-                textInputAction: TextInputAction.send,
-                textAlignVertical: TextAlignVertical.center,
-                decoration: InputDecoration(
-                  hintText: "发送弹幕...",
-                  isDense: true,
-                  filled: true,
-                  fillColor: inputBackground,
-                  constraints: const BoxConstraints(
-                    minHeight: 44,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: AppStyle.radius12,
-                    borderSide: BorderSide(
-                      color: borderColor.withAlpha(Get.isDarkMode ? 110 : 150),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: AppStyle.radius12,
-                    borderSide: BorderSide(
-                      color:
-                          scheme.primary.withAlpha(Get.isDarkMode ? 180 : 220),
-                    ),
-                  ),
-                ),
-                onSubmitted: (_) => _submitChatMessage(),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Tooltip(
-            message: "发送",
-            child: FilledButton(
-              onPressed: _submitChatMessage,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(44, 44),
-                padding: EdgeInsets.symmetric(horizontal: isDesktop ? 14 : 12),
-                shape: inputShape,
-              ),
-              child: const Icon(Icons.send_rounded, size: 18),
-            ),
-          ),
-        ],
+      child: LiveRoomChatInputBar(
+        controller: controller,
+        inputHeight: 44,
+        actionButtonSize: 44,
+        spacing: 12,
       ),
     );
   }
