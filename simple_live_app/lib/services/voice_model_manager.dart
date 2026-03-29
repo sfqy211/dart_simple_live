@@ -197,11 +197,8 @@ class VoiceModelManager {
       final docsDir = await getApplicationDocumentsDirectory();
       addPath(path.join(docsDir.path, "models"));
     } else {
-      final cwd = Directory.current.path;
-      if (path.basename(cwd) == "simple_live_app") {
-        addPath(path.join(cwd, "models"));
-      } else {
-        addPath(path.join(cwd, "simple_live_app", "models"));
+      for (final directory in _resolveDesktopModelDirectories()) {
+        addPath(directory.path);
       }
     }
 
@@ -222,11 +219,43 @@ class VoiceModelManager {
       return Directory(path.join(docsDir.path, "models"));
     }
 
-    final cwd = Directory.current.path;
-    if (path.basename(cwd) == "simple_live_app") {
-      return Directory(path.join(cwd, "models"));
+    final desktopDirectories = _resolveDesktopModelDirectories();
+    if (desktopDirectories.isNotEmpty) {
+      return desktopDirectories.first;
     }
-    return Directory(path.join(cwd, "simple_live_app", "models"));
+    return Directory(path.join(Directory.current.path, "models"));
+  }
+
+  List<Directory> _resolveDesktopModelDirectories() {
+    final directories = <Directory>[];
+
+    void addDirectory(String? value) {
+      if (value == null || value.trim().isEmpty) {
+        return;
+      }
+      final normalized = path.normalize(value);
+      if (directories.any((directory) => directory.path == normalized)) {
+        return;
+      }
+      directories.add(Directory(normalized));
+    }
+
+    final executablePath = Platform.resolvedExecutable;
+    final executableName = path.basenameWithoutExtension(executablePath);
+    final executableDir = path.dirname(executablePath);
+    final cwd = Directory.current.path;
+
+    if (executableName == "simple_live_app") {
+      addDirectory(path.join(executableDir, "models"));
+    }
+
+    addDirectory(path.join(cwd, "models"));
+
+    if (path.basename(cwd) != "simple_live_app") {
+      addDirectory(path.join(cwd, "simple_live_app", "models"));
+    }
+
+    return directories;
   }
 
   bool _isValidModelDirectory(Directory dir) {
