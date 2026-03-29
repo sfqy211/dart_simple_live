@@ -147,39 +147,35 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         AppStyle.borderColor(context).withAlpha(Get.isDarkMode ? 120 : 180);
     final panelColor = theme.cardColor;
 
-    Widget buildQuickChip({
+    Widget buildToggleAction({
       required IconData icon,
       required String label,
       required bool selected,
-      required ValueChanged<bool>? onSelected,
-      String? tooltip,
+      required VoidCallback onPressed,
     }) {
-      final chip = FilterChip(
-        showCheckmark: false,
-        avatar: Icon(icon, size: 16),
+      return OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
         label: Text(label),
-        selected: selected,
-        onSelected: onSelected,
-        side: BorderSide(
-          color: selected
-              ? scheme.primary.withAlpha(Get.isDarkMode ? 84 : 68)
-              : borderColor,
-        ),
-        backgroundColor: panelColor,
-        selectedColor: scheme.primary.withAlpha(Get.isDarkMode ? 24 : 14),
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        labelStyle: theme.textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w600,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(
+            color: selected
+                ? scheme.primary.withAlpha(Get.isDarkMode ? 96 : 84)
+                : borderColor,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          backgroundColor: selected
+              ? scheme.primary.withAlpha(Get.isDarkMode ? 28 : 18)
+              : panelColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+          ),
+          foregroundColor: selected ? scheme.primary : null,
+          textStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
       );
-      if (tooltip == null || tooltip.isEmpty) {
-        return chip;
-      }
-      return Tooltip(message: tooltip, child: chip);
     }
 
     Widget buildSecondaryAction({
@@ -200,6 +196,22 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           ),
         ),
       );
+    }
+
+    double resolveDesktopPlayerAspectRatio() {
+      final scaleMode = AppSettingsController.instance.scaleMode.value;
+      if (scaleMode == 3) {
+        return 16 / 9;
+      }
+      if (scaleMode == 4) {
+        return 4 / 3;
+      }
+      final width = controller.player.state.width;
+      final height = controller.player.state.height;
+      if (width != null && height != null && width > 0 && height > 0) {
+        return width / height;
+      }
+      return 16 / 9;
     }
 
     return AppShellFrame(
@@ -331,127 +343,151 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Obx(
-                  () {
-                    final isGhost = controller.ghostModeState.value;
-                    final isMini = controller.smallWindowState.value;
-                    final isSubtitle = controller.subtitleEnabled.value;
-                    return Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        buildQuickChip(
-                          icon: Icons.blur_on_outlined,
-                          label: "透明浮窗",
-                          selected: isGhost,
-                          onSelected: (_) => controller.toggleGhostModeQuick(),
-                        ),
-                        buildQuickChip(
-                          icon: Icons.picture_in_picture_alt_outlined,
-                          label: "小窗",
-                          selected: isMini,
-                          onSelected: (selected) {
-                            if (selected) {
-                              controller.enterSmallWindow();
-                            } else {
-                              controller.exitSmallWindow();
-                            }
-                          },
-                        ),
-                        buildQuickChip(
-                          icon: Icons.subtitles_outlined,
-                          label: "字幕",
-                          selected: isSubtitle,
-                          onSelected: (selected) {
-                            AppSettingsController.instance
-                                .setSubtitleEnable(selected);
-                          },
-                        ),
-                      ],
-                    );
-                  },
-                ),
               ],
             ),
           ),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final sideW = (constraints.maxWidth * 0.32).clamp(360.0, 440.0);
-                return Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              color: const Color(0xFF05070A),
-                              child: Center(
-                                child: buildMediaPlayer(),
+                const dividerWidth = 1.0;
+                const minSideWidth = 320.0;
+                const maxSideWidth = 460.0;
+                const bottomActionBarHeight = 72.0;
+
+                return StreamBuilder<int?>(
+                  stream: controller.player.stream.height,
+                  initialData: controller.player.state.height,
+                  builder: (context, snapshot) {
+                    final playerAspectRatio = resolveDesktopPlayerAspectRatio();
+                    final playerHeight =
+                        (constraints.maxHeight - bottomActionBarHeight)
+                            .clamp(0.0, constraints.maxHeight);
+                    final preferredPlayerWidth =
+                        playerHeight * playerAspectRatio;
+                    final preferredSideWidth = constraints.maxWidth -
+                        dividerWidth -
+                        preferredPlayerWidth;
+                    final sideW = preferredSideWidth.clamp(
+                      minSideWidth,
+                      maxSideWidth,
+                    );
+                    final playerW =
+                        (constraints.maxWidth - dividerWidth - sideW)
+                            .clamp(0.0, constraints.maxWidth);
+
+                    return Row(
+                      children: [
+                        SizedBox(
+                          width: playerW,
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  color: const Color(0xFF05070A),
+                                  child: Center(
+                                    child: buildMediaPlayer(),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: panelColor,
-                              border: Border(
-                                top: BorderSide(color: borderColor),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: panelColor,
+                                  border: Border(
+                                    top: BorderSide(color: borderColor),
+                                  ),
+                                ),
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                                child: Obx(
+                                  () => Row(
+                                    children: [
+                                      Expanded(
+                                        child: buildSecondaryAction(
+                                          icon: Icons.high_quality_outlined,
+                                          label: "画质",
+                                          onPressed:
+                                              controller.showQualitySheet,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: buildSecondaryAction(
+                                          icon: Icons.route_outlined,
+                                          label: "线路",
+                                          onPressed:
+                                              controller.showPlayUrlsSheet,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: buildSecondaryAction(
+                                          icon: Icons.crop_free_outlined,
+                                          label: "尺寸",
+                                          onPressed: controller
+                                              .showPlayerSettingsSheet,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: buildToggleAction(
+                                          icon: Icons.blur_on_outlined,
+                                          label: "浮窗",
+                                          selected:
+                                              controller.ghostModeState.value,
+                                          onPressed:
+                                              controller.toggleGhostModeQuick,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: buildToggleAction(
+                                          icon: Icons
+                                              .picture_in_picture_alt_outlined,
+                                          label: "小窗",
+                                          selected:
+                                              controller.smallWindowState.value,
+                                          onPressed:
+                                              controller.smallWindowState.value
+                                                  ? controller.exitSmallWindow
+                                                  : controller.enterSmallWindow,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: buildToggleAction(
+                                          icon: Icons.subtitles_outlined,
+                                          label: "字幕",
+                                          selected:
+                                              controller.subtitleEnabled.value,
+                                          onPressed: () {
+                                            AppSettingsController.instance
+                                                .setSubtitleEnable(
+                                              !controller.subtitleEnabled.value,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: buildSecondaryAction(
-                                    icon: Icons.high_quality_outlined,
-                                    label: "清晰度",
-                                    onPressed: controller.showQualitySheet,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: buildSecondaryAction(
-                                    icon: Icons.route_outlined,
-                                    label: "线路",
-                                    onPressed: controller.showPlayUrlsSheet,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: buildSecondaryAction(
-                                    icon: Icons.crop_free_outlined,
-                                    label: "画面",
-                                    onPressed:
-                                        controller.showPlayerSettingsSheet,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: buildSecondaryAction(
-                                    icon: Icons.camera_alt_outlined,
-                                    label: "截图",
-                                    onPressed: controller.saveScreenshot,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 1,
-                      color: borderColor,
-                    ),
-                    SizedBox(
-                      width: sideW,
-                      child: Container(
-                        color: panelColor,
-                        child: buildMessageArea(),
-                      ),
-                    ),
-                  ],
+                        ),
+                        Container(
+                          width: dividerWidth,
+                          color: borderColor,
+                        ),
+                        SizedBox(
+                          width: sideW,
+                          child: Container(
+                            color: panelColor,
+                            child: buildMessageArea(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
             ),

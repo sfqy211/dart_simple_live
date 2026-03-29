@@ -79,6 +79,9 @@ class LiveRoomController extends PlayerController
   bool _subtitleAudioHeaderSkipped = false;
   bool _subtitleAudioStopping = false;
   Future<void>? _subtitleAudioStopTask;
+  Timer? _subtitleStartTimer;
+  Future<void> _subtitleRecognitionQueue = Future.value();
+  bool _subtitleRecognitionDisposed = false;
   final List<Pattern> _shieldPatterns = [];
   bool _chatScrollScheduled = false;
   bool _danmakuStarted = false;
@@ -1328,7 +1331,7 @@ class LiveRoomController extends PlayerController
       ever(AppSettingsController.instance.subtitleEnable, (value) {
         subtitleEnabled.value = value;
         if (value) {
-          startVoiceRecognition();
+          scheduleVoiceRecognitionStart(forceRestart: true);
         } else {
           stopVoiceRecognition();
         }
@@ -1340,14 +1343,14 @@ class LiveRoomController extends PlayerController
         if (subtitleEnabled.value &&
             AppSettingsController.instance.subtitleRecognitionMode.value ==
                 SubtitleRecognitionMode.local) {
-          restartVoiceRecognition();
+          scheduleVoiceRecognitionStart(forceRestart: true);
         }
       }),
     );
     _subtitleWorkers.add(
       ever(AppSettingsController.instance.subtitleRecognitionMode, (value) {
         if (subtitleEnabled.value) {
-          restartVoiceRecognition();
+          scheduleVoiceRecognitionStart(forceRestart: true);
         }
       }),
     );
@@ -1356,7 +1359,7 @@ class LiveRoomController extends PlayerController
         if (subtitleEnabled.value &&
             AppSettingsController.instance.subtitleRecognitionMode.value ==
                 SubtitleRecognitionMode.online) {
-          restartVoiceRecognition();
+          scheduleVoiceRecognitionStart(forceRestart: true);
         }
       }),
     );
@@ -1365,7 +1368,7 @@ class LiveRoomController extends PlayerController
         if (subtitleEnabled.value &&
             AppSettingsController.instance.subtitleRecognitionMode.value ==
                 SubtitleRecognitionMode.online) {
-          restartVoiceRecognition();
+          scheduleVoiceRecognitionStart(forceRestart: true);
         }
       }),
     );
@@ -1374,7 +1377,7 @@ class LiveRoomController extends PlayerController
         if (subtitleEnabled.value &&
             AppSettingsController.instance.subtitleRecognitionMode.value ==
                 SubtitleRecognitionMode.online) {
-          restartVoiceRecognition();
+          scheduleVoiceRecognitionStart(forceRestart: true);
         }
       }),
     );
@@ -1383,7 +1386,7 @@ class LiveRoomController extends PlayerController
         if (subtitleEnabled.value &&
             AppSettingsController.instance.subtitleRecognitionMode.value ==
                 SubtitleRecognitionMode.online) {
-          restartVoiceRecognition();
+          scheduleVoiceRecognitionStart(forceRestart: true);
         }
       }),
     );
@@ -1392,14 +1395,10 @@ class LiveRoomController extends PlayerController
         if (!value) {
           stopVoiceRecognition();
         } else if (subtitleEnabled.value) {
-          startVoiceRecognition();
+          scheduleVoiceRecognitionStart();
         }
       }),
     );
-    if (subtitleEnabled.value) {
-      startVoiceRecognition();
-    }
-
     super.onInit();
   }
 
@@ -1539,7 +1538,7 @@ class LiveRoomController extends PlayerController
       cacheDir.createSync(recursive: true);
     }
     final dumpFile = File(
-      "$tempPath${Platform.pathSeparator}simple_live_subtitle_audio.pcm",
+      "$tempPath${Platform.pathSeparator}simple_live_subtitle_audio_${DateTime.now().microsecondsSinceEpoch}.pcm",
     );
     if (await dumpFile.exists()) {
       await dumpFile.writeAsBytes(const [], flush: true);
@@ -1610,32 +1609,101 @@ class LiveRoomController extends PlayerController
     _subtitleAudioDumpFile = null;
   }
 
-  Future<void> startVoiceRecognition() async {
-    if (!liveStatus.value) {
-      return;
-    }
-    if (_voiceRecognitionService.isRunning) {
-      return;
-    }
-    final audioStream = await _startSubtitleAudioCapture();
-    if (audioStream == null) {
-      return;
-    }
-    try {
-      await _voiceRecognitionService.startFromAudioStream(
-        modelName: AppSettingsController.instance.subtitleModelName.value,
-        audioStream: audioStream,
-        onResult: _handleSubtitleResult,
-        onError: (error) {
-          SmartDialog.showToast("语音识别错误: $error");
-        },
-      );
-    } catch (e) {
-      SmartDialog.showToast("启动语音识别失败: $e");
-    }
+  Future<void> _queueSubtitleRecognitionTask(Future<void> Function() action,
+      {bool ignoreDisposed = false}) async {
+    final task = _subtitleRecognitionQueue.catchError((_) {}).then((_) async {
+      if (_subtitleRecognitionDisposed && !ignoreDisposed) {
+        return;
+      }
+      await action();
+    });
+    _subtitleRecognitionQueue = task;
+    await task;
   }
 
-  Future<void> stopVoiceRecognition() async {
+  Duration _subtitleStartupDelay() {
+    if (Platform.isWindows) {
+      return const Duration(milliseconds: 1400);
+    }
+    return const Duration(milliseconds: 250);
+  }
+
+  void _cancelScheduledVoiceRecognitionStart() {
+    _subtitleStartTimer?.cancel();
+    _subtitleStartTimer = null;
+  }
+
+  void scheduleVoiceRecognitionStart({
+    bool forceRestart = false,
+    int attempt = 0,
+  }) {
+    _cancelScheduledVoiceRecognitionStart();
+    if (_subtitleRecognitionDisposed ||
+        !subtitleEnabled.value ||
+        !liveStatus.value) {
+      return;
+    }
+    _subtitleStartTimer = Timer(
+      attempt == 0
+          ? _subtitleStartupDelay()
+          : const Duration(milliseconds: 400),
+      () {
+        _subtitleStartTimer = null;
+        if (_subtitleRecognitionDisposed ||
+            !subtitleEnabled.value ||
+            !liveStatus.value) {
+          return;
+        }
+        if (Platform.isWindows && !player.state.playing && attempt < 8) {
+          scheduleVoiceRecognitionStart(
+            forceRestart: forceRestart,
+            attempt: attempt + 1,
+          );
+          return;
+        }
+        if (forceRestart) {
+          unawaited(restartVoiceRecognition());
+          return;
+        }
+        if (_voiceRecognitionService.isRunning) {
+          return;
+        }
+        unawaited(startVoiceRecognition());
+      },
+    );
+  }
+
+  Future<void> startVoiceRecognition() async {
+    await _queueSubtitleRecognitionTask(() async {
+      if (!subtitleEnabled.value || !liveStatus.value) {
+        return;
+      }
+      if (_voiceRecognitionService.isRunning) {
+        return;
+      }
+      final audioStream = await _startSubtitleAudioCapture();
+      if (audioStream == null || _subtitleRecognitionDisposed) {
+        await _stopSubtitleAudioCapture();
+        return;
+      }
+      try {
+        await _voiceRecognitionService.startFromAudioStream(
+          modelName: AppSettingsController.instance.subtitleModelName.value,
+          audioStream: audioStream,
+          onResult: _handleSubtitleResult,
+          onError: (error) {
+            SmartDialog.showToast("语音识别错误: $error");
+          },
+        );
+      } catch (e) {
+        await _stopSubtitleAudioCapture();
+        SmartDialog.showToast("启动语音识别失败: $e");
+      }
+    });
+  }
+
+  Future<void> _stopVoiceRecognitionInternal() async {
+    _cancelScheduledVoiceRecognitionStart();
     _subtitleDelayTimer?.cancel();
     _subtitleDelayTimer = null;
     _pendingSubtitleResult = null;
@@ -1647,9 +1715,35 @@ class LiveRoomController extends PlayerController
     await _voiceRecognitionService.stop();
   }
 
+  Future<void> stopVoiceRecognition() async {
+    await _queueSubtitleRecognitionTask(_stopVoiceRecognitionInternal);
+  }
+
   Future<void> restartVoiceRecognition() async {
-    await stopVoiceRecognition();
-    await startVoiceRecognition();
+    await _queueSubtitleRecognitionTask(() async {
+      await _stopVoiceRecognitionInternal();
+      if (!subtitleEnabled.value || !liveStatus.value) {
+        return;
+      }
+      final audioStream = await _startSubtitleAudioCapture();
+      if (audioStream == null || _subtitleRecognitionDisposed) {
+        await _stopSubtitleAudioCapture();
+        return;
+      }
+      try {
+        await _voiceRecognitionService.startFromAudioStream(
+          modelName: AppSettingsController.instance.subtitleModelName.value,
+          audioStream: audioStream,
+          onResult: _handleSubtitleResult,
+          onError: (error) {
+            SmartDialog.showToast("语音识别错误: $error");
+          },
+        );
+      } catch (e) {
+        await _stopSubtitleAudioCapture();
+        SmartDialog.showToast("启动语音识别失败: $e");
+      }
+    });
   }
 
   void _handleSubtitleResult(VoiceRecognitionResult result) {
@@ -2021,7 +2115,7 @@ class LiveRoomController extends PlayerController
     await player.open(Playlist(mediaList));
     _maybeStartDanmakuConnection(afterPlayback: true);
     if (subtitleEnabled.value && liveStatus.value) {
-      unawaited(restartVoiceRecognition());
+      scheduleVoiceRecognitionStart(forceRestart: true);
     }
   }
 
@@ -2032,7 +2126,7 @@ class LiveRoomController extends PlayerController
 
     await player.jump(currentLineIndex);
     if (subtitleEnabled.value && liveStatus.value) {
-      unawaited(restartVoiceRecognition());
+      scheduleVoiceRecognitionStart(forceRestart: true);
     }
   }
 
@@ -2665,7 +2759,7 @@ ${errorStackTrace?.toString()}''');
       Log.d("返回前台");
       isBackground = false;
       if (subtitleEnabled.value) {
-        startVoiceRecognition();
+        scheduleVoiceRecognitionStart();
       }
     }
   }
@@ -2720,10 +2814,16 @@ ${errorStackTrace?.toString()}''');
     liveDanmaku.stop();
     danmakuController = null;
     _liveDurationTimer?.cancel(); // 页面关闭时取消定时器
-    _stopSubtitleAudioCapture();
-    _subtitleAudioPlayer.dispose();
-    _voiceRecognitionService.dispose();
-    super.onClose();
+    _cancelScheduledVoiceRecognitionStart();
+    _subtitleRecognitionDisposed = true;
+    _queueSubtitleRecognitionTask(() async {
+      await _stopVoiceRecognitionInternal();
+    }, ignoreDisposed: true)
+        .whenComplete(() async {
+      await _subtitleAudioPlayer.dispose();
+      await _voiceRecognitionService.dispose();
+      super.onClose();
+    });
   }
 
   @override

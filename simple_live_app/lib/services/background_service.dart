@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -6,14 +7,18 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:audio_session/audio_session.dart';
 
 class BackgroundServiceManager {
-  static final BackgroundServiceManager _instance = BackgroundServiceManager._internal();
+  static final BackgroundServiceManager _instance =
+      BackgroundServiceManager._internal();
   factory BackgroundServiceManager() => _instance;
   BackgroundServiceManager._internal();
 
   late final FlutterBackgroundService _service;
   bool _isInitialized = false;
 
+  bool get _isSupportedPlatform => Platform.isAndroid || Platform.isIOS;
+
   Future<void> initialize() async {
+    if (!_isSupportedPlatform) return;
     if (_isInitialized) return;
 
     _service = FlutterBackgroundService();
@@ -39,16 +44,19 @@ class BackgroundServiceManager {
   }
 
   Future<void> startService() async {
+    if (!_isSupportedPlatform) return;
     await initialize();
     await _service.startService();
   }
 
   Future<void> stopService() async {
+    if (!_isSupportedPlatform) return;
     if (!_isInitialized) return;
     _service.invoke('stop');
   }
 
   Future<void> updateNotification(String title, String content) async {
+    if (!_isSupportedPlatform) return;
     if (!_isInitialized) return;
     _service.invoke('updateNotification', {
       'title': title,
@@ -57,6 +65,7 @@ class BackgroundServiceManager {
   }
 
   Future<void> setPlaybackState(bool isPlaying) async {
+    if (!_isSupportedPlatform) return;
     if (!_isInitialized) return;
     _service.invoke('setPlaybackState', {
       'isPlaying': isPlaying,
@@ -125,9 +134,10 @@ class BackgroundServiceManager {
   }
 
   Future<void> setupAudioSession() async {
+    if (!_isSupportedPlatform) return;
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.speech());
-    
+
     session.interruptionEventStream.listen((event) {
       if (event.begin) {
         switch (event.type) {

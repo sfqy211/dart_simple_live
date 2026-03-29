@@ -1056,8 +1056,12 @@ class PlayerController extends BaseController
   final _appLifecycleObserver = _AppLifecycleObserver();
 
   void initializeBackgroundService() async {
-    await BackgroundServiceManager().initialize();
-    await BackgroundServiceManager().setupAudioSession();
+    try {
+      await BackgroundServiceManager().initialize();
+      await BackgroundServiceManager().setupAudioSession();
+    } catch (e) {
+      Log.logPrint('初始化后台服务失败: $e');
+    }
   }
 
   void initStream() {
