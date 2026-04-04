@@ -156,6 +156,7 @@ Future initWindow() async {
   WindowOptions windowOptions = const WindowOptions(
     minimumSize: Size(280, 280),
     center: true,
+    skipTaskbar: false,
     title: "Simple Live",
   );
   await WindowManagerPlus.current.waitUntilReadyToShow(windowOptions, () async {
