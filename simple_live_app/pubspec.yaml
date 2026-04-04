@@ -57,6 +57,7 @@ dependencies:
   wakelock_plus: ^1.4.0 #屏幕常亮
   file_picker: ^10.3.7 #文件选择
   window_manager_plus: ^1.0.5 #多窗口管理
+  screen_retriever: ^0.2.0
   floating: ^6.0.0 #PIP画中画
   flutter_inappwebview: ^6.1.5 #WebView
   connectivity_plus: ^7.0.0 #网络状态

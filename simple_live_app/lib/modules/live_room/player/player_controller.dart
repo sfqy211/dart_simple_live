@@ -603,7 +603,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       await ghostWindowController?.setAlwaysOnTop(true);
       await ghostWindowController?.setTitleBarStyle(TitleBarStyle.hidden);
       await ghostWindowController?.setBackgroundColor(Colors.transparent);
-      await ghostWindowController?.setOpacity(ghostModeOpacity.value);
+      await ghostWindowController?.setOpacity(1.0);
       _mainWindowOpacityBeforeGhost ??=
           await WindowManagerPlus.current.getOpacity();
       _mainWindowSkipTaskbarBeforeGhost ??=
@@ -694,7 +694,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     try {
       await ghostWindowController?.setAlwaysOnTop(true);
       await ghostWindowController?.setIgnoreMouseEvents(false);
-      await ghostWindowController?.setOpacity(ghostModeOpacity.value);
+      await ghostWindowController?.setOpacity(1.0);
     } catch (e) {
       Log.logPrint('恢复幽灵窗口交互失败: $e');
     }
@@ -728,7 +728,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
             'opacity': opacity,
           },
         );
-        ghostWindowController?.setOpacity(opacity);
       } catch (e) {
         Log.logPrint('更新幽灵窗口透明度失败: $e');
       }

@@ -1,8 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
+
+enum _GhostWindowCollapseMode {
+  none,
+  miniButton,
+}
 
 class GhostWindow extends StatefulWidget {
   const GhostWindow({Key? key}) : super(key: key);
@@ -12,8 +21,18 @@ class GhostWindow extends StatefulWidget {
 }
 
 class _GhostWindowState extends State<GhostWindow> with WindowListener {
+  static const Size _normalMinSize = Size(200, 150);
+  static const Size _normalMaxSize = Size(1200, 900);
+  static const double _windowBarHeight = 36.0;
+  static const double _collapsedButtonWindowWidth = 84.0;
+  static const double _collapsedButtonWindowHeight = 36.0;
+  static const double _collapsedExpandButtonSize = 26.0;
+  static const double _collapsedButtonRadius = 8.0;
+  static const double _edgeInset = 6.0;
+
   double _opacity = 0.8;
   bool _locked = false;
+  _GhostWindowCollapseMode _collapseMode = _GhostWindowCollapseMode.none;
   bool _showSubtitle = true;
   double _fontSize = 16.0;
   double _volume = 100.0;
@@ -28,6 +47,9 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   final TextEditingController _autoSpamTextController = TextEditingController();
   final TextEditingController _autoSpamFavoriteController =
       TextEditingController();
+  final GlobalKey _windowBarKey = GlobalKey();
+  final GlobalKey _inputBarKey = GlobalKey();
+  Rect? _expandedBounds;
   bool _pendingAutoSpamPanelOpen = false;
   bool _autoSpamTextRunning = false;
   bool _autoSpamEmotionRunning = false;
@@ -46,6 +68,18 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     {'id': 1, 'name': '第1组', 'msg': ''}
   ];
   bool _autoSpamEmotionsMode = false;
+  bool _passthroughSyncScheduled = false;
+  bool _lastPassthroughEnabled = false;
+  double _lastPassthroughTopHeight = -1;
+  double _lastPassthroughBottomHeight = -1;
+
+  bool get _collapsed => _collapseMode != _GhostWindowCollapseMode.none;
+
+  bool get _miniButtonCollapsed =>
+      _collapseMode == _GhostWindowCollapseMode.miniButton;
+
+  MethodChannel get _windowChannel =>
+      MethodChannel('window_manager_plus_${WindowManagerPlus.current.id}');
 
   @override
   void initState() {
@@ -66,8 +100,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
 
   Future<void> initWindow() async {
     const windowOptions = WindowOptions(
-      minimumSize: Size(200, 150),
-      maximumSize: Size(1200, 900),
+      minimumSize: _normalMinSize,
+      maximumSize: _normalMaxSize,
       size: Size(400, 300),
       center: true,
       title: "Simple Live - 弹幕浮窗",
@@ -81,9 +115,28 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       await WindowManagerPlus.current.setAlwaysOnTop(true);
       await WindowManagerPlus.current.setTitleBarStyle(TitleBarStyle.hidden);
       await WindowManagerPlus.current.setBackgroundColor(Colors.transparent);
-      await WindowManagerPlus.current.setOpacity(_opacity);
+      await WindowManagerPlus.current.setOpacity(1.0);
       await WindowManagerPlus.current.setPreventClose(true);
+      await _restoreWindowConstraints();
     });
+  }
+
+  Future<void> _restoreWindowConstraints() async {
+    await WindowManagerPlus.current.setMinimumSize(_normalMinSize);
+    await WindowManagerPlus.current.setMaximumSize(_normalMaxSize);
+  }
+
+  Future<void> _setCollapsedConstraints({
+    required double minWidth,
+    required double minHeight,
+    double? maxWidth,
+    double? maxHeight,
+  }) async {
+    await WindowManagerPlus.current.setMinimumSize(Size(minWidth, minHeight));
+    await WindowManagerPlus.current.setMaximumSize(
+      Size(
+          maxWidth ?? _normalMaxSize.width, maxHeight ?? _normalMaxSize.height),
+    );
   }
 
   @override
@@ -100,7 +153,6 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           if (value is num) {
             setState(() {
               _opacity = value.toDouble();
-              WindowManagerPlus.current.setOpacity(_opacity);
             });
           }
         }
@@ -355,7 +407,6 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     setState(() {
       _opacity = value;
     });
-    WindowManagerPlus.current.setOpacity(_opacity);
     _sendGhostSettings({'opacity': value});
   }
 
@@ -364,6 +415,13 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       _locked = value;
     });
     _sendGhostSettings({'locked': value});
+  }
+
+  void _updateSubtitleVisibility(bool value) {
+    setState(() {
+      _showSubtitle = value;
+    });
+    _sendGhostSettings({'subtitleEnable': value});
   }
 
   void _updatePanelColor(int value) {
@@ -379,6 +437,213 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       'ghost_exit',
       {},
     );
+  }
+
+  Color _applyPanelOpacity(Color color) {
+    final alpha = (color.a * 255 * _opacity).round().clamp(0, 255);
+    return color.withAlpha(alpha);
+  }
+
+  double? _measureWidgetHeight(GlobalKey key) {
+    final context = key.currentContext;
+    if (context == null) {
+      return null;
+    }
+    final renderObject = context.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      return renderObject.size.height;
+    }
+    return null;
+  }
+
+  void _schedulePassthroughSync() {
+    if (_passthroughSyncScheduled) {
+      return;
+    }
+    _passthroughSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _passthroughSyncScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      unawaited(_syncPassthroughRegion());
+    });
+  }
+
+  Future<void> _syncPassthroughRegion() async {
+    final enabled = !_collapsed;
+    final topHeight = enabled
+        ? (_measureWidgetHeight(_windowBarKey) ?? _windowBarHeight)
+        : 0.0;
+    final bottomHeight =
+        enabled ? (_measureWidgetHeight(_inputBarKey) ?? 56.0) : 0.0;
+    final changed = _lastPassthroughEnabled != enabled ||
+        (_lastPassthroughTopHeight - topHeight).abs() > 0.5 ||
+        (_lastPassthroughBottomHeight - bottomHeight).abs() > 0.5;
+    if (!changed) {
+      return;
+    }
+    _lastPassthroughEnabled = enabled;
+    _lastPassthroughTopHeight = topHeight;
+    _lastPassthroughBottomHeight = bottomHeight;
+    try {
+      await _windowChannel.invokeMethod(
+        'setPartialPassthroughRegion',
+        {
+          'enabled': enabled,
+          'topHeight': topHeight,
+          'bottomHeight': bottomHeight,
+        },
+      );
+    } catch (_) {}
+  }
+
+  Rect _displayVisibleBounds(Display display) {
+    final position = display.visiblePosition ?? Offset.zero;
+    final size = display.visibleSize ?? display.size;
+    return Rect.fromLTWH(position.dx, position.dy, size.width, size.height);
+  }
+
+  double _distanceToRect(Rect rect, Offset point) {
+    final dx = point.dx < rect.left
+        ? rect.left - point.dx
+        : point.dx > rect.right
+            ? point.dx - rect.right
+            : 0.0;
+    final dy = point.dy < rect.top
+        ? rect.top - point.dy
+        : point.dy > rect.bottom
+            ? point.dy - rect.bottom
+            : 0.0;
+    return (dx * dx) + (dy * dy);
+  }
+
+  Future<Rect> _resolveVisibleBoundsForWindow(Rect bounds) async {
+    final displays = await screenRetriever.getAllDisplays();
+    if (displays.isEmpty) {
+      final display = await screenRetriever.getPrimaryDisplay();
+      return _displayVisibleBounds(display);
+    }
+    final center = bounds.center;
+    Display? bestDisplay;
+    double? bestDistance;
+    for (final display in displays) {
+      final visibleBounds = _displayVisibleBounds(display);
+      final distance = _distanceToRect(visibleBounds, center);
+      if (bestDistance == null || distance < bestDistance) {
+        bestDistance = distance;
+        bestDisplay = display;
+      }
+    }
+    return _displayVisibleBounds(bestDisplay ?? displays.first);
+  }
+
+  Future<void> _collapseWindow() async {
+    if (_miniButtonCollapsed) {
+      return;
+    }
+    final bounds = await WindowManagerPlus.current.getBounds();
+    if (!_collapsed) {
+      _expandedBounds = bounds;
+    }
+    final visibleBounds = await _resolveVisibleBoundsForWindow(bounds);
+    const targetWidth = _collapsedButtonWindowWidth;
+    const targetHeight = _collapsedButtonWindowHeight;
+    final targetTop = bounds.top.clamp(
+      visibleBounds.top + _edgeInset,
+      visibleBounds.bottom - targetHeight - _edgeInset,
+    );
+    final targetLeft = (bounds.right - targetWidth).clamp(
+      visibleBounds.left + _edgeInset,
+      visibleBounds.right - targetWidth - _edgeInset,
+    );
+    await _setCollapsedConstraints(
+      minWidth: targetWidth,
+      minHeight: targetHeight,
+      maxWidth: targetWidth,
+      maxHeight: targetHeight,
+    );
+    await WindowManagerPlus.current.setIgnoreMouseEvents(false);
+    await WindowManagerPlus.current.show();
+    setState(() {
+      _collapseMode = _GhostWindowCollapseMode.miniButton;
+    });
+    await WindowManagerPlus.current.setBounds(
+      Rect.fromLTWH(targetLeft, targetTop, targetWidth, targetHeight),
+      animate: false,
+    );
+  }
+
+  Future<void> _expandWindow() async {
+    if (!_collapsed) {
+      return;
+    }
+    final currentBounds = await WindowManagerPlus.current.getBounds();
+    final visibleBounds = await _resolveVisibleBoundsForWindow(currentBounds);
+    final fallbackWidth = 400.0.clamp(260.0, visibleBounds.width - 24.0);
+    final fallbackHeight = 300.0.clamp(180.0, visibleBounds.height - 24.0);
+    final targetBounds = _expandedBounds ??
+        Rect.fromLTWH(
+          visibleBounds.left + _edgeInset,
+          currentBounds.top.clamp(
+            visibleBounds.top + _edgeInset,
+            visibleBounds.bottom - fallbackHeight - _edgeInset,
+          ),
+          fallbackWidth,
+          fallbackHeight,
+        );
+    final targetWidth =
+        targetBounds.width.clamp(260.0, visibleBounds.width - 24.0).toDouble();
+    final targetHeight = targetBounds.height
+        .clamp(180.0, visibleBounds.height - 24.0)
+        .toDouble();
+    final targetLeft = targetBounds.left.clamp(
+      visibleBounds.left + _edgeInset,
+      visibleBounds.right - targetWidth - _edgeInset,
+    );
+    final targetTop = targetBounds.top.clamp(
+      visibleBounds.top + _edgeInset,
+      visibleBounds.bottom - targetHeight - _edgeInset,
+    );
+    await _restoreWindowConstraints();
+    setState(() {
+      _collapseMode = _GhostWindowCollapseMode.none;
+    });
+    await WindowManagerPlus.current.setBounds(
+      Rect.fromLTWH(targetLeft, targetTop, targetWidth, targetHeight),
+      animate: true,
+    );
+  }
+
+  Future<void> _activateCollapsedButton() async {
+    try {
+      await WindowManagerPlus.current.setIgnoreMouseEvents(false);
+      await WindowManagerPlus.current.show();
+      await WindowManagerPlus.current.focus();
+      await WindowManagerPlus.current.setAlwaysOnTop(true);
+    } catch (_) {}
+    await _expandWindow();
+  }
+
+  @override
+  void onWindowMoved([int? windowId]) {
+    if (_collapsed) {
+      return;
+    }
+    unawaited(() async {
+      _expandedBounds = await WindowManagerPlus.current.getBounds();
+    }());
+  }
+
+  @override
+  void onWindowResized([int? windowId]) {
+    _schedulePassthroughSync();
+    if (_collapsed) {
+      return;
+    }
+    unawaited(() async {
+      _expandedBounds = await WindowManagerPlus.current.getBounds();
+    }());
   }
 
   void _requestShowEmotions() {
@@ -406,6 +671,247 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       0,
       'send_emotion',
       payload,
+    );
+  }
+
+  Widget _buildWindowBar(
+    ThemeData theme,
+    Color chromeFill,
+    Color outlineColor,
+    Color muted,
+  ) {
+    return Container(
+      key: _windowBarKey,
+      height: _windowBarHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: chromeFill,
+        border: Border(
+          bottom: BorderSide(color: outlineColor),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _locked
+                ? Container(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 16,
+                          color: muted,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          "已锁定",
+                          style: theme.textTheme.labelMedium
+                              ?.copyWith(color: muted),
+                        ),
+                      ],
+                    ),
+                  )
+                : const DragToMoveArea(
+                    child: SizedBox.expand(),
+                  ),
+          ),
+          IconButton(
+            tooltip: _showSubtitle ? "隐藏字幕" : "显示字幕",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            icon: Icon(
+              _showSubtitle
+                  ? Icons.closed_caption_outlined
+                  : Icons.closed_caption_disabled_outlined,
+              size: 18,
+              color: _showSubtitle ? theme.colorScheme.primary : null,
+            ),
+            onPressed: () => _updateSubtitleVisibility(!_showSubtitle),
+          ),
+          IconButton(
+            tooltip: _locked ? "关闭锁定" : "开启锁定",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            icon: Icon(
+              _locked ? Icons.lock : Icons.lock_open_outlined,
+              size: 18,
+              color: _locked ? theme.colorScheme.primary : null,
+            ),
+            onPressed: () => _updateLocked(!_locked),
+          ),
+          IconButton(
+            tooltip: "收起",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            icon: const Icon(Icons.remove, size: 18),
+            onPressed: _collapseWindow,
+          ),
+          IconButton(
+            tooltip: "设置",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            icon: const Icon(Icons.settings, size: 18),
+            onPressed: _showSettingsSheet,
+          ),
+          IconButton(
+            tooltip: "退出",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            icon: const Icon(Icons.close, size: 18),
+            onPressed: _requestExitGhostMode,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollapsedButton(
+    Color chromeFill,
+    Color outlineColor,
+    Color iconColor,
+    bool panelIsDark,
+  ) {
+    final buttonIconColor =
+        panelIsDark ? Colors.white.withAlpha(235) : Colors.black.withAlpha(210);
+    final capsuleFill = _applyPanelOpacity(
+      panelIsDark ? const Color(0xE632363C) : const Color(0xE63A4048),
+    );
+    final expandFill = Color.alphaBlend(
+      panelIsDark ? Colors.white.withAlpha(16) : Colors.white.withAlpha(20),
+      capsuleFill,
+    );
+    final gripColor = Colors.white.withAlpha(panelIsDark ? 164 : 150);
+    final dividerColor = Colors.white.withAlpha(panelIsDark ? 42 : 52);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : _collapsedButtonWindowWidth;
+        final height = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : _collapsedButtonWindowHeight;
+        final leftInset = width <= 80 ? 6.0 : 7.0;
+        final rightInset = width <= 80 ? 2.0 : 3.0;
+        final verticalInset = height <= 34 ? 2.0 : 3.0;
+        final gap = width <= 80 ? 2.0 : 3.0;
+        final dividerInset = height <= 34 ? 3.0 : 4.0;
+        final expandButtonSize = (height - (verticalInset * 2))
+            .clamp(22.0, _collapsedExpandButtonSize)
+            .toDouble();
+        final outerRadius = BorderRadius.circular(_collapsedButtonRadius);
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.basic,
+          child: ClipRRect(
+            borderRadius: outerRadius,
+            child: Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                color: capsuleFill,
+                borderRadius: outerRadius,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(panelIsDark ? 60 : 36),
+                    blurRadius: 8,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.fromLTRB(
+                leftInset,
+                verticalInset,
+                rightInset,
+                verticalInset,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.move,
+                      child: DragToMoveArea(
+                        child: SizedBox(
+                          height: double.infinity,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(3, (index) {
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  right: index == 2 ? 0 : 4,
+                                ),
+                                child: Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: index == 1
+                                        ? gripColor
+                                        : gripColor.withAlpha(
+                                            panelIsDark ? 118 : 102,
+                                          ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    margin: EdgeInsets.symmetric(vertical: dividerInset),
+                    color: dividerColor,
+                  ),
+                  SizedBox(width: gap),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        unawaited(_activateCollapsedButton());
+                      },
+                      child: Container(
+                        width: expandButtonSize,
+                        height: expandButtonSize,
+                        decoration: BoxDecoration(
+                          color: expandFill,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.call_made_rounded,
+                            color: buttonIconColor,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1365,7 +1871,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                       Container(
                         height: 52,
                         decoration: BoxDecoration(
-                          color: Color(_panelColor),
+                          color: _applyPanelOpacity(Color(_panelColor)),
                           borderRadius:
                               const BorderRadius.all(Radius.circular(12)),
                           border: Border.all(color: Colors.grey.withAlpha(60)),
@@ -1425,36 +1931,6 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const SizedBox(width: 64, child: Text("锁定")),
-                          Expanded(child: Container()),
-                          Switch(
-                            value: _locked,
-                            onChanged: (value) {
-                              _updateLocked(value);
-                              setSheetState(() {});
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const SizedBox(width: 64, child: Text("显示字幕")),
-                          Expanded(child: Container()),
-                          Switch(
-                            value: _showSubtitle,
-                            onChanged: (value) {
-                              setState(() {
-                                _showSubtitle = value;
-                              });
-                              _sendGhostSettings({'subtitleEnable': value});
-                              setSheetState(() {});
-                            },
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -1566,13 +2042,19 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     final borderColor =
         panelIsDark ? Colors.white.withAlpha(40) : Colors.black.withAlpha(36);
 
-    final chromeFill = Color.alphaBlend(
+    final chromeFillBase = Color.alphaBlend(
       panelIsDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(10),
       panelColor,
     );
-    final inputFill = Color.alphaBlend(
+    final inputFillBase = Color.alphaBlend(
       panelIsDark ? Colors.white.withAlpha(14) : Colors.black.withAlpha(10),
       panelColor,
+    );
+    final shellFill = _applyPanelOpacity(panelColor);
+    final chromeFill = _applyPanelOpacity(chromeFillBase);
+    final inputFill = _applyPanelOpacity(inputFillBase);
+    final outlineColor = borderColor.withAlpha(
+      (borderColor.a * 255 * _opacity).round().clamp(0, 255),
     );
 
     final theme = baseTheme.copyWith(
@@ -1597,227 +2079,198 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       return color;
     }
 
+    _schedulePassthroughSync();
+
     return Theme(
       data: theme,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: DecoratedBox(
-          decoration: BoxDecoration(
-            color: panelColor,
-            border: Border.all(color: borderColor),
-          ),
-          child: Column(
-            children: [
-              Container(
-                height: 36,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: chromeFill,
-                  border: Border(
-                    bottom: BorderSide(color: borderColor),
-                  ),
+        body: _miniButtonCollapsed
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(_collapsedButtonRadius),
+                child: _buildCollapsedButton(
+                  chromeFill,
+                  outlineColor,
+                  onPanel,
+                  panelIsDark,
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _locked
-                          ? Row(
-                              children: [
-                                Icon(
-                                  Icons.lock_outline,
-                                  size: 16,
-                                  color: muted,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  "已锁定",
-                                  style: theme.textTheme.labelMedium
-                                      ?.copyWith(color: muted),
-                                ),
-                              ],
-                            )
-                          : const DragToMoveArea(
-                              child: SizedBox.expand(),
+              )
+            : ClipRRect(
+                borderRadius: BorderRadius.zero,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: shellFill,
+                    border: Border.all(color: outlineColor),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildWindowBar(
+                        theme,
+                        chromeFill,
+                        outlineColor,
+                        muted,
+                      ),
+                      if (_showSubtitle && _subtitleText.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 10,
                             ),
-                    ),
-                    IconButton(
-                      tooltip: "设置",
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                      icon: const Icon(Icons.settings, size: 18),
-                      onPressed: _showSettingsSheet,
-                    ),
-                    IconButton(
-                      tooltip: "退出",
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: _requestExitGhostMode,
-                    ),
-                  ],
-                ),
-              ),
-              if (_showSubtitle && _subtitleText.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withAlpha(170),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border(
-                        left: BorderSide(
-                          color: scheme.primary.withAlpha(220),
-                          width: 3,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      _subtitleText,
-                      style: TextStyle(
-                        fontSize: _fontSize,
-                        height: 1.25,
-                        fontWeight: _subtitleIsPartial
-                            ? FontWeight.normal
-                            : FontWeight.w600,
-                        color: Colors.white,
-                        fontFamily: fontFamily,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withAlpha(120),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              Expanded(
-                child: Scrollbar(
-                  controller: _scrollController,
-                  thumbVisibility: true,
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      final color = normalizeItemColor(item.color)
-                          .withValues(alpha: _danmakuOpacity);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Text(
-                          item.text,
-                          style: TextStyle(
-                            color: color,
-                            fontSize: _fontSize,
-                            height: 1.25,
-                            fontWeight: FontWeight.values[weightIndex],
-                            fontFamily: fontFamily,
-                            shadows: [
-                              Shadow(
-                                color: panelIsDark
-                                    ? Colors.black.withAlpha(140)
-                                    : Colors.black.withAlpha(90),
-                                offset: const Offset(0, 1),
-                                blurRadius: 10,
+                            decoration: BoxDecoration(
+                              color: _applyPanelOpacity(
+                                Colors.black.withAlpha(170),
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                decoration: BoxDecoration(
-                  color: chromeFill,
-                  border: Border(
-                    top: BorderSide(color: borderColor),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: _requestShowEmotions,
-                      tooltip: "表情包",
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
-                      ),
-                      icon: const Icon(
-                        Icons.emoji_emotions_outlined,
-                        size: 18,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _requestAutoSpam,
-                      tooltip: "自动发送",
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
-                      ),
-                      icon: const Icon(Icons.auto_mode, size: 18),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: inputFill,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: borderColor.withAlpha(
-                              panelIsDark ? 90 : 110,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border(
+                                left: BorderSide(
+                                  color: scheme.primary.withAlpha(220),
+                                  width: 3,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              _subtitleText,
+                              style: TextStyle(
+                                fontSize: _fontSize,
+                                height: 1.25,
+                                fontWeight: _subtitleIsPartial
+                                    ? FontWeight.normal
+                                    : FontWeight.w600,
+                                color: Colors.white,
+                                fontFamily: fontFamily,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withAlpha(120),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: TextField(
-                          controller: _inputController,
-                          style: TextStyle(color: onPanel),
-                          decoration: InputDecoration(
-                            hintText: "发送弹幕...",
-                            hintStyle: TextStyle(color: muted),
-                            border: InputBorder.none,
-                            isDense: true,
+                      Expanded(
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          thumbVisibility: true,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                            itemCount: _items.length,
+                            itemBuilder: (context, index) {
+                              final item = _items[index];
+                              final color = normalizeItemColor(item.color)
+                                  .withValues(alpha: _danmakuOpacity);
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 3),
+                                child: Text(
+                                  item.text,
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: _fontSize,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.values[weightIndex],
+                                    fontFamily: fontFamily,
+                                    shadows: [
+                                      Shadow(
+                                        color: panelIsDark
+                                            ? Colors.black.withAlpha(140)
+                                            : Colors.black.withAlpha(90),
+                                        offset: const Offset(0, 1),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          onSubmitted: (_) => _sendMessage(),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton.tonal(
-                      onPressed: _sendMessage,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                      Container(
+                        key: _inputBarKey,
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                        decoration: BoxDecoration(
+                          color: chromeFill,
+                          border: Border(
+                            top: BorderSide(color: outlineColor),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              onPressed: _requestShowEmotions,
+                              tooltip: "表情包",
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              icon: const Icon(
+                                Icons.emoji_emotions_outlined,
+                                size: 18,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _requestAutoSpam,
+                              tooltip: "自动发送",
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              icon: const Icon(Icons.auto_mode, size: 18),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: inputFill,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: outlineColor.withAlpha(
+                                      panelIsDark ? 90 : 110,
+                                    ),
+                                  ),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                child: TextField(
+                                  controller: _inputController,
+                                  style: TextStyle(color: onPanel),
+                                  decoration: InputDecoration(
+                                    hintText: "发送弹幕...",
+                                    hintStyle: TextStyle(color: muted),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton.tonal(
+                              onPressed: _sendMessage,
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: const Text("发送"),
+                            ),
+                          ],
                         ),
                       ),
-                      child: const Text("发送"),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
