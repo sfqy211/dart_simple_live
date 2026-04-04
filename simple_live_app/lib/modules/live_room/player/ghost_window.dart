@@ -28,6 +28,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   static const double _collapsedButtonWindowHeight = 36.0;
   static const double _collapsedExpandButtonSize = 26.0;
   static const double _collapsedButtonRadius = 8.0;
+  static const double _inputActionHeight = 36.0;
+  static const double _inputIconButtonSize = 34.0;
   static const double _edgeInset = 6.0;
 
   double _opacity = 0.8;
@@ -38,6 +40,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   double _volume = 100.0;
   double _danmakuOpacity = 1.0;
   int _fontWeight = 4;
+  bool _useDefaultDanmakuColor = false;
   int _panelColor = 0xBFD0D0D0;
   String _subtitleText = '';
   bool _subtitleIsPartial = false;
@@ -68,6 +71,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     {'id': 1, 'name': '第1组', 'msg': ''}
   ];
   bool _autoSpamEmotionsMode = false;
+  bool _passthroughEnabled = true;
+  bool _passthroughPausedForOverlay = false;
   bool _passthroughSyncScheduled = false;
   bool _lastPassthroughEnabled = false;
   double _lastPassthroughTopHeight = -1;
@@ -424,6 +429,13 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     _sendGhostSettings({'subtitleEnable': value});
   }
 
+  void _updatePassthroughEnabled(bool value) {
+    setState(() {
+      _passthroughEnabled = value;
+    });
+    _schedulePassthroughSync();
+  }
+
   void _updatePanelColor(int value) {
     setState(() {
       _panelColor = value;
@@ -471,7 +483,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   }
 
   Future<void> _syncPassthroughRegion() async {
-    final enabled = !_collapsed;
+    final enabled =
+        _passthroughEnabled && !_passthroughPausedForOverlay && !_collapsed;
     final topHeight = enabled
         ? (_measureWidgetHeight(_windowBarKey) ?? _windowBarHeight)
         : 0.0;
@@ -746,6 +759,22 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
               color: _locked ? theme.colorScheme.primary : null,
             ),
             onPressed: () => _updateLocked(!_locked),
+          ),
+          IconButton(
+            tooltip: _passthroughEnabled ? "关闭透传" : "开启透传",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            icon: Icon(
+              _passthroughEnabled
+                  ? Icons.ads_click_outlined
+                  : Icons.block_outlined,
+              size: 18,
+              color: _passthroughEnabled ? theme.colorScheme.primary : null,
+            ),
+            onPressed: () => _updatePassthroughEnabled(!_passthroughEnabled),
           ),
           IconButton(
             tooltip: "收起",
@@ -1791,6 +1820,13 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     int red = (_panelColor >> 16) & 0xFF;
     int green = (_panelColor >> 8) & 0xFF;
     int blue = _panelColor & 0xFF;
+    if (!_passthroughPausedForOverlay) {
+      setState(() {
+        _passthroughPausedForOverlay = true;
+      });
+      _schedulePassthroughSync();
+      unawaited(_syncPassthroughRegion());
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1931,6 +1967,29 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                         ],
                       ),
                       const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 96, child: Text("统一弹幕颜色")),
+                          Expanded(
+                            child: Text(
+                              "开启后全部弹幕使用默认文字颜色",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.withAlpha(180),
+                              ),
+                            ),
+                          ),
+                          Switch(
+                            value: _useDefaultDanmakuColor,
+                            onChanged: (value) {
+                              setState(() {
+                                _useDefaultDanmakuColor = value;
+                              });
+                              setSheetState(() {});
+                            },
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -2012,7 +2071,16 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      if (!mounted || !_passthroughPausedForOverlay) {
+        return;
+      }
+      setState(() {
+        _passthroughPausedForOverlay = false;
+      });
+      _schedulePassthroughSync();
+      unawaited(_syncPassthroughRegion());
+    });
   }
 
   @override
@@ -2162,8 +2230,11 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                             itemCount: _items.length,
                             itemBuilder: (context, index) {
                               final item = _items[index];
-                              final color = normalizeItemColor(item.color)
-                                  .withValues(alpha: _danmakuOpacity);
+                              final baseColor = _useDefaultDanmakuColor
+                                  ? onPanel
+                                  : normalizeItemColor(item.color);
+                              final color =
+                                  baseColor.withValues(alpha: _danmakuOpacity);
                               return Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 3),
@@ -2193,7 +2264,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                       ),
                       Container(
                         key: _inputBarKey,
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                        padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
                         decoration: BoxDecoration(
                           color: chromeFill,
                           border: Border(
@@ -2206,26 +2277,28 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                               onPressed: _requestShowEmotions,
                               tooltip: "表情包",
                               constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
+                                minWidth: _inputIconButtonSize,
+                                minHeight: _inputIconButtonSize,
                               ),
                               icon: const Icon(
                                 Icons.emoji_emotions_outlined,
-                                size: 18,
+                                size: 17,
                               ),
                             ),
                             IconButton(
                               onPressed: _requestAutoSpam,
                               tooltip: "自动发送",
                               constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
+                                minWidth: _inputIconButtonSize,
+                                minHeight: _inputIconButtonSize,
                               ),
-                              icon: const Icon(Icons.auto_mode, size: 18),
+                              icon: const Icon(Icons.auto_mode, size: 17),
                             ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Container(
+                                height: _inputActionHeight,
+                                alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: inputFill,
                                   borderRadius: BorderRadius.circular(10),
@@ -2239,30 +2312,37 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
                                     const EdgeInsets.symmetric(horizontal: 10),
                                 child: TextField(
                                   controller: _inputController,
+                                  textAlignVertical: TextAlignVertical.center,
                                   style: TextStyle(color: onPanel),
                                   decoration: InputDecoration(
                                     hintText: "发送弹幕...",
                                     hintStyle: TextStyle(color: muted),
                                     border: InputBorder.none,
-                                    isDense: true,
+                                    isCollapsed: true,
                                   ),
                                   onSubmitted: (_) => _sendMessage(),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            FilledButton.tonal(
-                              onPressed: _sendMessage,
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
+                            SizedBox(
+                              height: _inputActionHeight,
+                              child: FilledButton.tonal(
+                                onPressed: _sendMessage,
+                                style: FilledButton.styleFrom(
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 0,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                                child: const Text("发送"),
                               ),
-                              child: const Text("发送"),
                             ),
                           ],
                         ),
