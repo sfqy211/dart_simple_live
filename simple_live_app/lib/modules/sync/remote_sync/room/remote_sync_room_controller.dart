@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/constant.dart';
-import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/log.dart';
@@ -16,6 +15,7 @@ import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/history.dart';
 import 'package:simple_live_app/services/bilibili_account_service.dart';
 import 'package:simple_live_app/services/db_service.dart';
+import 'package:simple_live_app/services/settings_snapshot_service.dart';
 import 'package:simple_live_app/services/signalr_service.dart';
 
 class RemoteSyncRoomController extends BaseController {
@@ -168,13 +168,10 @@ class RemoteSyncRoomController extends BaseController {
   void onReceiveShieldWord(bool overlay, String data) async {
     try {
       var jsonBody = json.decode(data);
-      if (overlay) {
-        AppSettingsController.instance.clearShieldList();
-      }
-      for (var item in jsonBody) {
-        // add to Hive
-        AppSettingsController.instance.addShieldList(item);
-      }
+      await SettingsSnapshotService.instance.importShieldList(
+        jsonBody,
+        clearExisting: overlay,
+      );
       SmartDialog.showToast('已同步屏蔽词');
     } catch (e) {
       SmartDialog.showToast("同步失败:$e");
@@ -273,8 +270,8 @@ class RemoteSyncRoomController extends BaseController {
       }
       var overlay = await showOverlayDialog();
       SmartDialog.showLoading(msg: "发送中...");
-      var shieldList = AppSettingsController.instance.shieldList;
-      var data = json.encode(shieldList.toList());
+      var data =
+          json.encode(SettingsSnapshotService.instance.exportShieldList());
 
       var resp = await signalR.sendContent(
         roomName: currentRoomId.value,

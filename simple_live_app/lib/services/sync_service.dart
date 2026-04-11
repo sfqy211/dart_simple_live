@@ -6,7 +6,6 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:simple_live_app/app/constant.dart';
-import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
@@ -15,6 +14,7 @@ import 'package:simple_live_app/models/db/follow_user_tag.dart';
 import 'package:simple_live_app/models/db/history.dart';
 import 'package:simple_live_app/services/bilibili_account_service.dart';
 import 'package:simple_live_app/services/db_service.dart';
+import 'package:simple_live_app/services/settings_snapshot_service.dart';
 import 'package:udp/udp.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -343,11 +343,12 @@ class SyncService extends GetxService {
       Log.d('_syncBlockedWordReuqest: $body');
       var jsonBody = json.decode(body);
       if (overlay == 1) {
-        AppSettingsController.instance.clearShieldList();
+        await SettingsSnapshotService.instance.importShieldList(
+          const [],
+          clearExisting: true,
+        );
       }
-      for (var keyword in jsonBody) {
-        AppSettingsController.instance.addShieldList(keyword.trim());
-      }
+      await SettingsSnapshotService.instance.importShieldList(jsonBody);
       SmartDialog.showToast('已同步弹幕屏蔽词');
       return toJsonResponse({
         'status': true,

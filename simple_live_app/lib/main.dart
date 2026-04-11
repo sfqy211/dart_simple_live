@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/log.dart';
+import 'package:simple_live_app/app/settings/app_settings_groups.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/app/utils/listen_fourth_button.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
@@ -50,7 +51,7 @@ void main(List<String> args) async {
     await Hive.initFlutter((await getApplicationSupportDirectory()).path);
     await initServices();
     await _applyWindowsTrayIntegration(
-      AppSettingsController.instance.windowsTrayIntegration.value,
+      AppSettingsController.instance.window.trayIntegrationEnabled,
     );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     //设置状态栏为透明

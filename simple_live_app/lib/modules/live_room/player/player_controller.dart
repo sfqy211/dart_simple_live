@@ -10,66 +10,25 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:volume_controller/volume_controller.dart';
 import 'package:screen_brightness/screen_brightness.dart';
-import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/custom_throttle.dart';
 import 'package:simple_live_app/app/log.dart';
-import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/player/ghost_bridge.dart';
+import 'package:simple_live_app/modules/live_room/player/player_engine.dart';
+import 'package:simple_live_app/modules/live_room/widgets/live_overlay_panel.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 
 mixin PlayerMixin {
   GlobalKey<VideoState> globalPlayerKey = GlobalKey<VideoState>();
   GlobalKey globalDanmuKey = GlobalKey();
-
-  /// 播放器实例
-  late final player = Player(
-    configuration: PlayerConfiguration(
-      title: "Simple Live Player",
-      logLevel: AppSettingsController.instance.logEnable.value
-          ? MPVLogLevel.info
-          : MPVLogLevel.error,
-    ),
-  );
+  late final playerEngine = PlayerEngine();
+  Player get player => playerEngine.player;
+  VideoController get videoController => playerEngine.videoController;
 
   /// 初始化播放器并设置 ao 参数
-  Future<void> initializePlayer() async {
-    var pp = player.platform as NativePlayer;
-    final tempPath = Directory.systemTemp.path;
-    final cacheDir = Directory(
-      "$tempPath${Platform.pathSeparator}simple_live_cache",
-    );
-    if (!cacheDir.existsSync()) {
-      cacheDir.createSync(recursive: true);
-    }
-    await pp.setProperty('cache-dir', cacheDir.path);
-    // 设置音频输出驱动
-    if (AppSettingsController.instance.customPlayerOutput.value) {
-      if (player.platform is NativePlayer) {
-        await (player.platform as dynamic).setProperty(
-          'ao',
-          AppSettingsController.instance.audioOutputDriver.value,
-        );
-      }
-    }
-  }
-
-  /// 视频控制器
-  late final videoController = VideoController(
-    player,
-    configuration: AppSettingsController.instance.customPlayerOutput.value
-        ? VideoControllerConfiguration(
-            vo: AppSettingsController.instance.videoOutputDriver.value,
-            hwdec: AppSettingsController.instance.videoHardwareDecoder.value,
-          )
-        : VideoControllerConfiguration(
-            enableHardwareAcceleration:
-                AppSettingsController.instance.hardwareDecode.value,
-            androidAttachSurfaceAfterVideoParameters: false,
-          ),
-  );
+  Future<void> initializePlayer() => playerEngine.initialize();
 }
 
 mixin PlayerStateMixin on PlayerMixin {
@@ -897,77 +856,52 @@ class PlayerController extends BaseController
         PlayerSystemMixin,
         PlayerGestureControlMixin {
   bool _renderFallbackApplied = false;
+  late final PlayerEngineBindings _playerBindings;
+  int? _lastPlayerWidth;
+  int? _lastPlayerHeight;
 
   @override
   void onInit() {
     initSystem();
-    initStream();
+    bindPlayerStreams();
     player.setVolume(AppSettingsController.instance.playerVolume.value);
 
     super.onInit();
   }
 
-  StreamSubscription<String>? _errorSubscription;
-  StreamSubscription? _completedSubscription;
-  StreamSubscription? _widthSubscription;
-  StreamSubscription? _heightSubscription;
-  StreamSubscription? _logSubscription;
-  StreamSubscription? _playingSubscription;
-
-  void initStream() {
-    _errorSubscription = player.stream.error.listen((event) {
-      Log.d("播放器错误：$event");
-      // 跳过无音频输出的错误
-      // Could not open/initialize audio device -> no sound.
-      if (event.contains('no sound.')) {
-        return;
-      }
-      //SmartDialog.showToast(event);
-      mediaError(event);
-    });
-
-    _playingSubscription = player.stream.playing.listen((event) {
-      if (event) {
+  void bindPlayerStreams() {
+    _playerBindings = playerEngine.bind(
+      onError: (event) {
+        Log.d("播放器错误：$event");
+        // 跳过无音频输出的错误
+        // Could not open/initialize audio device -> no sound.
+        if (event.contains('no sound.')) {
+          return;
+        }
+        //SmartDialog.showToast(event);
+        mediaError(event);
+      },
+      onPlaying: () {
         WakelockPlus.enable();
         Log.d("Playing");
         setDanmakuRenderReady(true);
-      }
-    });
-
-    _completedSubscription = player.stream.completed.listen((event) {
-      if (event) {
+      },
+      onCompleted: () {
         mediaEnd();
-      }
-    });
-    _logSubscription = player.stream.log.listen((event) {
-      final message = event.text;
-      if (_shouldSuppressPlayerLog(message)) {
-        return;
-      }
-      Log.d("播放器日志：$event");
-      _handleRenderErrorLog(message);
-    });
-    _widthSubscription = player.stream.width.listen((event) {
-      Log.d(
-          'width:$event  W:${(player.state.width)}  H:${(player.state.height)}');
-      isVertical.value =
-          (player.state.height ?? 9) > (player.state.width ?? 16);
-    });
-    _heightSubscription = player.stream.height.listen((event) {
-      Log.d(
-          'height:$event  W:${(player.state.width)}  H:${(player.state.height)}');
-      isVertical.value =
-          (player.state.height ?? 9) > (player.state.width ?? 16);
-    });
+      },
+      onLog: (message, event) {
+        if (_shouldSuppressPlayerLog(message)) {
+          return;
+        }
+        Log.d("播放器日志：$event");
+        _handleRenderErrorLog(message);
+      },
+      onSizeChanged: _handlePlayerSizeChanged,
+    );
   }
 
-  void disposeStream() {
-    _errorSubscription?.cancel();
-    _completedSubscription?.cancel();
-    _widthSubscription?.cancel();
-    _heightSubscription?.cancel();
-    _logSubscription?.cancel();
-    _playingSubscription?.cancel();
+  Future<void> disposeStream() async {
+    await _playerBindings.dispose();
   }
 
   void mediaEnd() {
@@ -982,6 +916,19 @@ class PlayerController extends BaseController
     final lower = message.toLowerCase();
     return lower.contains('property not found') &&
         lower.contains('_setproperty(osc');
+  }
+
+  void _handlePlayerSizeChanged(int? width, int? height) {
+    if (_lastPlayerWidth == width && _lastPlayerHeight == height) {
+      return;
+    }
+    _lastPlayerWidth = width;
+    _lastPlayerHeight = height;
+    Log.d('player size changed W:${width ?? 0} H:${height ?? 0}', false);
+    final nextIsVertical = (height ?? 9) > (width ?? 16);
+    if (isVertical.value != nextIsVertical) {
+      isVertical.value = nextIsVertical;
+    }
   }
 
   void _handleRenderErrorLog(String message) {
@@ -1002,27 +949,13 @@ class PlayerController extends BaseController
       return;
     }
     _renderFallbackApplied = true;
-    if (player.platform is! NativePlayer) {
-      return;
-    }
-    try {
-      await (player.platform as dynamic).setProperty('hwdec', 'no');
-    } catch (e) {
-      Log.logPrint('切换为软件解码失败: $e');
-    }
-    try {
-      await (player.platform as dynamic).setProperty('vo', 'libmpv');
-    } catch (e) {
-      Log.logPrint('切换渲染输出失败: $e');
-    }
+    await playerEngine.applySoftwareFallback();
     AppSettingsController.instance.setHardwareDecode(false);
     if (AppSettingsController.instance.customPlayerOutput.value) {
       AppSettingsController.instance.setVideoHardwareDecoder('no');
       AppSettingsController.instance.setVideoOutputDriver('gpu');
     }
-    if (player.state.playlist.medias.isNotEmpty) {
-      await player.open(player.state.playlist);
-    }
+    await playerEngine.reopenCurrentPlaylist();
     SmartDialog.showToast('检测到硬解渲染失败，已切换到软件解码');
   }
 
@@ -1122,28 +1055,11 @@ class PlayerController extends BaseController
     );
   }
 
-  bool _shouldUseDesktopWorkspace() {
-    final context = Get.context;
-    if (context == null) {
-      return false;
-    }
-    return AppStyle.isDesktopLayout(context);
-  }
-
   void showDebugInfo() {
-    final child = _buildDebugInfoContent();
-    if (_shouldUseDesktopWorkspace()) {
-      Utils.showRightDialog(
-        title: "播放信息",
-        width: 420,
-        useSystem: true,
-        child: child,
-      );
-      return;
-    }
-    Utils.showBottomSheet(
+    showLiveOverlayPanel(
       title: "播放信息",
-      child: child,
+      width: 420,
+      child: _buildDebugInfoContent(),
     );
   }
 
@@ -1153,10 +1069,10 @@ class PlayerController extends BaseController
     if (smallWindowState.value) {
       exitSmallWindow();
     }
-    disposeStream();
+    await disposeStream();
     disposeDanmakuController();
     await resetSystem();
-    await player.dispose();
+    await playerEngine.dispose();
 
     super.onClose();
   }

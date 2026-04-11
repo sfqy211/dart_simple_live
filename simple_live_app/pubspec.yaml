@@ -9,7 +9,7 @@ dependencies:
   simple_live_core:
     path: ../simple_live_core
   # 图标
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
   remixicon: ^1.4.1 #Remix图标
 
   # 框架、工具
@@ -17,7 +17,7 @@ dependencies:
   dio: ^5.9.0 #网络请求
   hive: 2.2.3 #持久化存储
   hive_flutter: 1.1.0 #持久化存储
-  logger: ^2.6.2 #日志
+  logger: ^2.7.0 #日志
   intl: ^0.20.2 #国际化
   qr_flutter: ^4.1.0 #二维码生成
   path: any
@@ -31,29 +31,29 @@ dependencies:
   #Widget
   flutter_staggered_grid_view: ^0.7.0 #瀑布流/GridView
   extended_image: ^10.0.1 #拓展Image,支持缓存
-  flutter_smart_dialog: ^4.9.8+9 #各种弹窗 Toast/Dialog/Popup
+  flutter_smart_dialog: ^4.9.8+10 #各种弹窗 Toast/Dialog/Popup
   sticky_headers: ^0.3.0+2 #吸顶
-  lottie: ^3.3.2 #lottie动画
-  canvas_danmaku: ^0.2.7
-  sherpa_onnx: ^1.12.28
+  lottie: ^3.3.3 #lottie动画
+  canvas_danmaku: ^0.3.1
+  sherpa_onnx: ^1.12.36
   # ns_danmaku: #弹幕
   #   git:
   #     url: https://github.com/xiaoyaocz/flutter_ns_danmaku.git
   #     tag: v0.0.9
 
   #系统交互
-  package_info_plus: ^9.0.0 #包信息
-  device_info_plus: ^12.2.0 #设备信息
+  package_info_plus: ^9.0.1 #包信息
+  device_info_plus: ^12.4.0 #设备信息
   path_provider: ^2.1.5 #常用路径
   cross_file: ^0.3.5 #跨平台文件
   screen_brightness: ^2.1.7 #亮度控制
-  wakelock_plus: ^1.4.0 #屏幕常亮
+  wakelock_plus: ^1.5.1 #屏幕常亮
   file_picker: ^10.3.7 #文件选择
   window_manager_plus: ^1.0.5 #多窗口管理
   screen_retriever: ^0.2.0
   flutter_inappwebview: ^6.1.5 #WebView
-  connectivity_plus: ^7.0.0 #网络状态
-  volume_controller: ^3.4.0 #音量控制
+  connectivity_plus: ^7.1.1 #网络状态
+  volume_controller: ^3.4.4 #音量控制
   system_tray: ^2.0.3 #系统托盘
 
   # 网络相关

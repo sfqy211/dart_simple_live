@@ -9,7 +9,6 @@ import 'package:get/get.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:simple_live_app/app/constant.dart';
-import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/log.dart';
@@ -23,6 +22,7 @@ import 'package:simple_live_app/modules/sync/remote_sync/webdav/webdav_client.da
 import 'package:simple_live_app/services/bilibili_account_service.dart';
 import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/services/local_storage_service.dart';
+import 'package:simple_live_app/services/settings_snapshot_service.dart';
 
 class RemoteSyncWebDAVController extends BaseController {
   // ui
@@ -192,8 +192,9 @@ class RemoteSyncWebDAVController extends BaseController {
       await userHistoriesJsonFile.writeAsString(jsonEncode(dataHistoriesMap));
 
       // blocked_word
-      var userShieldList = AppSettingsController.instance.shieldList;
-      var dataShieldListMap = {'data': userShieldList.toList()};
+      var dataShieldListMap = {
+        'data': SettingsSnapshotService.instance.exportShieldList(),
+      };
       final userBlockedWordJsonFile =
           File(join(profile.path, _userBlockedWordJsonName));
       await userBlockedWordJsonFile
@@ -208,8 +209,9 @@ class RemoteSyncWebDAVController extends BaseController {
       await bilibiliAccountJsonFile
           .writeAsString(jsonEncode(userBiliAccountCookieMap));
       // settings
-      var settingList = LocalStorageService.instance.settingsBox.toMap();
-      var dataSettingListMap = {'data': settingList};
+      var dataSettingListMap = {
+        'data': SettingsSnapshotService.instance.exportSettingsMap(),
+      };
       final settingJsonFile = File(join(profile.path, _userSettingsJsonName));
       await settingJsonFile.writeAsString(jsonEncode(dataSettingListMap));
 
@@ -283,9 +285,7 @@ class RemoteSyncWebDAVController extends BaseController {
       } else if (file.name == _userBlockedWordJsonName &&
           isSyncBlockWord.value) {
         try {
-          for (var keyword in jsonData) {
-            AppSettingsController.instance.addShieldList(keyword.trim());
-          }
+          await SettingsSnapshotService.instance.importShieldList(jsonData);
           Log.i('已同步用户屏蔽词');
         } catch (e) {
           Log.e('同步用户屏蔽词失败:$e', StackTrace.current);
@@ -303,7 +303,7 @@ class RemoteSyncWebDAVController extends BaseController {
       } else if (file.name == _userSettingsJsonName) {
         try {
           await LocalStorageService.instance.settingsBox.clear();
-          LocalStorageService.instance.settingsBox.putAll(jsonData);
+          await SettingsSnapshotService.instance.importSettingsMap(jsonData);
           Log.i('已同步用户设置');
         } catch (e) {
           Log.e("同步用户设置失败：$e", StackTrace.current);

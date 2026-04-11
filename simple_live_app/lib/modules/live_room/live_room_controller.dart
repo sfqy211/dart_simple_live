@@ -1762,9 +1762,16 @@ class LiveRoomController extends PlayerController
   }
 
   void _applySubtitleResult(VoiceRecognitionResult result) {
-    subtitleText.value = result.text;
-    subtitleIsPartial.value = !result.isFinal;
-    _sendGhostSubtitle(result.text, !result.isFinal);
+    final nextText = result.text;
+    final nextPartial = !result.isFinal;
+    final changed = subtitleText.value != nextText ||
+        subtitleIsPartial.value != nextPartial;
+    if (!changed) {
+      return;
+    }
+    subtitleText.value = nextText;
+    subtitleIsPartial.value = nextPartial;
+    _sendGhostSubtitle(nextText, nextPartial);
     if (result.isFinal) {
       _subtitleClearTimer?.cancel();
       _subtitleClearTimer = Timer(

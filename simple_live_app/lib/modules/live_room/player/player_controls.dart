@@ -10,6 +10,7 @@ import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
+import 'package:simple_live_app/modules/live_room/widgets/live_overlay_panel.dart';
 import 'package:simple_live_app/modules/live_room/widgets/live_room_chat_input_bar.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/follow_service.dart';
@@ -680,7 +681,7 @@ Widget buildDanmuView(VideoState videoState, LiveRoomController controller) {
     option: DanmakuOption(
       fontSize: AppSettingsController.instance.danmuSize.value,
       area: AppSettingsController.instance.danmuArea.value,
-      duration: AppSettingsController.instance.danmuSpeed.value.toInt(),
+      duration: AppSettingsController.instance.danmuSpeed.value,
       opacity: AppSettingsController.instance.danmuOpacity.value,
       //strokeWidth: AppSettingsController.instance.danmuStrokeWidth.value,
       fontWeight: AppSettingsController.instance.danmuFontWeight.value,
@@ -716,14 +717,9 @@ void showQualitesInfo(LiveRoomController controller) {
 }
 
 void showDanmakuSettings(LiveRoomController controller) {
-  if (controller.isVertical.value) {
-    controller.showDanmuSettingsSheet();
-    return;
-  }
-  Utils.showRightDialog(
+  showLiveOverlayPanel(
     title: "弹幕设置",
     width: 400,
-    useSystem: true,
     child: ListView(
       padding: AppStyle.edgeInsetsA12,
       children: [
@@ -740,15 +736,9 @@ void showPlayerSettings(LiveRoomController controller) {
 }
 
 void showFollowUser(LiveRoomController controller) {
-  if (controller.isVertical.value) {
-    controller.showFollowUserSheet();
-    return;
-  }
-
-  Utils.showRightDialog(
+  showLiveOverlayPanel(
     title: "关注列表",
     width: 400,
-    useSystem: true,
     child: Obx(
       () => Stack(
         children: [

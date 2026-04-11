@@ -11,6 +11,7 @@ import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/event_bus.dart';
 import 'package:simple_live_app/app/log.dart';
+import 'package:simple_live_app/app/settings/app_settings_groups.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
@@ -120,12 +121,11 @@ class FollowService extends GetxService {
   }
 
   void initTimer() {
-    if (AppSettingsController.instance.autoUpdateFollowEnable.value) {
+    final syncSettings = AppSettingsController.instance.sync;
+    if (syncSettings.autoUpdateFollowEnabled) {
       updateTimer?.cancel();
       updateTimer = Timer.periodic(
-        Duration(
-            minutes:
-                AppSettingsController.instance.autoUpdateFollowDuration.value),
+        Duration(minutes: syncSettings.autoUpdateFollowDuration),
         (timer) {
           Log.logPrint("Update Follow Timer");
           loadData();
@@ -153,7 +153,8 @@ class FollowService extends GetxService {
   /// 获取最优并发数
   /// 根据 CPU 核心数和用户设置自动计算
   int getOptimalConcurrency() {
-    var userSetting = AppSettingsController.instance.updateFollowThreadCount.value;
+    var userSetting =
+        AppSettingsController.instance.sync.updateFollowThreadCount;
 
     // 如果用户设置为 0，则自动根据 CPU 核心数计算
     if (userSetting == 0) {

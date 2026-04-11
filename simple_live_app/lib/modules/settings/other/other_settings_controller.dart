@@ -10,7 +10,7 @@ import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:path/path.dart' as p;
 import 'package:simple_live_app/app/utils.dart';
-import 'package:simple_live_app/services/local_storage_service.dart';
+import 'package:simple_live_app/services/settings_snapshot_service.dart';
 import 'package:simple_live_app/utils/log_share_helper.dart';
 
 class OtherSettingsController extends BaseController {
@@ -132,14 +132,10 @@ class OtherSettingsController extends BaseController {
   void exportConfig() async {
     try {
       // 组装数据
-      var data = {
-        "type": "simple_live",
-        "platform": Platform.operatingSystem,
-        "version": 1,
-        "time": DateTime.now().millisecondsSinceEpoch,
-        "config": LocalStorageService.instance.settingsBox.toMap(),
-        "shield": LocalStorageService.instance.shieldBox.toMap(),
-      };
+      var data = SettingsSnapshotService.instance.exportSnapshot(
+        platform: Platform.operatingSystem,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
 
       var bytes = Uint8List.fromList(utf8.encode(jsonEncode(data)));
 
@@ -184,11 +180,9 @@ class OtherSettingsController extends BaseController {
           !await Utils.showAlertDialog("导入配置文件平台不匹配,是否继续导入?", title: "平台不匹配")) {
         return;
       }
-      LocalStorageService.instance.settingsBox.clear();
-      LocalStorageService.instance.shieldBox.clear();
-      LocalStorageService.instance.settingsBox.putAll(data["config"]);
-      LocalStorageService.instance.shieldBox
-          .putAll(data["shield"].cast<String, String>());
+      await SettingsSnapshotService.instance.importSnapshot(
+        Map<String, dynamic>.from(data),
+      );
       SmartDialog.showToast("导入成功,重启生效");
     } catch (e) {
       Log.logPrint(e);
@@ -199,8 +193,7 @@ class OtherSettingsController extends BaseController {
   void resetDefaultConfig() {
     Utils.showAlertDialog("是否重置所有配置为默认值?").then((value) {
       if (value) {
-        LocalStorageService.instance.settingsBox.clear();
-        LocalStorageService.instance.shieldBox.clear();
+        SettingsSnapshotService.instance.resetAll();
         SmartDialog.showToast("重置成功,重启生效");
       }
     });

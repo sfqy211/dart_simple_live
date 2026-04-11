@@ -1,6 +1,7 @@
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/log.dart';
+import 'package:simple_live_app/app/settings/app_settings_groups.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 
 class GhostBridge {
@@ -107,17 +108,21 @@ class GhostBridge {
     required double opacity,
     required bool locked,
   }) {
+    final danmaku = settings.danmaku;
+    final subtitle = settings.subtitle;
+    final playback = settings.playback;
+    final window = settings.window;
     return {
       'opacity': opacity,
       'locked': locked,
       'danmaku': {
-        'fontSize': settings.danmuSize.value,
-        'opacity': settings.danmuOpacity.value,
-        'fontWeight': settings.danmuFontWeight.value,
+        'fontSize': danmaku.fontSize,
+        'opacity': danmaku.opacity,
+        'fontWeight': danmaku.fontWeight,
       },
-      'panelColor': settings.ghostPanelColor.value,
-      'volume': settings.playerVolume.value,
-      'subtitleEnable': settings.subtitleEnable.value,
+      'panelColor': window.ghostPanelColor,
+      'volume': playback.playerVolume,
+      'subtitleEnable': subtitle.enabled,
     };
   }
 

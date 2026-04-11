@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
@@ -9,6 +8,7 @@ import 'package:simple_live_app/models/sync_client_info_model.dart';
 import 'package:simple_live_app/requests/sync_client_request.dart';
 import 'package:simple_live_app/services/bilibili_account_service.dart';
 import 'package:simple_live_app/services/db_service.dart';
+import 'package:simple_live_app/services/settings_snapshot_service.dart';
 import 'package:simple_live_app/services/sync_service.dart';
 
 class SyncDeviceController extends BaseController {
@@ -67,8 +67,8 @@ class SyncDeviceController extends BaseController {
     try {
       var overlay = await showOverlayDialog();
       SmartDialog.showLoading(msg: "同步中...");
-      var shieldList = AppSettingsController.instance.shieldList;
-      var data = json.encode(shieldList.toList());
+      var data =
+          json.encode(SettingsSnapshotService.instance.exportShieldList());
       await request.syncBlockedWord(client, data, overlay: overlay);
       SmartDialog.showToast("已同步屏蔽词");
     } catch (e) {

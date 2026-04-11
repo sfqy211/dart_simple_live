@@ -237,6 +237,7 @@ class AppSettingsController extends GetxController {
     playerBufferSize.value =
         _readSetting(LocalStorageService.kPlayerBufferSize, 32);
     logEnable.value = _readSetting(LocalStorageService.kLogEnable, false);
+    Log.verboseEnabled = logEnable.value;
     if (logEnable.value) {
       Log.initWriter();
     }
@@ -690,6 +691,7 @@ class AppSettingsController extends GetxController {
   var logEnable = false.obs;
   void setLogEnable(bool e) {
     _syncSetting(logEnable, LocalStorageService.kLogEnable, e);
+    Log.verboseEnabled = e;
   }
 
   var customPlayerOutput = false.obs;

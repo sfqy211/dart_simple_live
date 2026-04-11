@@ -12,6 +12,7 @@ import 'package:simple_live_app/app/utils.dart';
 
 class Log {
   static const int _maxDebugLogs = 500;
+  static bool verboseEnabled = false;
   static LogFileWriter? logFileWriter;
   static void initWriter() {
     logFileWriter = LogFileWriter();
@@ -24,8 +25,8 @@ class Log {
 
   static void writeLog(content, [Level level = Level.info]) {
     final sanitizedContent = LogSanitizer.sanitizeText(content.toString());
-    logFileWriter
-        ?.write("[${level.name.toUpperCase()}] $_currentTime：$sanitizedContent");
+    logFileWriter?.write(
+        "[${level.name.toUpperCase()}] $_currentTime：$sanitizedContent");
   }
 
   static RxList<DebugLogModel> debugLogs = <DebugLogModel>[].obs;
