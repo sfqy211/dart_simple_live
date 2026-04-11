@@ -48,7 +48,7 @@
    - 降低单文件复杂度，减少回归范围。
 
 3. 停更依赖替换预备
-   状态: `in_progress`
+   状态: `completed`
    说明:
    - `flutter_easyrefresh` 已 discontinued。
    - 当前只使用其基础刷新/加载能力，具备替换条件。
@@ -84,7 +84,7 @@
    - 尽量减少插件层复杂度和构建风险。
 
 3. 列表容器统一
-   状态: `planned`
+   状态: `completed`
    说明:
    - `PageGridView` 和 `PageListView` 结构相近，有重复逻辑。
    目标:
@@ -159,3 +159,4 @@
 
 - `2026-04-11`: 建立 Windows-only 优化计划文档，等待并行分析结果后开始执行第一批改造。
 - `2026-04-11`: 完成第一批 P0/P1 优化：统一日志脱敏、请求头脱敏、去掉登录流程明文 Cookie 日志、为本地设置写入增加“值未变化则不写入”的短路逻辑、移除未使用的 `dynamic_color` 依赖。
+- `2026-04-11`: 完成第二批 P0/P1 优化：移除已停更的 `flutter_easyrefresh`，引入项目内 `PagedRefreshContainer`，统一列表页首刷、下拉刷新与触底加载行为。

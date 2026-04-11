@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
+import 'package:simple_live_app/widgets/paged_refresh_container.dart';
 import 'package:simple_live_app/widgets/status/app_empty_widget.dart';
 import 'package:simple_live_app/widgets/status/app_error_widget.dart';
 import 'package:simple_live_app/widgets/status/app_loadding_widget.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:flutter_easyrefresh/easy_refresh.dart';
 import 'package:get/get.dart';
 
 class PageGridView extends StatelessWidget {
@@ -36,19 +36,12 @@ class PageGridView extends StatelessWidget {
     return Obx(
       () => Stack(
         children: [
-          EasyRefresh(
-            header: MaterialHeader(
-              completeDuration: const Duration(milliseconds: 400),
-            ),
-            footer: MaterialFooter(
-              completeDuration: const Duration(milliseconds: 400),
-            ),
-            scrollController: pageController.scrollController,
-            controller: pageController.easyRefreshController,
+          PagedRefreshContainer(
+            pageController: pageController,
             firstRefresh: firstRefresh,
-            onLoad: pageController.loadData,
-            onRefresh: pageController.refreshData,
-            child: MasonryGridView.count(
+            builder: (scrollController, physics) => MasonryGridView.count(
+              controller: scrollController,
+              physics: physics,
               padding: padding,
               itemCount: pageController.list.length,
               itemBuilder: itemBuilder,

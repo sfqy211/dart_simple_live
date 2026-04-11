@@ -1,10 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-
 import 'package:simple_live_app/app/log.dart';
-
-import 'package:flutter_easyrefresh/easy_refresh.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
@@ -53,7 +50,6 @@ class BaseController extends GetxController {
 
 class BasePageController<T> extends BaseController {
   final ScrollController scrollController = ScrollController();
-  final EasyRefreshController easyRefreshController = EasyRefreshController();
   int currentPage = 1;
   int count = 0;
   int maxPage = 0;
