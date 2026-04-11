@@ -16,6 +16,7 @@ import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/custom_throttle.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
+import 'package:simple_live_app/modules/live_room/player/ghost_bridge.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 
@@ -398,50 +399,31 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
 
   /// 发送弹幕到幽灵窗口
   void sendDanmakuToGhostWindow(DanmakuContentItem item, {String? userName}) {
-    if (ghostModeState.value && ghostWindowId != null) {
-      try {
-        WindowManagerPlus.current.invokeMethodToWindow(
-          ghostWindowId!,
-          'danmaku',
-          {
-            'text': item.text,
-            'user': userName,
-            'color': item.color.toARGB32(),
-            'type': item.type.index,
-            'selfSend': item.selfSend,
-          },
-        );
-      } catch (e) {
-        Log.logPrint('发送弹幕到幽灵窗口失败: $e');
-      }
+    if (!ghostModeState.value) {
+      return;
     }
+    GhostBridge.sendToGhost(
+      ghostWindowId,
+      GhostBridge.eventDanmaku,
+      GhostBridge.buildDanmakuPayload(item, userName: userName),
+      errorMessage: '发送弹幕到幽灵窗口失败',
+    );
   }
 
   void sendGhostConfig() {
-    if (ghostModeState.value && ghostWindowId != null) {
-      try {
-        WindowManagerPlus.current.invokeMethodToWindow(
-          ghostWindowId!,
-          'config',
-          {
-            'opacity': ghostModeOpacity.value,
-            'locked': ghostModeLocked.value,
-            'danmaku': {
-              'fontSize': AppSettingsController.instance.danmuSize.value,
-              'opacity': AppSettingsController.instance.danmuOpacity.value,
-              'fontWeight':
-                  AppSettingsController.instance.danmuFontWeight.value,
-            },
-            'panelColor': AppSettingsController.instance.ghostPanelColor.value,
-            'volume': AppSettingsController.instance.playerVolume.value,
-            'subtitleEnable':
-                AppSettingsController.instance.subtitleEnable.value,
-          },
-        );
-      } catch (e) {
-        Log.logPrint('发送幽灵窗口配置失败: $e');
-      }
+    if (!ghostModeState.value) {
+      return;
     }
+    GhostBridge.sendToGhost(
+      ghostWindowId,
+      GhostBridge.eventConfig,
+      GhostBridge.buildConfigPayload(
+        settings: AppSettingsController.instance,
+        opacity: ghostModeOpacity.value,
+        locked: ghostModeLocked.value,
+      ),
+      errorMessage: '发送幽灵窗口配置失败',
+    );
   }
 }
 mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
@@ -664,18 +646,13 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 调整透明模式透明度
   void setGhostModeOpacity(double opacity) {
     ghostModeOpacity.value = opacity;
-    if (ghostModeState.value && ghostWindowId != null) {
-      try {
-        WindowManagerPlus.current.invokeMethodToWindow(
-          ghostWindowId!,
-          'update',
-          {
-            'opacity': opacity,
-          },
-        );
-      } catch (e) {
-        Log.logPrint('更新幽灵窗口透明度失败: $e');
-      }
+    if (ghostModeState.value) {
+      GhostBridge.sendToGhost(
+        ghostWindowId,
+        GhostBridge.eventUpdate,
+        GhostBridge.buildUpdatePayload(opacity: opacity),
+        errorMessage: '更新幽灵窗口透明度失败',
+      );
     }
   }
 
@@ -686,18 +663,13 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   void setGhostModeLocked(bool locked) {
     ghostModeLocked.value = locked;
-    if (ghostModeState.value && ghostWindowId != null) {
-      try {
-        WindowManagerPlus.current.invokeMethodToWindow(
-          ghostWindowId!,
-          'update',
-          {
-            'locked': ghostModeLocked.value,
-          },
-        );
-      } catch (e) {
-        Log.logPrint('更新幽灵窗口锁定状态失败: $e');
-      }
+    if (ghostModeState.value) {
+      GhostBridge.sendToGhost(
+        ghostWindowId,
+        GhostBridge.eventUpdate,
+        GhostBridge.buildUpdatePayload(locked: ghostModeLocked.value),
+        errorMessage: '更新幽灵窗口锁定状态失败',
+      );
     }
   }
 

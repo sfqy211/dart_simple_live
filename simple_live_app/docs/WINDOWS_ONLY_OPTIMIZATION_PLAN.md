@@ -39,7 +39,7 @@
    - 保留足够调试信息，但默认不输出完整敏感值。
 
 2. 直播间主链路拆分第一阶段
-   状态: `planned`
+   状态: `in_progress`
    说明:
    - `live_room_controller.dart`、`ghost_window.dart`、`player_controller.dart` 等文件体量过大。
    - 当前播放器、字幕、弹幕、窗口模式、聊天输入耦合较深。
@@ -69,7 +69,7 @@
 这些问题不一定马上出错，但会明显拖慢后续开发。
 
 1. 设置系统分层
-   状态: `planned`
+   状态: `in_progress`
    说明:
    - `app_settings_controller.dart` 体量过大，聚合了过多领域设置。
    目标:
@@ -161,3 +161,5 @@
 - `2026-04-11`: 完成第一批 P0/P1 优化：统一日志脱敏、请求头脱敏、去掉登录流程明文 Cookie 日志、为本地设置写入增加“值未变化则不写入”的短路逻辑、移除未使用的 `dynamic_color` 依赖。
 - `2026-04-11`: 完成第二批 P0/P1 优化：移除已停更的 `flutter_easyrefresh`，引入项目内 `PagedRefreshContainer`，统一列表页首刷、下拉刷新与触底加载行为。
 - `2026-04-11`: 完成第三批 P1 优化：移除 `share_plus` 与 `url_launcher`，将日志导出替换为 Windows 资源管理器定位，将外链打开收口为 Windows-only 本地 helper，进一步减少插件层复杂度。
+- `2026-04-11`: 完成第四批 P1 优化：为 `AppSettingsController` 建立统一的本地设置读写 helper，收口初始化读取、基础 setter、列表持久化和自动发送设置的重复样板，降低后续分层改造成本。
+- `2026-04-11`: 完成第五批 P0/P1 优化：新增 `GhostBridge`，统一幽灵窗口事件名、消息 payload 与主窗口/子窗口通信入口，先将字幕、弹幕、配置、自动发送状态和交互事件协议抽离，为后续继续拆分窗口生命周期做准备。

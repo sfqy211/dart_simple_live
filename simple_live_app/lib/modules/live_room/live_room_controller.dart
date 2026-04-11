@@ -18,6 +18,7 @@ import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/history.dart';
+import 'package:simple_live_app/modules/live_room/player/ghost_bridge.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controller.dart';
 import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
 import 'package:simple_live_app/services/bilibili_account_service.dart';
@@ -1779,19 +1780,14 @@ class LiveRoomController extends PlayerController
   }
 
   void _sendGhostSubtitle(String text, bool partial) {
-    if (!ghostModeState.value || ghostWindowId == null) {
+    if (!ghostModeState.value) {
       return;
     }
-    try {
-      WindowManagerPlus.current.invokeMethodToWindow(
-        ghostWindowId!,
-        'subtitle',
-        {
-          'text': text,
-          'partial': partial,
-        },
-      );
-    } catch (_) {}
+    GhostBridge.sendToGhost(
+      ghostWindowId,
+      GhostBridge.eventSubtitle,
+      GhostBridge.buildSubtitlePayload(text, partial),
+    );
   }
 
   void scrollListener() {
@@ -2792,7 +2788,7 @@ ${errorStackTrace?.toString()}''');
   @override
   Future<dynamic> onEventFromWindow(
       String eventName, int fromWindowId, dynamic arguments) async {
-    if (eventName == 'send_chat') {
+    if (eventName == GhostBridge.eventSendChat) {
       String text = '';
       if (arguments is Map) {
         text = arguments['text']?.toString() ?? '';
@@ -2803,7 +2799,7 @@ ${errorStackTrace?.toString()}''');
       if (message.isNotEmpty) {
         await sendChatMessage(message);
       }
-    } else if (eventName == 'send_emotion') {
+    } else if (eventName == GhostBridge.eventSendEmotion) {
       String text = '';
       Map<String, dynamic>? emoticonOptions;
       if (arguments is Map) {
@@ -2819,44 +2815,31 @@ ${errorStackTrace?.toString()}''');
       if (message.isNotEmpty) {
         await sendEmotionMessage(message, emoticonOptions: emoticonOptions);
       }
-    } else if (eventName == 'get_emoticons') {
+    } else if (eventName == GhostBridge.eventGetEmoticons) {
       final emoticonPackages = await getEmoticons();
-      if (emoticonPackages is List && ghostWindowId != null) {
-        WindowManagerPlus.current.invokeMethodToWindow(
-          ghostWindowId!,
-          'emoticons',
+      if (emoticonPackages is List) {
+        GhostBridge.sendToGhost(
+          ghostWindowId,
+          GhostBridge.eventEmoticons,
           {'packages': emoticonPackages},
         );
       }
-    } else if (eventName == 'show_emotions') {
+    } else if (eventName == GhostBridge.eventShowEmotions) {
       await showEmotionPanel();
-    } else if (eventName == 'show_auto_spam') {
+    } else if (eventName == GhostBridge.eventShowAutoSpam) {
       await showAutoSpamSheet();
-    } else if (eventName == 'get_auto_spam_state') {
-      if (ghostWindowId != null) {
-        final settings = AppSettingsController.instance;
-        WindowManagerPlus.current.invokeMethodToWindow(
-          ghostWindowId!,
-          'auto_spam_state',
-          {
-            'textMsg': settings.autoSpamTextMsg.value,
-            'textInterval': settings.autoSpamTextInterval.value,
-            'textChunkSize': settings.autoSpamTextChunkSize.value,
-            'textDuration': settings.autoSpamTextDuration.value,
-            'emotionInterval': settings.autoSpamEmotionInterval.value,
-            'emotionDuration': settings.autoSpamEmotionDuration.value,
-            'favoritesInterval': settings.autoSpamFavoritesInterval.value,
-            'favoritesDuration': settings.autoSpamFavoritesDuration.value,
-            'favoritesIndex': settings.autoSpamFavoritesIndex.value,
-            'emotions': settings.autoSpamEmotions.toList(),
-            'favorites': settings.autoSpamFavorites.toList(),
-            'textRunning': autoSpamTextRunning.value,
-            'emotionRunning': autoSpamEmotionRunning.value,
-            'favoritesRunning': autoSpamFavoritesRunning.value,
-          },
-        );
-      }
-    } else if (eventName == 'set_auto_spam_state') {
+    } else if (eventName == GhostBridge.eventGetAutoSpamState) {
+      GhostBridge.sendToGhost(
+        ghostWindowId,
+        GhostBridge.eventAutoSpamState,
+        GhostBridge.buildAutoSpamStatePayload(
+          settings: AppSettingsController.instance,
+          textRunning: autoSpamTextRunning.value,
+          emotionRunning: autoSpamEmotionRunning.value,
+          favoritesRunning: autoSpamFavoritesRunning.value,
+        ),
+      );
+    } else if (eventName == GhostBridge.eventSetAutoSpamState) {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
         final settings = AppSettingsController.instance;
@@ -2895,24 +2878,14 @@ ${errorStackTrace?.toString()}''');
           settings.setAutoSpamFavoritesIndex(
               (message['favoritesIndex'] as num).toInt());
         }
-        if (message['emotions'] is List) {
-          settings.setAutoSpamEmotions(
-            (message['emotions'] as List)
-                .whereType<Map>()
-                .map((e) => Map<String, dynamic>.from(e))
-                .toList(),
-          );
-        }
-        if (message['favorites'] is List) {
-          settings.setAutoSpamFavorites(
-            (message['favorites'] as List)
-                .whereType<Map>()
-                .map((e) => Map<String, dynamic>.from(e))
-                .toList(),
-          );
-        }
+        settings.setAutoSpamEmotions(
+          GhostBridge.normalizeMapList(message['emotions']),
+        );
+        settings.setAutoSpamFavorites(
+          GhostBridge.normalizeMapList(message['favorites']),
+        );
       }
-    } else if (eventName == 'auto_spam_action') {
+    } else if (eventName == GhostBridge.eventAutoSpamAction) {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
         final type = message['type']?.toString() ?? '';
@@ -2937,7 +2910,7 @@ ${errorStackTrace?.toString()}''');
           }
         }
       }
-    } else if (eventName == 'ghost_settings') {
+    } else if (eventName == GhostBridge.eventGhostSettings) {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
         if (message.containsKey('opacity')) {
@@ -2966,7 +2939,7 @@ ${errorStackTrace?.toString()}''');
           }
         }
       }
-    } else if (eventName == 'ghost_volume') {
+    } else if (eventName == GhostBridge.eventGhostVolume) {
       if (arguments is Map) {
         final value = arguments['value'];
         if (value is num) {
@@ -2974,7 +2947,8 @@ ${errorStackTrace?.toString()}''');
           AppSettingsController.instance.setPlayerVolume(value.toDouble());
         }
       }
-    } else if (eventName == 'ghost_exit' || eventName == 'ghost_closed') {
+    } else if (eventName == GhostBridge.eventGhostExit ||
+        eventName == GhostBridge.eventGhostClosed) {
       stopAllAutoSpam();
       if (ghostModeState.value) {
         exitGhostMode();

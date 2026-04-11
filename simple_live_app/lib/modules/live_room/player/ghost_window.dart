@@ -6,6 +6,7 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 import 'package:simple_live_app/app/app_style.dart';
+import 'package:simple_live_app/modules/live_room/player/ghost_bridge.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
 
 enum _GhostWindowCollapseMode {
@@ -150,7 +151,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     int fromWindowId,
     dynamic arguments,
   ) async {
-    if (eventName == 'update' || eventName == 'config') {
+    if (eventName == GhostBridge.eventUpdate ||
+        eventName == GhostBridge.eventConfig) {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
         if (message.containsKey('opacity')) {
@@ -234,7 +236,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       } else if (arguments is String) {
         _appendItem(DanmakuContentItem(arguments));
       }
-    } else if (eventName == 'subtitle') {
+    } else if (eventName == GhostBridge.eventSubtitle) {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
         setState(() {
@@ -242,7 +244,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           _subtitleIsPartial = message['partial'] == true;
         });
       }
-    } else if (eventName == 'auto_spam_state') {
+    } else if (eventName == GhostBridge.eventAutoSpamState) {
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
         setState(() {
@@ -309,7 +311,7 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
           _showAutoSpamPanel();
         }
       }
-    } else if (eventName == 'emoticons') {
+    } else if (eventName == GhostBridge.eventEmoticons) {
       List<dynamic>? emoticonPackages;
       if (arguments is Map) {
         final message = Map<String, dynamic>.from(arguments);
@@ -335,10 +337,9 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   @override
   void onWindowClose([int? windowId]) async {
     await WindowManagerPlus.current.hide();
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'ghost_closed',
-      {},
+    GhostBridge.sendToMain(
+      GhostBridge.eventGhostClosed,
+      const {},
     );
   }
 
@@ -362,9 +363,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
     if (text.isEmpty) {
       return;
     }
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'send_chat',
+    GhostBridge.sendToMain(
+      GhostBridge.eventSendChat,
       {'text': text},
     );
     _inputController.clear();
@@ -376,33 +376,29 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   }
 
   void _sendGhostSettings(Map<String, dynamic> settings) {
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'ghost_settings',
+    GhostBridge.sendToMain(
+      GhostBridge.eventGhostSettings,
       settings,
     );
   }
 
   void _requestAutoSpamState() {
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'get_auto_spam_state',
-      {},
+    GhostBridge.sendToMain(
+      GhostBridge.eventGetAutoSpamState,
+      const {},
     );
   }
 
   void _setAutoSpamState(Map<String, dynamic> settings) {
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'set_auto_spam_state',
+    GhostBridge.sendToMain(
+      GhostBridge.eventSetAutoSpamState,
       settings,
     );
   }
 
   void _sendAutoSpamAction(String type, bool start) {
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'auto_spam_action',
+    GhostBridge.sendToMain(
+      GhostBridge.eventAutoSpamAction,
       {'type': type, 'start': start},
     );
     _requestAutoSpamState();
@@ -444,10 +440,9 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   }
 
   void _requestExitGhostMode() {
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'ghost_exit',
-      {},
+    GhostBridge.sendToMain(
+      GhostBridge.eventGhostExit,
+      const {},
     );
   }
 
@@ -660,10 +655,9 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
   }
 
   void _requestShowEmotions() {
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'get_emoticons',
-      {},
+    GhostBridge.sendToMain(
+      GhostBridge.eventGetEmoticons,
+      const {},
     );
   }
 
@@ -680,9 +674,8 @@ class _GhostWindowState extends State<GhostWindow> with WindowListener {
       'text': emotion,
       if (emoticonOptions != null) 'emoticonOptions': emoticonOptions,
     };
-    WindowManagerPlus.current.invokeMethodToWindow(
-      0,
-      'send_emotion',
+    GhostBridge.sendToMain(
+      GhostBridge.eventSendEmotion,
       payload,
     );
   }
