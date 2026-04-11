@@ -6,25 +6,20 @@ class Constant {
   static const String kUpdateHistory = "UpdateHistory";
 
   static final Map<String, HomePageItem> allHomePages = {
-    "recommend": HomePageItem(
-      iconData: Remix.home_smile_line,
-      title: "首页",
-      index: 0,
-    ),
     "follow": HomePageItem(
       iconData: Remix.heart_line,
       title: "关注",
-      index: 1,
+      index: 0,
     ),
     "category": HomePageItem(
       iconData: Remix.apps_line,
       title: "分类",
-      index: 2,
+      index: 1,
     ),
     "user": HomePageItem(
       iconData: Remix.user_smile_line,
       title: "我的",
-      index: 3,
+      index: 2,
     ),
   };
 

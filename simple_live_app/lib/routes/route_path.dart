@@ -1,6 +1,6 @@
 /// 路由路径
 class RoutePath {
-  /// 首页
+  /// 主界面
   static const kIndex = "/index";
 
   /// 搜索
@@ -42,7 +42,7 @@ class RoutePath {
   /// 工具箱
   static const kTools = "/other/tools";
 
-  /// 主页设置
+  /// 导航设置
   static const kSettingsIndexed = "/settings/indexed";
 
   /// 外观设置

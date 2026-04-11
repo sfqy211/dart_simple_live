@@ -104,7 +104,7 @@ class _MinePageState extends State<MinePage> {
       ),
       DesktopWorkbenchSectionData(
         title: "偏好",
-        description: "界面、首页、播放和关注相关设置。",
+        description: "界面、导航、播放和关注相关设置。",
         items: [
           _desktopItem(
             entry: _MineDesktopEntry.appearance,
@@ -115,8 +115,8 @@ class _MinePageState extends State<MinePage> {
           _desktopItem(
             entry: _MineDesktopEntry.indexed,
             icon: Remix.home_2_line,
-            title: "主页设置",
-            hint: "导航与排序",
+            title: "导航设置",
+            hint: "栏位与顺序",
           ),
           _desktopItem(
             entry: _MineDesktopEntry.play,
@@ -232,7 +232,7 @@ class _MinePageState extends State<MinePage> {
       ),
       _MineMobileSection(
         title: "偏好",
-        description: "界面、首页、播放和关注相关设置。",
+        description: "界面、导航、播放和关注相关设置。",
         items: [
           _MineMobileItem(
             icon: Remix.moon_line,
@@ -243,8 +243,8 @@ class _MinePageState extends State<MinePage> {
           ),
           _MineMobileItem(
             icon: Remix.home_2_line,
-            title: "主页设置",
-            hint: "导航与排序",
+            title: "导航设置",
+            hint: "栏位与顺序",
             type: _MineMobileActionType.route,
             routeName: RoutePath.kSettingsIndexed,
           ),
@@ -423,8 +423,8 @@ class _MinePageState extends State<MinePage> {
         );
       case _MineDesktopEntry.indexed:
         return const SettingsWorkspace(
-          title: "主页设置",
-          subtitle: "首页栏目与展示顺序",
+          title: "导航设置",
+          subtitle: "侧边栏与底部栏顺序",
           child: IndexedSettingsView(),
         );
       case _MineDesktopEntry.play:

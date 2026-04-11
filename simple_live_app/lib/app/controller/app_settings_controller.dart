@@ -319,23 +319,28 @@ class AppSettingsController extends GetxController {
   }
 
   void initHomeSort() {
-    var sort = LocalStorageService.instance
-        .getValue(
-          LocalStorageService.kHomeSort,
-          Constant.allHomePages.keys.join(","),
+    final keys = Constant.allHomePages.keys.toList();
+    final storedValue = LocalStorageService.instance.getValue(
+      LocalStorageService.kHomeSort,
+      keys.join(","),
+    );
+    final sort = storedValue
+        .split(",")
+        .map((item) => item.trim())
+        .where(
+          (item) => item.isNotEmpty && Constant.allHomePages.containsKey(item),
         )
-        .split(",");
-    //如果数量与allSites的数量不一致，将缺失的添加上
-    if (sort.length != Constant.allHomePages.length) {
-      var keys = Constant.allHomePages.keys.toList();
-      for (var i = 0; i < keys.length; i++) {
-        if (!sort.contains(keys[i])) {
-          sort.add(keys[i]);
-        }
+        .toList();
+    for (final key in keys) {
+      if (!sort.contains(key)) {
+        sort.add(key);
       }
     }
-
     homeSort.value = sort;
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kHomeSort,
+      sort.join(","),
+    );
   }
 
   void setNoFirstRun() {

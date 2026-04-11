@@ -103,11 +103,6 @@ class AboutSettingsView extends StatelessWidget {
         ),
         AppStyle.vGap24,
         const SettingsSectionTitle(
-          title: "产品定位",
-          subtitle: "桌面端直播浏览工具，面向长期观看直播的用户。",
-        ),
-        AppStyle.vGap24,
-        const SettingsSectionTitle(
           title: "免责声明",
         ),
         SettingsCard(

@@ -13,8 +13,8 @@ class IndexedSettingsPage extends GetView<IndexedSettingsController> {
   @override
   Widget build(BuildContext context) {
     return const SettingsPageScaffold(
-      title: "主页设置",
-      subtitle: "首页栏目与展示顺序",
+      title: "导航设置",
+      subtitle: "侧边栏与底部栏顺序",
       body: IndexedSettingsView(),
     );
   }
@@ -31,8 +31,8 @@ class IndexedSettingsView extends GetView<IndexedSettingsController> {
       padding: AppStyle.contentPadding(context),
       children: [
         const SettingsSectionTitle(
-          title: "首页排序",
-          subtitle: "长按拖动以调整首页模块顺序，重启后生效。",
+          title: "导航排序",
+          subtitle: "长按拖动以调整关注、分类和我的显示顺序。",
         ),
         SettingsCard(
           child: Obx(

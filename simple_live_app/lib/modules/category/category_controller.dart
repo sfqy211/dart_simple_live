@@ -15,7 +15,7 @@ class CategoryController extends GetxController {
     streamSubscription = EventBus.instance.listen(
       EventBus.kBottomNavigationBarClicked,
       (index) {
-        if (index == 2) {
+        if (index == 1) {
           refreshOrScrollTop();
         }
       },

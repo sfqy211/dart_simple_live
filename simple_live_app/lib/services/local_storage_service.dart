@@ -14,7 +14,7 @@ class LocalStorageService extends GetxService {
   /// 网站排序
   static const String kSiteSort = "SiteSort";
 
-  /// 首页排序
+  /// 导航排序
   static const String kHomeSort = "HomeSort";
 
   /// 显示模式

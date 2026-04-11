@@ -49,13 +49,12 @@ import 'route_path.dart';
 class AppPages {
   AppPages._();
   static final routes = [
-    // 首页
+    // 主界面
     GetPage(
       name: RoutePath.kIndex,
       page: () => const IndexedPage(),
       bindings: [
         BindingsBuilder.put(() => IndexedController()),
-        //BindingsBuilder.put(() => HomeController()),
       ],
     ),
     // 观看记录
@@ -144,7 +143,7 @@ class AppPages {
         BindingsBuilder.put(() => DanmuShieldController()),
       ],
     ),
-    //主页设置
+    //导航设置
     GetPage(
       name: RoutePath.kSettingsIndexed,
       page: () => const IndexedSettingsPage(),

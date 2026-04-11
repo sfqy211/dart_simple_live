@@ -7,6 +7,7 @@ import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/models/db/follow_user.dart';
 import 'package:simple_live_app/models/db/follow_user_tag.dart';
 import 'package:simple_live_app/modules/follow_user/follow_user_controller.dart';
+import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/routes/app_navigation.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/widgets/desktop_page_header.dart';
@@ -127,6 +128,14 @@ class FollowUserPage extends GetView<FollowUserController> {
     );
   }
 
+  Widget _buildDesktopSearchAction() {
+    return DesktopPageHeaderButton(
+      onTap: () => Get.toNamed(RoutePath.kSearch),
+      icon: Icons.search,
+      label: "搜索",
+    );
+  }
+
   Widget _buildDesktopMoreAction() {
     return PopupMenuButton<int>(
       tooltip: "更多",
@@ -219,6 +228,11 @@ class FollowUserPage extends GetView<FollowUserController> {
           : AppBar(
               title: const Text("关注用户"),
               actions: [
+                IconButton(
+                  onPressed: () => Get.toNamed(RoutePath.kSearch),
+                  icon: const Icon(Icons.search),
+                  tooltip: "搜索",
+                ),
                 PopupMenuButton<int>(
                   itemBuilder: (_) => _buildPageActionItems(),
                   onSelected: _handlePageAction,
@@ -234,6 +248,7 @@ class FollowUserPage extends GetView<FollowUserController> {
               title: "关注用户",
               actions: [
                 _buildDesktopRefreshAction(),
+                _buildDesktopSearchAction(),
                 _buildDesktopMoreAction(),
               ],
             ),

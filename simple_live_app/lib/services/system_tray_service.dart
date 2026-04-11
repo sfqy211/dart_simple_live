@@ -117,7 +117,7 @@ class SystemTrayManager {
         ),
         MenuSeparator(),
         MenuItemLabel(
-          label: '返回首页',
+          label: '打开主界面',
           onClicked: (menuItem) async {
             await _navigateTo(RoutePath.kIndex);
           },
