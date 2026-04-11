@@ -225,12 +225,23 @@ class LocalStorageService extends GetxService {
     );
   }
 
+  bool _shouldLogStorageOperation() {
+    try {
+      return settingsBox.isOpen &&
+          settingsBox.get(kLogEnable, defaultValue: false) == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   T getValue<T>(dynamic key, T defaultValue) {
     try {
       var value = settingsBox.get(key, defaultValue: defaultValue) as T;
-      Log.d(
-        LogSanitizer.describeStorageOperation("Get LocalStorage", key, value),
-      );
+      if (_shouldLogStorageOperation()) {
+        Log.d(
+          LogSanitizer.describeStorageOperation("Get LocalStorage", key, value),
+        );
+      }
       return value;
     } catch (e) {
       Log.logPrint(e);
@@ -243,14 +254,18 @@ class LocalStorageService extends GetxService {
     if (const DeepCollectionEquality().equals(currentValue, value)) {
       return;
     }
-    Log.d(
-      LogSanitizer.describeStorageOperation("Set LocalStorage", key, value),
-    );
+    if (_shouldLogStorageOperation()) {
+      Log.d(
+        LogSanitizer.describeStorageOperation("Set LocalStorage", key, value),
+      );
+    }
     return await settingsBox.put(key, value);
   }
 
   Future removeValue<T>(dynamic key) async {
-    Log.d("Remove LocalStorage：$key");
+    if (_shouldLogStorageOperation()) {
+      Log.d("Remove LocalStorage：$key");
+    }
     return await settingsBox.delete(key);
   }
 }
