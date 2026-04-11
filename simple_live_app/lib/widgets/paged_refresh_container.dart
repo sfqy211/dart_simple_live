@@ -23,13 +23,19 @@ class PagedRefreshContainer extends StatefulWidget {
 }
 
 class _PagedRefreshContainerState extends State<PagedRefreshContainer> {
+  static const double _loadMoreThreshold = 240;
+
   bool _initialRefreshTriggered = false;
+  bool _loadMoreQueued = false;
+  bool _postFrameCheckQueued = false;
 
   @override
   void initState() {
     super.initState();
+    widget.pageController.scrollController.addListener(_handleScrollChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _triggerInitialRefresh();
+      _scheduleLoadMoreCheck();
     });
   }
 
@@ -37,39 +43,88 @@ class _PagedRefreshContainerState extends State<PagedRefreshContainer> {
   void didUpdateWidget(covariant PagedRefreshContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.pageController != widget.pageController) {
+      oldWidget.pageController.scrollController.removeListener(
+        _handleScrollChanged,
+      );
+      widget.pageController.scrollController.addListener(_handleScrollChanged);
       _initialRefreshTriggered = false;
+      _loadMoreQueued = false;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _triggerInitialRefresh();
+      _scheduleLoadMoreCheck();
     });
   }
 
-  void _triggerInitialRefresh() {
+  @override
+  void dispose() {
+    widget.pageController.scrollController.removeListener(_handleScrollChanged);
+    super.dispose();
+  }
+
+  Future<void> _triggerInitialRefresh() async {
     if (!mounted || !widget.firstRefresh || _initialRefreshTriggered) {
       return;
     }
-    if (widget.pageController.loadding || widget.pageController.list.isNotEmpty) {
+    if (widget.pageController.loadding ||
+        widget.pageController.list.isNotEmpty) {
       _initialRefreshTriggered = true;
       return;
     }
     _initialRefreshTriggered = true;
-    widget.pageController.refreshData();
+    await widget.pageController.refreshData();
+    _scheduleLoadMoreCheck();
   }
 
-  bool _handleScrollNotification(ScrollNotification notification) {
-    if (notification.metrics.axis != Axis.vertical) {
-      return false;
+  void _handleScrollChanged() {
+    _scheduleLoadMoreCheck();
+  }
+
+  void _scheduleLoadMoreCheck() {
+    if (!mounted || _postFrameCheckQueued) {
+      return;
     }
+    _postFrameCheckQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _postFrameCheckQueued = false;
+      _maybeLoadMore();
+    });
+  }
+
+  bool _canTriggerLoadMore() {
     if (!widget.pageController.canLoadMore.value ||
         widget.pageController.loadding ||
         widget.pageController.pageEmpty.value ||
         widget.pageController.pageError.value) {
       return false;
     }
-    if (notification.metrics.extentAfter <= 180) {
-      widget.pageController.loadData();
+
+    final scrollController = widget.pageController.scrollController;
+    if (!scrollController.hasClients) {
+      return false;
     }
-    return false;
+
+    final position = scrollController.position;
+    if (!position.hasPixels || !position.hasContentDimensions) {
+      return false;
+    }
+
+    return position.extentAfter <= _loadMoreThreshold;
+  }
+
+  void _maybeLoadMore() {
+    if (!mounted || _loadMoreQueued || !_canTriggerLoadMore()) {
+      return;
+    }
+
+    _loadMoreQueued = true;
+    widget.pageController.loadData().whenComplete(() {
+      if (!mounted) {
+        return;
+      }
+      _loadMoreQueued = false;
+      _scheduleLoadMoreCheck();
+    });
   }
 
   @override
@@ -77,14 +132,12 @@ class _PagedRefreshContainerState extends State<PagedRefreshContainer> {
     const physics = AlwaysScrollableScrollPhysics(
       parent: ClampingScrollPhysics(),
     );
+    _scheduleLoadMoreCheck();
 
     return RefreshIndicator(
       onRefresh: widget.pageController.refreshData,
       notificationPredicate: (notification) => notification.depth == 0,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: _handleScrollNotification,
-        child: widget.builder(widget.pageController.scrollController, physics),
-      ),
+      child: widget.builder(widget.pageController.scrollController, physics),
     );
   }
 }

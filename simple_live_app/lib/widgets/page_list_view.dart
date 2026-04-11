@@ -9,6 +9,8 @@ import 'package:get/get.dart';
 typedef IndexedWidgetBuilder = Widget Function(BuildContext context, int index);
 
 class PageListView extends StatelessWidget {
+  static const double _bottomOverlayPadding = 56;
+
   final BasePageController pageController;
   final IndexedWidgetBuilder itemBuilder;
   final IndexedWidgetBuilder? separatorBuilder;
@@ -29,6 +31,13 @@ class PageListView extends StatelessWidget {
     Key? key,
   }) : super(key: key);
 
+  EdgeInsets _resolvedPadding() {
+    final base = padding ?? EdgeInsets.zero;
+    return base.copyWith(
+      bottom: base.bottom + _bottomOverlayPadding,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(
@@ -40,7 +49,7 @@ class PageListView extends StatelessWidget {
             builder: (scrollController, physics) => ListView.separated(
               controller: scrollController,
               physics: physics,
-              padding: padding,
+              padding: _resolvedPadding(),
               itemCount: pageController.list.length,
               itemBuilder: itemBuilder,
               separatorBuilder:

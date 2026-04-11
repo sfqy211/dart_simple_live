@@ -8,6 +8,8 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 
 class PageGridView extends StatelessWidget {
+  static const double _bottomOverlayPadding = 56;
+
   final BasePageController pageController;
   final IndexedWidgetBuilder itemBuilder;
   final EdgeInsets? padding;
@@ -31,6 +33,13 @@ class PageGridView extends StatelessWidget {
     Key? key,
   }) : super(key: key);
 
+  EdgeInsets _resolvedPadding() {
+    final base = padding ?? EdgeInsets.zero;
+    return base.copyWith(
+      bottom: base.bottom + _bottomOverlayPadding,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(
@@ -42,7 +51,7 @@ class PageGridView extends StatelessWidget {
             builder: (scrollController, physics) => MasonryGridView.count(
               controller: scrollController,
               physics: physics,
-              padding: padding,
+              padding: _resolvedPadding(),
               itemCount: pageController.list.length,
               itemBuilder: itemBuilder,
               crossAxisCount: crossAxisCount,
