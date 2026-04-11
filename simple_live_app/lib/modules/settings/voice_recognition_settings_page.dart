@@ -10,7 +10,7 @@ import 'package:simple_live_app/services/voice_model_manager.dart';
 import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_number.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import 'package:simple_live_app/utils/windows_link_launcher.dart';
 
 class VoiceRecognitionSettingsPage extends StatelessWidget {
   const VoiceRecognitionSettingsPage({super.key});
@@ -128,7 +128,7 @@ class _VoiceRecognitionSettingsViewState
 
   Future<void> _openUrl(String url) async {
     try {
-      await launchUrlString(url, mode: LaunchMode.externalApplication);
+      await openExternalLink(url);
     } catch (e) {
       SmartDialog.showToast("无法打开链接: $e");
     }

@@ -9,7 +9,7 @@ import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_menu.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 import 'package:simple_live_app/widgets/settings/settings_workspace.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import 'package:simple_live_app/utils/windows_link_launcher.dart';
 
 class OtherSettingsPage extends GetView<OtherSettingsController> {
   const OtherSettingsPage({super.key});
@@ -80,7 +80,7 @@ class OtherSettingsView extends GetView<OtherSettingsController> {
                 WidgetSpan(
                   child: GestureDetector(
                     onTap: () {
-                      launchUrlString(
+                      openExternalLink(
                         "https://mpv.io/manual/stable/#video-output-drivers",
                       );
                     },

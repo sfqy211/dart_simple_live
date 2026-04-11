@@ -9,9 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   media_kit_video
   screen_brightness_windows
   screen_retriever_windows
-  share_plus
   system_tray
-  url_launcher_windows
   volume_controller
   window_manager_plus
 )

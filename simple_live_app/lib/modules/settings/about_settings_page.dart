@@ -7,7 +7,7 @@ import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/widgets/settings/settings_action.dart';
 import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_workspace.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import 'package:simple_live_app/utils/windows_link_launcher.dart';
 
 class AboutSettingsPage extends StatelessWidget {
   const AboutSettingsPage({super.key});
@@ -26,10 +26,7 @@ class AboutSettingsView extends StatelessWidget {
   const AboutSettingsView({super.key});
 
   Future<void> _openProjectHomepage() {
-    return launchUrlString(
-      "https://github.com/sfqy211/dart_simple_live",
-      mode: LaunchMode.externalApplication,
-    );
+    return openExternalLink("https://github.com/sfqy211/dart_simple_live");
   }
 
   @override

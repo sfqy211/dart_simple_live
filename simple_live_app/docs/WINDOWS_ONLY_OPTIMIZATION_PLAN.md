@@ -76,7 +76,7 @@
    - 按播放、弹幕、字幕、窗口、同步拆分设置读写职责。
 
 2. Windows-only 依赖清理第二阶段
-   状态: `in_progress`
+   状态: `completed`
    说明:
    - 继续检查 `share_plus`、`dynamic_color`、`network_info_plus`、`device_info_plus` 等依赖是否值得保留。
    目标:
@@ -160,3 +160,4 @@
 - `2026-04-11`: 建立 Windows-only 优化计划文档，等待并行分析结果后开始执行第一批改造。
 - `2026-04-11`: 完成第一批 P0/P1 优化：统一日志脱敏、请求头脱敏、去掉登录流程明文 Cookie 日志、为本地设置写入增加“值未变化则不写入”的短路逻辑、移除未使用的 `dynamic_color` 依赖。
 - `2026-04-11`: 完成第二批 P0/P1 优化：移除已停更的 `flutter_easyrefresh`，引入项目内 `PagedRefreshContainer`，统一列表页首刷、下拉刷新与触底加载行为。
+- `2026-04-11`: 完成第三批 P1 优化：移除 `share_plus` 与 `url_launcher`，将日志导出替换为 Windows 资源管理器定位，将外链打开收口为 Windows-only 本地 helper，进一步减少插件层复杂度。

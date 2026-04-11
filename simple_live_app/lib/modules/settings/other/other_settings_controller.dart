@@ -5,13 +5,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:path/path.dart' as p;
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/services/local_storage_service.dart';
+import 'package:simple_live_app/utils/log_share_helper.dart';
 
 class OtherSettingsController extends BaseController {
   RxList<LogFileModel> logFiles = <LogFileModel>[].obs;
@@ -106,10 +106,13 @@ class OtherSettingsController extends BaseController {
     loadLogFiles();
   }
 
-  void shareLogFile(LogFileModel item) {
-    SharePlus.instance.share(ShareParams(
-      files: [XFile(item.path)],
-    ));
+  Future<void> shareLogFile(LogFileModel item) async {
+    final opened = await revealFileInExplorer(item.path);
+    if (opened) {
+      SmartDialog.showToast("日志文件已在资源管理器中打开");
+    } else {
+      SmartDialog.showToast("日志文件路径: ${item.path}");
+    }
   }
 
   void saveLogFile(LogFileModel item) async {

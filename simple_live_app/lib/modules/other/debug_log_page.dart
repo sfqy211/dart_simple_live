@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/log.dart';
+import 'package:simple_live_app/utils/log_share_helper.dart';
 
 class DebugLogPage extends StatelessWidget {
   const DebugLogPage({Key? key}) : super(key: key);
@@ -25,10 +25,19 @@ class DebugLogPage extends StatelessWidget {
               var logFile = File(
                   '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.log');
               await logFile.writeAsString(msg);
+              if (!context.mounted) {
+                return;
+              }
 
-              SharePlus.instance.share(ShareParams(
-                files: [XFile(logFile.path)],
-              ));
+              final messenger = ScaffoldMessenger.of(context);
+              final opened = await revealFileInExplorer(logFile.path);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(opened
+                      ? "日志已在资源管理器中打开: ${logFile.path}"
+                      : "日志已保存到: ${logFile.path}"),
+                ),
+              );
             },
             icon: const Icon(Icons.save),
           ),
