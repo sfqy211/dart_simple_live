@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:collection/collection.dart';
 import 'package:simple_live_app/app/log.dart';
+import 'package:simple_live_app/app/log_sanitizer.dart';
 
 class LocalStorageService extends GetxService {
   static LocalStorageService get instance => Get.find<LocalStorageService>();
@@ -226,7 +228,9 @@ class LocalStorageService extends GetxService {
   T getValue<T>(dynamic key, T defaultValue) {
     try {
       var value = settingsBox.get(key, defaultValue: defaultValue) as T;
-      Log.d("Get LocalStorage：$key\r\n$value");
+      Log.d(
+        LogSanitizer.describeStorageOperation("Get LocalStorage", key, value),
+      );
       return value;
     } catch (e) {
       Log.logPrint(e);
@@ -235,7 +239,13 @@ class LocalStorageService extends GetxService {
   }
 
   Future setValue<T>(dynamic key, T value) async {
-    Log.d("Set LocalStorage：$key\r\n$value");
+    final currentValue = settingsBox.get(key);
+    if (const DeepCollectionEquality().equals(currentValue, value)) {
+      return;
+    }
+    Log.d(
+      LogSanitizer.describeStorageOperation("Set LocalStorage", key, value),
+    );
     return await settingsBox.put(key, value);
   }
 

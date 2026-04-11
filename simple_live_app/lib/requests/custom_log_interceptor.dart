@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:simple_live_app/app/log.dart';
+import 'package:simple_live_app/app/log_sanitizer.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 
 class CustomLogInterceptor extends Interceptor {
@@ -22,11 +23,11 @@ ${err.message}
 Request Method：${err.requestOptions.method}
 Response Code：${err.response?.statusCode}
 Request URL：${err.requestOptions.uri}
-Request Query：${err.requestOptions.queryParameters}
-Request Data：${err.requestOptions.data}
-Request Headers：${err.requestOptions.headers}
-Response Headers：${err.response?.headers.map}
-Response Data：${err.response?.data}''', err.stackTrace);
+Request Query：${LogSanitizer.sanitizeObject(err.requestOptions.queryParameters)}
+Request Data：${LogSanitizer.sanitizeObject(err.requestOptions.data)}
+Request Headers：${LogSanitizer.sanitizeHeaders(err.requestOptions.headers)}
+Response Headers：${LogSanitizer.sanitizeObject(err.response?.headers.map)}
+Response Data：${LogSanitizer.sanitizeObject(err.response?.data)}''', err.stackTrace);
     } else {
       CoreLog.e('''[HTTP Error] [${err.type}] [Time:${time}ms]
 ${err.message}
@@ -34,11 +35,11 @@ ${err.message}
 Request Method：${err.requestOptions.method}
 Response Code：${err.response?.statusCode}
 Request URL：${err.requestOptions.uri}
-Request Query：${err.requestOptions.queryParameters}
-Request Data：${err.requestOptions.data}
-Request Headers：${_maskHeader(err.requestOptions.headers)}
-Response Headers：${err.response?.headers.map}
-Response Data：${err.response?.data}''', err.stackTrace);
+Request Query：${LogSanitizer.sanitizeObject(err.requestOptions.queryParameters)}
+Request Data：${LogSanitizer.sanitizeObject(err.requestOptions.data)}
+Request Headers：${LogSanitizer.sanitizeHeaders(err.requestOptions.headers)}
+Response Headers：${LogSanitizer.sanitizeObject(err.response?.headers.map)}
+Response Data：${LogSanitizer.sanitizeObject(err.response?.data)}''', err.stackTrace);
     }
 
     super.onError(err, handler);
@@ -54,11 +55,11 @@ Response Data：${err.response?.data}''', err.stackTrace);
 Request Method：${response.requestOptions.method}
 Request Code：${response.statusCode}
 Request URL：${response.requestOptions.uri}
-Request Query：${response.requestOptions.queryParameters}
-Request Data：${response.requestOptions.data}
-Request Headers：${response.requestOptions.headers}
-Response Headers：${response.headers.map}
-Response Data：${response.data}''',
+Request Query：${LogSanitizer.sanitizeObject(response.requestOptions.queryParameters)}
+Request Data：${LogSanitizer.sanitizeObject(response.requestOptions.data)}
+Request Headers：${LogSanitizer.sanitizeHeaders(response.requestOptions.headers)}
+Response Headers：${LogSanitizer.sanitizeObject(response.headers.map)}
+Response Data：${LogSanitizer.sanitizeObject(response.data)}''',
       );
     } else {
       CoreLog.i(
@@ -68,17 +69,4 @@ Response Data：${response.data}''',
     super.onResponse(response, handler);
   }
 
-  // Header脱敏
-  String _maskHeader(Map<String, dynamic> header) {
-    var result = <String, dynamic>{};
-    header.forEach((key, value) {
-      var k = key.toLowerCase();
-      if (k == "cookie" || k == "authorization") {
-        result[key] = "******";
-      } else {
-        result[key] = value;
-      }
-    });
-    return result.toString();
-  }
 }

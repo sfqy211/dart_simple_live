@@ -39,7 +39,7 @@ class BiliBiliWebLoginController extends BaseController {
         return false;
       }
       var cookieStr = cookies.map((e) => "${e.name}=${e.value}").join(";");
-      Log.i(cookieStr);
+      Log.i("哔哩哔哩 Web 登录成功，已获取登录凭据");
       BiliBiliAccountService.instance.setCookie(cookieStr);
       await BiliBiliAccountService.instance.loadUserInfo();
       Get.back();
