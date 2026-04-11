@@ -10,8 +10,6 @@ import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/requests/sync_client_request.dart';
 import 'package:simple_live_app/routes/app_navigation.dart';
-import 'package:simple_live_app/routes/route_path.dart';
-
 import 'package:simple_live_app/services/sync_service.dart';
 
 class LocalSyncController extends BaseController {
@@ -71,41 +69,6 @@ class LocalSyncController extends BaseController {
     } finally {
       SmartDialog.dismiss();
     }
-  }
-
-  void toScanQr() async {
-    var result = await Get.toNamed(RoutePath.kSyncScan);
-    if (result == null || result.isEmpty) {
-      return;
-    }
-    var addressList = (result as String).split(";");
-    if (addressList.length >= 2) {
-      //弹窗选择
-      showPickerAddress(addressList);
-    } else {
-      addressController.text = result;
-      //connect();
-    }
-  }
-
-  void showPickerAddress(List<String> addressList) {
-    SmartDialog.showToast("扫描到多个地址，请选择一个连接");
-    Utils.showBottomSheet(
-      title: '请选择地址',
-      child: ListView.builder(
-        itemBuilder: (_, i) {
-          return ListTile(
-            title: Text(addressList[i]),
-            onTap: () {
-              Get.back();
-              addressController.text = addressList[i];
-              // connect();
-            },
-          );
-        },
-        itemCount: addressList.length,
-      ),
-    );
   }
 
   void showInfo() {

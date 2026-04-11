@@ -121,9 +121,6 @@ class LocalStorageService extends GetxService {
   /// 需要一个不同的 key，因为用户在房间内设置的倒计时和全局的可能不同。
   static const String kRoomAutoExitDuration = "RoomAutoExitDuration";
 
-  /// 播放器兼容模式
-  static const String kPlayerCompatMode = "PlayerCompatMode";
-
   /// 播放器后台自动暂停
   static const String kPlayerAutoPause = "PlayerAutoPause";
 
@@ -141,9 +138,6 @@ class LocalStorageService extends GetxService {
 
   /// 播放器音量
   static const String kPlayerVolume = "PlayerVolume";
-
-  /// 小窗隐藏弹幕
-  static const String kPIPHideDanmu = "PIPHideDanmu";
 
   /// 哔哩哔哩cookie
   static const String kBilibiliCookie = "BilibiliCookie";
@@ -195,12 +189,6 @@ class LocalStorageService extends GetxService {
 
   /// WebDAV_最后一次备份时间
   static const String kWebDAVLastRecoverTime = "kWebDAVLastRecoverTime";
-
-  /// 黑听模式
-  static const String kAudioOnlyMode = "AudioOnlyMode";
-
-  /// 后台保活
-  static const String kBackgroundKeepAlive = "BackgroundKeepAlive";
 
   /// Windows 托盘集成
   static const String kWindowsTrayIntegration = "WindowsTrayIntegration";

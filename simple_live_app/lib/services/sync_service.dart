@@ -129,12 +129,13 @@ class SyncService extends GetxService {
 
   Future<String> getDeviceName() async {
     var name = "SimpleLive-${Platform.operatingSystem}";
-    if (Platform.isAndroid) {
-      var info = await deviceInfo.androidInfo;
-      name = info.model;
-    } else if (Platform.isWindows) {
-      var info = await deviceInfo.windowsInfo;
-      name = info.userName;
+    var info = await deviceInfo.windowsInfo;
+    final computerName = info.data['computerName']?.toString() ?? '';
+    final userName = info.data['userName']?.toString() ?? '';
+    if (computerName.isNotEmpty) {
+      name = computerName;
+    } else if (userName.isNotEmpty) {
+      name = userName;
     }
     return name;
   }
@@ -265,10 +266,11 @@ class SyncService extends GetxService {
   }
 
   /// 同步标签列表
-  Future<shelf.Response> _syncFollowUserTagRequest(shelf.Request request) async {
+  Future<shelf.Response> _syncFollowUserTagRequest(
+      shelf.Request request) async {
     try {
       var overlay =
-      int.parse(request.requestedUri.queryParameters['overlay'] ?? '0');
+          int.parse(request.requestedUri.queryParameters['overlay'] ?? '0');
 
       var body = await request.readAsString();
       Log.d('_syncFollowUserTagRequest: $body');

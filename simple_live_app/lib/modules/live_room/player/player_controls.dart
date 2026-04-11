@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -45,8 +44,7 @@ Widget buildFullControls(
   LiveRoomController controller,
 ) {
   var padding = MediaQuery.of(videoState.context).padding;
-  final showFullscreenChatInput =
-      Platform.isWindows && controller.site.id == Constant.kBiliBili;
+  final showFullscreenChatInput = controller.site.id == Constant.kBiliBili;
   GlobalKey volumeButtonkey = GlobalKey();
   return Obx(() => GestureDetector(
         onPanStart: controller.ghostModeLocked.value ||
@@ -195,19 +193,6 @@ Widget buildFullControls(
                           Remix.play_list_2_line,
                           color: Colors.white,
                           size: 24,
-                        ),
-                      ),
-                      Visibility(
-                        visible: Platform.isAndroid,
-                        child: IconButton(
-                          onPressed: () {
-                            controller.enablePIP();
-                          },
-                          icon: const Icon(
-                            Icons.picture_in_picture,
-                            color: Colors.white,
-                            size: 24,
-                          ),
                         ),
                       ),
                       IconButton(
@@ -790,17 +775,16 @@ void showFollowUser(LiveRoomController controller) {
               },
             ),
           ),
-          if (Platform.isWindows)
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Obx(
-                () => DesktopRefreshButton(
-                  refreshing: FollowService.instance.updating.value,
-                  onPressed: FollowService.instance.loadData,
-                ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Obx(
+              () => DesktopRefreshButton(
+                refreshing: FollowService.instance.updating.value,
+                onPressed: FollowService.instance.loadData,
               ),
             ),
+          ),
         ],
       ),
     ),

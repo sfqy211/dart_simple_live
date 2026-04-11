@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -29,8 +27,7 @@ class AppColors {
 }
 
 class AppStyle {
-  static String? get defaultFontFamily =>
-      Platform.isWindows ? "Microsoft YaHei" : null;
+  static String? get defaultFontFamily => "Microsoft YaHei";
 
   static ThemeData get lightTheme {
     final scheme = AppColors.lightColorScheme;
@@ -394,7 +391,7 @@ class AppStyle {
   static double get bottomBarHeight =>
       MediaQuery.of(Get.context!).padding.bottom;
 
-  static bool isDesktopPlatform() => Platform.isWindows;
+  static bool isDesktopPlatform() => true;
 
   static bool isDesktopLayout(BuildContext context) =>
       isDesktopPlatform() && MediaQuery.of(context).size.width >= 960;

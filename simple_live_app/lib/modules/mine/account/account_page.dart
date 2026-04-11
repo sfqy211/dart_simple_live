@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
@@ -70,13 +68,12 @@ class AccountView extends GetView<AccountController> {
                 subtitle: "使用哔哩哔哩 App 扫码登录",
                 onTap: () => Get.toNamed(RoutePath.kBiliBiliQRLogin),
               ),
-              if (Platform.isAndroid) AppStyle.divider,
-              if (Platform.isAndroid)
-                SettingsAction(
-                  title: "Web 登录",
-                  subtitle: "在内置页面输入账号密码登录",
-                  onTap: () => Get.toNamed(RoutePath.kBiliBiliWebLogin),
-                ),
+              AppStyle.divider,
+              SettingsAction(
+                title: "Web 登录",
+                subtitle: "在内置页面输入账号密码登录",
+                onTap: () => Get.toNamed(RoutePath.kBiliBiliWebLogin),
+              ),
               AppStyle.divider,
               SettingsAction(
                 title: "Cookie 登录",

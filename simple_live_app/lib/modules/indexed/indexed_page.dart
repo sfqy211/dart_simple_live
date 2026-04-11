@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
@@ -125,7 +123,7 @@ class IndexedPage extends GetView<IndexedController> {
 
   @override
   Widget build(BuildContext context) {
-    if (Platform.isWindows) {
+    if (AppStyle.isDesktopLayout(context)) {
       return AppShellFrame(
         child: Row(
           children: [

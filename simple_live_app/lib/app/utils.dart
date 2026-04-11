@@ -1,9 +1,7 @@
 import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:intl/intl.dart';
@@ -398,36 +396,9 @@ class Utils {
     return num.toString();
   }
 
-  static final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-
   /// 检查文件权限
   static Future<bool> checkStorgePermission() async {
-    try {
-      if (!Platform.isAndroid) {
-        return true;
-      }
-      Permission permission = Permission.storage;
-      var androidIndo = await deviceInfo.androidInfo;
-      if (androidIndo.version.sdkInt >= 33) {
-        permission = Permission.manageExternalStorage;
-      }
-
-      var status = await permission.status;
-      if (status == PermissionStatus.granted) {
-        return true;
-      }
-      status = await permission.request();
-      if (status.isGranted) {
-        return true;
-      } else {
-        SmartDialog.showToast(
-          "请授予文件访问权限",
-        );
-        return false;
-      }
-    } catch (e) {
-      return false;
-    }
+    return true;
   }
 
   ///16进制颜色转换

@@ -17,8 +17,6 @@ import 'package:simple_live_app/modules/search/search_controller.dart';
 import 'package:simple_live_app/modules/search/search_page.dart';
 import 'package:simple_live_app/modules/sync/local_sync/device/sync_device_controller.dart';
 import 'package:simple_live_app/modules/sync/local_sync/device/sync_device_page.dart';
-import 'package:simple_live_app/modules/sync/local_sync/scan_qr/sync_scan_qr_controller.dart';
-import 'package:simple_live_app/modules/sync/local_sync/scan_qr/sync_scan_qr_page.dart';
 import 'package:simple_live_app/modules/mine/parse/parse_controller.dart';
 import 'package:simple_live_app/modules/mine/parse/parse_page.dart';
 import 'package:simple_live_app/modules/sync/local_sync/local_sync_controller.dart';
@@ -193,14 +191,6 @@ class AppPages {
             Get.arguments ?? "",
           ),
         ),
-      ],
-    ),
-    //扫码
-    GetPage(
-      name: RoutePath.kSyncScan,
-      page: () => const SyncScanQRPage(),
-      bindings: [
-        BindingsBuilder.put(() => SyncScanQRControlelr()),
       ],
     ),
     //同步设备

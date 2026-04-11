@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/log.dart';
@@ -21,6 +19,46 @@ enum SubtitleOnlineProvider {
 class AppSettingsController extends GetxController {
   static AppSettingsController get instance =>
       Get.find<AppSettingsController>();
+
+  static const Set<String> _supportedWindowsVideoOutputDrivers = {
+    "gpu",
+    "gpu-next",
+    "direct3d",
+    "sdl",
+    "null",
+    "libmpv",
+  };
+
+  static const Set<String> _supportedWindowsAudioOutputDrivers = {
+    "null",
+    "directsound",
+    "wasapi",
+    "winmm",
+    "pcm",
+    "sdl",
+    "openal",
+    "libao",
+    "auto",
+  };
+
+  static const Set<String> _supportedWindowsHardwareDecoders = {
+    "no",
+    "auto",
+    "auto-safe",
+    "yes",
+    "auto-copy",
+    "d3d11va",
+    "d3d11va-copy",
+    "nvdec",
+    "nvdec-copy",
+    "vulkan",
+    "vulkan-copy",
+    "dxva2",
+    "dxva2-copy",
+    "cuda",
+    "cuda-copy",
+    "crystalhd",
+  };
 
   /// 缩放模式
   var scaleMode = 0.obs;
@@ -120,9 +158,6 @@ class AppSettingsController extends GetxController {
     roomAutoExitDuration.value = LocalStorageService.instance
         .getValue(LocalStorageService.kRoomAutoExitDuration, 60);
 
-    playerCompatMode.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kPlayerCompatMode, false);
-
     playerAutoPause.value = LocalStorageService.instance
         .getValue(LocalStorageService.kPlayerAutoPause, false);
 
@@ -144,9 +179,6 @@ class AppSettingsController extends GetxController {
       LocalStorageService.kPlayerVolume,
       100.0,
     );
-    pipHideDanmu.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kPIPHideDanmu, true);
-
     styleColor.value = LocalStorageService.instance
         .getValue(LocalStorageService.kStyleColor, 0xff3498db);
 
@@ -168,23 +200,37 @@ class AppSettingsController extends GetxController {
     customPlayerOutput.value = LocalStorageService.instance
         .getValue(LocalStorageService.kCustomPlayerOutput, false);
 
-    videoOutputDriver.value = LocalStorageService.instance.getValue(
+    final storedVideoOutputDriver = LocalStorageService.instance.getValue(
       LocalStorageService.kVideoOutputDriver,
-      Platform.isAndroid ? "gpu" : "libmpv",
+      "libmpv",
+    );
+    videoOutputDriver.value =
+        _normalizeWindowsVideoOutputDriver(storedVideoOutputDriver);
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kVideoOutputDriver,
+      videoOutputDriver.value,
     );
 
-    audioOutputDriver.value = LocalStorageService.instance.getValue(
+    final storedAudioOutputDriver = LocalStorageService.instance.getValue(
       LocalStorageService.kAudioOutputDriver,
-      Platform.isAndroid
-          ? "audiotrack"
-          : Platform.isWindows
-              ? "wasapi"
-              : "sdl",
+      "wasapi",
+    );
+    audioOutputDriver.value =
+        _normalizeWindowsAudioOutputDriver(storedAudioOutputDriver);
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kAudioOutputDriver,
+      audioOutputDriver.value,
     );
 
-    videoHardwareDecoder.value = LocalStorageService.instance.getValue(
+    final storedVideoHardwareDecoder = LocalStorageService.instance.getValue(
       LocalStorageService.kVideoHardwareDecoder,
-      Platform.isAndroid ? "auto-safe" : "auto",
+      "auto",
+    );
+    videoHardwareDecoder.value =
+        _normalizeWindowsHardwareDecoder(storedVideoHardwareDecoder);
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kVideoHardwareDecoder,
+      videoHardwareDecoder.value,
     );
 
     autoUpdateFollowEnable.value = LocalStorageService.instance
@@ -195,18 +241,6 @@ class AppSettingsController extends GetxController {
 
     updateFollowThreadCount.value = LocalStorageService.instance
         .getValue(LocalStorageService.kUpdateFollowThreadCount, 0); // 默认 0 = 自动
-
-    if (Platform.isAndroid || Platform.isIOS) {
-      audioOnlyMode.value = LocalStorageService.instance
-          .getValue(LocalStorageService.kAudioOnlyMode, false);
-    } else {
-      audioOnlyMode.value = false;
-      LocalStorageService.instance
-          .setValue(LocalStorageService.kAudioOnlyMode, false);
-    }
-
-    backgroundKeepAlive.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kBackgroundKeepAlive, true);
 
     windowsTrayIntegration.value = LocalStorageService.instance
         .getValue(LocalStorageService.kWindowsTrayIntegration, true);
@@ -531,13 +565,6 @@ class AppSettingsController extends GetxController {
         .setValue(LocalStorageService.kRoomAutoExitDuration, e);
   }
 
-  var playerCompatMode = false.obs;
-  void setPlayerCompatMode(bool e) {
-    playerCompatMode.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kPlayerCompatMode, e);
-  }
-
   var playerBufferSize = 32.obs;
   void setPlayerBufferSize(int e) {
     playerBufferSize.value = e;
@@ -617,12 +644,6 @@ class AppSettingsController extends GetxController {
     );
   }
 
-  var pipHideDanmu = true.obs;
-  void setPIPHideDanmu(bool e) {
-    pipHideDanmu.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kPIPHideDanmu, e);
-  }
-
   var styleColor = 0xff3498db.obs;
   void setStyleColor(int e) {
     styleColor.value = e;
@@ -671,23 +692,25 @@ class AppSettingsController extends GetxController {
 
   var videoOutputDriver = "".obs;
   void setVideoOutputDriver(String e) {
-    videoOutputDriver.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kVideoOutputDriver, e);
+    videoOutputDriver.value = _normalizeWindowsVideoOutputDriver(e);
+    LocalStorageService.instance.setValue(
+        LocalStorageService.kVideoOutputDriver, videoOutputDriver.value);
   }
 
   var audioOutputDriver = "".obs;
   void setAudioOutputDriver(String e) {
-    audioOutputDriver.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAudioOutputDriver, e);
+    audioOutputDriver.value = _normalizeWindowsAudioOutputDriver(e);
+    LocalStorageService.instance.setValue(
+        LocalStorageService.kAudioOutputDriver, audioOutputDriver.value);
   }
 
   var videoHardwareDecoder = "".obs;
   void setVideoHardwareDecoder(String e) {
-    videoHardwareDecoder.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kVideoHardwareDecoder, e);
+    videoHardwareDecoder.value = _normalizeWindowsHardwareDecoder(e);
+    LocalStorageService.instance.setValue(
+      LocalStorageService.kVideoHardwareDecoder,
+      videoHardwareDecoder.value,
+    );
   }
 
   var autoUpdateFollowEnable = false.obs;
@@ -716,20 +739,6 @@ class AppSettingsController extends GetxController {
     playerForceHttps.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kPlayerForceHttps, e);
-  }
-
-  var audioOnlyMode = false.obs;
-  void setAudioOnlyMode(bool e) {
-    audioOnlyMode.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAudioOnlyMode, e);
-  }
-
-  var backgroundKeepAlive = true.obs;
-  void setBackgroundKeepAlive(bool e) {
-    backgroundKeepAlive.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kBackgroundKeepAlive, e);
   }
 
   var windowsTrayIntegration = true.obs;
@@ -921,5 +930,26 @@ class AppSettingsController extends GetxController {
       LocalStorageService.kEmoticonPackageDisabled,
       emoticonPackageDisabled.toList(),
     );
+  }
+
+  String _normalizeWindowsVideoOutputDriver(String value) {
+    if (_supportedWindowsVideoOutputDrivers.contains(value)) {
+      return value;
+    }
+    return "libmpv";
+  }
+
+  String _normalizeWindowsAudioOutputDriver(String value) {
+    if (_supportedWindowsAudioOutputDrivers.contains(value)) {
+      return value;
+    }
+    return "wasapi";
+  }
+
+  String _normalizeWindowsHardwareDecoder(String value) {
+    if (_supportedWindowsHardwareDecoders.contains(value)) {
+      return value;
+    }
+    return "auto";
   }
 }

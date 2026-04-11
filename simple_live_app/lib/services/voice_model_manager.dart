@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 class LocalVoiceModel {
   final String name;
@@ -186,39 +185,14 @@ class VoiceModelManager {
       uniquePaths.add(path.normalize(value));
     }
 
-    if (Platform.isAndroid) {
-      final externalDir = await getExternalStorageDirectory();
-      if (externalDir != null) {
-        addPath(path.join(externalDir.path, "models"));
-      }
-      final docsDir = await getApplicationDocumentsDirectory();
-      addPath(path.join(docsDir.path, "models"));
-    } else if (Platform.isIOS) {
-      final docsDir = await getApplicationDocumentsDirectory();
-      addPath(path.join(docsDir.path, "models"));
-    } else {
-      for (final directory in _resolveDesktopModelDirectories()) {
-        addPath(directory.path);
-      }
+    for (final directory in _resolveDesktopModelDirectories()) {
+      addPath(directory.path);
     }
 
     return uniquePaths.map(Directory.new).toList();
   }
 
   Future<Directory> _resolvePrimaryModelsDirectory() async {
-    if (Platform.isAndroid) {
-      final externalDir = await getExternalStorageDirectory();
-      if (externalDir != null) {
-        return Directory(path.join(externalDir.path, "models"));
-      }
-      final docsDir = await getApplicationDocumentsDirectory();
-      return Directory(path.join(docsDir.path, "models"));
-    }
-    if (Platform.isIOS) {
-      final docsDir = await getApplicationDocumentsDirectory();
-      return Directory(path.join(docsDir.path, "models"));
-    }
-
     final desktopDirectories = _resolveDesktopModelDirectories();
     if (desktopDirectories.isNotEmpty) {
       return desktopDirectories.first;
@@ -250,10 +224,6 @@ class VoiceModelManager {
     }
 
     addDirectory(path.join(cwd, "models"));
-
-    if (path.basename(cwd) != "simple_live_app") {
-      addDirectory(path.join(cwd, "simple_live_app", "models"));
-    }
 
     return directories;
   }

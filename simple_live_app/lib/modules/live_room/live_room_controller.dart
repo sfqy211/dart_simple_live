@@ -9,7 +9,6 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
@@ -32,7 +31,6 @@ import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_number.dart';
 import 'package:simple_live_app/widgets/settings/settings_switch.dart';
 import 'package:simple_live_core/simple_live_core.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 
@@ -1319,9 +1317,7 @@ class LiveRoomController extends PlayerController
     loadData();
 
     scrollController.addListener(scrollListener);
-    if (!Platform.isAndroid) {
-      WindowManagerPlus.current.addListener(this);
-    }
+    WindowManagerPlus.current.addListener(this);
     _subtitleWorkers.add(
       ever(AppSettingsController.instance.shieldList, (_) {
         _refreshShieldPatterns();
@@ -1431,7 +1427,7 @@ class LiveRoomController extends PlayerController
 
   bool _shouldDeferDanmakuStartup() {
     final context = Get.context;
-    if (!Platform.isWindows || context == null) {
+    if (context == null) {
       return false;
     }
     return AppStyle.isDesktopLayout(context) &&
@@ -1622,10 +1618,7 @@ class LiveRoomController extends PlayerController
   }
 
   Duration _subtitleStartupDelay() {
-    if (Platform.isWindows) {
-      return const Duration(milliseconds: 1400);
-    }
-    return const Duration(milliseconds: 250);
+    return const Duration(milliseconds: 1400);
   }
 
   void _cancelScheduledVoiceRecognitionStart() {
@@ -1654,7 +1647,7 @@ class LiveRoomController extends PlayerController
             !liveStatus.value) {
           return;
         }
-        if (Platform.isWindows && !player.state.playing && attempt < 8) {
+        if (!player.state.playing && attempt < 8) {
           scheduleVoiceRecognitionStart(
             forceRestart: forceRestart,
             attempt: attempt + 1,
@@ -2106,11 +2099,6 @@ class LiveRoomController extends PlayerController
 
     // 初始化播放器并设置 ao 参数
     await initializePlayer();
-    if (Platform.isAndroid) {
-      if (audioOnlyMode.value) {
-        await applyAudioMode();
-      }
-    }
 
     await player.open(Playlist(mediaList));
     _maybeStartDanmakuConnection(afterPlayback: true);
@@ -2257,13 +2245,6 @@ class LiveRoomController extends PlayerController
     DBService.instance.deleteFollow(id);
     followed.value = false;
     EventBus.instance.emit(Constant.kUpdateFollow, id);
-  }
-
-  void share() {
-    if (detail.value == null) {
-      return;
-    }
-    SharePlus.instance.share(ShareParams(uri: Uri.parse(detail.value!.url)));
   }
 
   void copyUrl() {
@@ -2494,9 +2475,6 @@ class LiveRoomController extends PlayerController
   }
 
   Future<void> toggleGhostModeQuick() async {
-    if (!Platform.isWindows) {
-      return;
-    }
     toggleGhostMode();
   }
 
@@ -2607,17 +2585,16 @@ class LiveRoomController extends PlayerController
                 },
               ),
             ),
-            if (Platform.isWindows)
-              Positioned(
-                right: 12,
-                bottom: 12,
-                child: Obx(
-                  () => DesktopRefreshButton(
-                    refreshing: FollowService.instance.updating.value,
-                    onPressed: FollowService.instance.loadData,
-                  ),
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: Obx(
+                () => DesktopRefreshButton(
+                  refreshing: FollowService.instance.updating.value,
+                  onPressed: FollowService.instance.loadData,
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -2690,18 +2667,6 @@ class LiveRoomController extends PlayerController
         ],
       ),
     );
-  }
-
-  void openNaviteAPP() async {
-    var naviteUrl = "bilibili://live/${detail.value?.roomId}";
-    var webUrl = "https://live.bilibili.com/${detail.value?.roomId}";
-    try {
-      await launchUrlString(naviteUrl, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      Log.logPrint(e);
-      SmartDialog.showToast("无法打开APP，将使用浏览器打开");
-      await launchUrlString(webUrl, mode: LaunchMode.externalApplication);
-    }
   }
 
   void resetRoom(Site site, String roomId) async {
@@ -2801,9 +2766,7 @@ ${errorStackTrace?.toString()}''');
     scrollController.removeListener(scrollListener);
     scrollController.dispose();
     chatInputController.dispose();
-    if (!Platform.isAndroid) {
-      WindowManagerPlus.current.removeListener(this);
-    }
+    WindowManagerPlus.current.removeListener(this);
     autoExitTimer?.cancel();
     _subtitleClearTimer?.cancel();
     for (final worker in _subtitleWorkers) {

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' show WebSocket;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -272,9 +272,8 @@ class _VoiceRecognitionSettingsViewState
   }
 
   Widget _buildLocalModelHint(_VoiceModelCatalog catalog) {
-    final helperText = (Platform.isAndroid || Platform.isIOS)
-        ? "移动端不会读取工程目录。你可以选择单个模型目录，也可以直接选择一个包含多个模型子目录的上层文件夹，应用会自动导入到：\n${catalog.primaryDirectory}\n\n当前扫描目录：\n${catalog.searchDirectories.join("\n")}"
-        : "当前扫描目录：\n${catalog.searchDirectories.join("\n")}";
+    final helperText =
+        "默认模型目录：\n${catalog.primaryDirectory}\n\n当前扫描目录：\n${catalog.searchDirectories.join("\n")}";
 
     return Text(
       helperText,
@@ -291,9 +290,7 @@ class _VoiceRecognitionSettingsViewState
         child: Padding(
           padding: AppStyle.edgeInsetsA12,
           child: Text(
-            Platform.isAndroid || Platform.isIOS
-                ? "未检测到本地模型。请先下载 sherpa-onnx 模型，然后使用上方“导入目录”选择单个模型目录，或选择包含多个模型的上层文件夹。"
-                : "未检测到本地模型，请先下载 sherpa-onnx 模型并放入 models 目录。",
+            "未检测到本地模型，请先下载 sherpa-onnx 模型并放入 models 目录，或使用上方“导入目录”导入。",
             style: Get.textTheme.bodyMedium,
           ),
         ),

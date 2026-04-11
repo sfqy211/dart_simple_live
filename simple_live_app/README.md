@@ -1,11 +1,11 @@
 # Simple Live App
 
-基于 Flutter 开发的跨平台直播聚合客户端，支持哔哩哔哩直播平台，提供清爽的观看体验和丰富的功能。
+基于 Flutter 开发的 Windows 直播桌面工具，专注于哔哩哔哩直播观看、弹幕、实时字幕与透明浮窗体验。
 
 ## ✨ 主要特性
 
 - **哔哩哔哩直播**：支持哔哩哔哩 (Bilibili) 直播平台。
-- **跨平台支持**：完美运行于 **Windows**、**Android**。
+- **平台定位**：当前仅保留 **Windows** 桌面端。
 - **沉浸式播放体验**：
   - 基于 `media_kit` 的高性能播放器。
   - 支持多清晰度切换、硬件解码。
@@ -40,11 +40,7 @@ cd simple_live_app
 flutter pub get
 
 # 3. 运行应用
-# Windows
 flutter run -d windows
-# Android
-flutter run -d android
-flutter run -d V2364A
 ```
 
 ### 构建发布包
@@ -53,10 +49,6 @@ flutter run -d V2364A
 # Windows
 flutter build windows --release
 
-# Android
-flutter build apk --release
-# 或者构建 AppBundle
-flutter build appbundle --release
 ```
 
 ### Windows 一键安装包
@@ -91,30 +83,12 @@ flutter build appbundle --release
 - 安装包版本号会自动使用 `version` 的主版本部分，例如 `2.0.0+20000` 会生成 `2.0.0`
 - 安装程序会打包 Windows release 目录下的所有运行文件，并保留现有 WebView2 检测与安装逻辑
 
-## 🔑 签名配置 (Android)
-
-如果你需要构建签名的 Android release 包，请参考以下命令生成密钥库：
-
-```powershell
-keytool -genkey -v -keystore android/app/upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-```
-
-默认配置参考：
-
-- 密钥库口令：`123456`
-- 别名：`upload`
-- 密码：`123456`
-- CN=wind, OU=sfqy, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
-
 ## 项目结构
 
 项目采用标准的 Flutter 项目结构，主要目录说明如下：
 
 ```
 simple_live_app/
-├── android/            # Android 平台相关代码和配置
-│   ├── app/            # Android 应用代码
-│   └── gradle/         # Gradle 配置文件
 ├── assets/             # 静态资源文件
 │   ├── icons/          # 应用图标
 │   ├── images/         # 图片资源

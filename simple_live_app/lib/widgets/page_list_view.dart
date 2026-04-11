@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/widgets/status/app_empty_widget.dart';
@@ -63,8 +61,7 @@ class PageListView extends StatelessWidget {
             right: 0,
             child: // 加载更多按钮
                 Visibility(
-              visible: Platform.isWindows &&
-                  pageController.canLoadMore.value &&
+              visible: pageController.canLoadMore.value &&
                   !pageController.pageLoadding.value &&
                   !pageController.pageEmpty.value,
               child: Center(
@@ -80,8 +77,7 @@ class PageListView extends StatelessWidget {
             right: 12,
             child: // 加载更多按钮
                 Visibility(
-              visible: Platform.isWindows &&
-                  pageController.canLoadMore.value &&
+              visible: pageController.canLoadMore.value &&
                   !pageController.pageLoadding.value &&
                   !pageController.pageEmpty.value &&
                   showPCRefreshButton,

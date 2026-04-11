@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/utils.dart';
@@ -25,18 +23,15 @@ class AccountController extends GetxController {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Visibility(
-            visible: Platform.isAndroid,
-            child: ListTile(
-              leading: const Icon(Icons.account_circle_outlined),
-              title: const Text("Web登录"),
-              subtitle: const Text("填写用户名密码登录"),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Get.back();
-                Get.toNamed(RoutePath.kBiliBiliWebLogin);
-              },
-            ),
+          ListTile(
+            leading: const Icon(Icons.account_circle_outlined),
+            title: const Text("Web 登录"),
+            subtitle: const Text("填写用户名密码登录"),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Get.back();
+              Get.toNamed(RoutePath.kBiliBiliWebLogin);
+            },
           ),
           ListTile(
             leading: const Icon(Icons.qr_code),
@@ -50,8 +45,8 @@ class AccountController extends GetxController {
           ),
           ListTile(
             leading: const Icon(Icons.edit_outlined),
-            title: const Text("Cookie登录"),
-            subtitle: const Text("手动输入Cookie登录"),
+            title: const Text("Cookie 登录"),
+            subtitle: const Text("手动输入 Cookie 登录"),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Get.back();

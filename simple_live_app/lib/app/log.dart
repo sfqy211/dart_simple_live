@@ -142,11 +142,7 @@ class LogFileWriter {
     write("Local: ${Platform.localeName}");
     write(
         "App Version: ${Utils.packageInfo.version}+${Utils.packageInfo.buildNumber}");
-    if (Platform.isAndroid) {
-      write((await deviceInfo.androidInfo).data.toString());
-    } else if (Platform.isWindows) {
-      write((await deviceInfo.windowsInfo).data.toString());
-    }
+    write((await deviceInfo.windowsInfo).data.toString());
     write("End System Info");
   }
 }

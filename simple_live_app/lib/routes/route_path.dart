@@ -66,9 +66,6 @@ class RoutePath {
   /// 数据同步
   static const kSync = "/sync";
 
-  /// 扫描
-  static const kSyncScan = "/sync/scan";
-
   /// 同步设备
   static const kLocalSyncDevice = "/sync/device";
 

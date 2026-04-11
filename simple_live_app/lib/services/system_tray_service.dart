@@ -40,7 +40,7 @@ class SystemTrayManager {
   }
 
   Future<void> _syncMenuState() async {
-    if (!_isInitialized || !Platform.isWindows) {
+    if (!_isInitialized) {
       return;
     }
     final menu = _contextMenu;
@@ -89,7 +89,7 @@ class SystemTrayManager {
   }
 
   Future<void> initialize() async {
-    if (_isInitialized || !Platform.isWindows) return;
+    if (_isInitialized) return;
 
     try {
       Log.d('Initializing system tray...');
@@ -218,14 +218,14 @@ class SystemTrayManager {
   }
 
   Future<void> updateTooltip(String tooltip) async {
-    if (!_isInitialized || !Platform.isWindows) return;
+    if (!_isInitialized) return;
     await _systemTray.setSystemTrayInfo(
       toolTip: tooltip,
     );
   }
 
   Future<void> dispose() async {
-    if (!_isInitialized || !Platform.isWindows) return;
+    if (!_isInitialized) return;
     await _systemTray.destroy();
     _contextMenu = null;
     _isInitialized = false;

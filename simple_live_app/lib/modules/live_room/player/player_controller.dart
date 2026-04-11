@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -17,7 +16,6 @@ import 'package:simple_live_app/app/controller/base_controller.dart';
 import 'package:simple_live_app/app/custom_throttle.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:simple_live_app/app/utils.dart';
-import 'package:simple_live_app/services/background_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 
@@ -55,36 +53,6 @@ mixin PlayerMixin {
         );
       }
     }
-    // media_kit 仓库更新导致的问题，临时解决办法
-    if (Platform.isAndroid) {
-      await pp.setProperty('force-seekable', 'yes');
-    }
-  }
-
-  String _sanitizeAndroidVo(String vo) {
-    if (Platform.isAndroid && vo == 'mediacodec_embed') {
-      Log.d('Android vo mediacodec_embed -> gpu');
-      return 'gpu';
-    }
-    return vo;
-  }
-
-  Future<void> waitForVideoViewReady({
-    Duration timeout = const Duration(seconds: 2),
-  }) async {
-    if (!Platform.isAndroid) {
-      return;
-    }
-    final start = DateTime.now();
-    while (globalPlayerKey.currentContext == null ||
-        globalPlayerKey.currentState == null) {
-      if (DateTime.now().difference(start) > timeout) {
-        Log.d('Video view not ready within timeout');
-        return;
-      }
-      await Future.delayed(const Duration(milliseconds: 16));
-    }
-    Log.d('Video view ready');
   }
 
   /// 视频控制器
@@ -95,16 +63,11 @@ mixin PlayerMixin {
             vo: AppSettingsController.instance.videoOutputDriver.value,
             hwdec: AppSettingsController.instance.videoHardwareDecoder.value,
           )
-        : AppSettingsController.instance.playerCompatMode.value
-            ? const VideoControllerConfiguration(
-                vo: 'mediacodec_embed',
-                hwdec: 'mediacodec',
-              )
-            : VideoControllerConfiguration(
-                enableHardwareAcceleration:
-                    AppSettingsController.instance.hardwareDecode.value,
-                androidAttachSurfaceAfterVideoParameters: false,
-              ),
+        : VideoControllerConfiguration(
+            enableHardwareAcceleration:
+                AppSettingsController.instance.hardwareDecode.value,
+            androidAttachSurfaceAfterVideoParameters: false,
+          ),
   );
 }
 
@@ -277,9 +240,6 @@ mixin PlayerStateMixin on PlayerMixin {
   /// 是否为竖屏直播间
   var isVertical = false.obs;
 
-  /// 是否开启黑听模式
-  var audioOnlyMode = false.obs;
-
   Widget? danmakuView;
 
   var showQualites = false.obs;
@@ -320,11 +280,6 @@ mixin PlayerStateMixin on PlayerMixin {
   }
 
   void updateScaleMode() {
-    // 黑听模式下不更新视频显示，保持黑听状态
-    if (audioOnlyMode.value) {
-      return;
-    }
-
     var boxFit = BoxFit.contain;
     double? aspectRatio;
     if (player.state.width != null && player.state.height != null) {
@@ -490,11 +445,6 @@ mixin PlayerDanmakuMixin on PlayerStateMixin {
   }
 }
 mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
-  final pip = Floating();
-  StreamSubscription<PiPStatus>? _pipSubscription;
-
-  //final VolumeController volumeController = VolumeController();
-
   /// 初始化一些系统状态
   void initSystem() async {
     // 屏幕常亮
@@ -511,8 +461,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   /// 释放一些系统状态
   Future resetSystem() async {
-    _pipSubscription?.cancel();
-    //pip.dispose();
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.edgeToEdge,
       overlays: SystemUiOverlay.values,
@@ -702,9 +650,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
 
   /// 切换透明“幽灵”模式
   void toggleGhostMode() {
-    if (!Platform.isWindows) {
-      return;
-    }
     if (_ghostModeTransitioning) {
       return;
     }
@@ -800,51 +745,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     } finally {
       SmartDialog.dismiss(status: SmartStatus.loading);
     }
-  }
-
-  /// 开启小窗播放前弹幕状态
-  bool danmakuStateBeforePIP = false;
-
-  Future enablePIP() async {
-    if (!Platform.isAndroid) {
-      return;
-    }
-    if (await pip.isPipAvailable == false) {
-      SmartDialog.showToast("设备不支持小窗播放");
-      return;
-    }
-    danmakuStateBeforePIP = showDanmakuState.value;
-    //关闭并清除弹幕
-    if (AppSettingsController.instance.pipHideDanmu.value &&
-        danmakuStateBeforePIP) {
-      showDanmakuState.value = false;
-    }
-    danmakuController?.clear();
-    //关闭控制器
-    showControlsState.value = false;
-
-    //监听事件
-    var width = player.state.width ?? 0;
-    var height = player.state.height ?? 0;
-    Rational ratio = const Rational.landscape();
-    if (height > width) {
-      ratio = const Rational.vertical();
-    } else {
-      ratio = const Rational.landscape();
-    }
-    await pip.enable(
-      ImmediatePiP(
-        aspectRatio: ratio,
-      ),
-    );
-
-    _pipSubscription ??= pip.pipStatusStream.listen((event) {
-      if (event == PiPStatus.disabled) {
-        danmakuController?.clear();
-        showDanmakuState.value = danmakuStateBeforePIP;
-      }
-      Log.w(event.toString());
-    });
   }
 }
 mixin PlayerGestureControlMixin
@@ -1025,22 +925,12 @@ class PlayerController extends BaseController
         PlayerSystemMixin,
         PlayerGestureControlMixin {
   bool _renderFallbackApplied = false;
-  bool _audioModeTransitioning = false;
 
   @override
   void onInit() {
-    // 初始化黑听模式状态
-    audioOnlyMode.value = AppSettingsController.instance.audioOnlyMode.value;
     initSystem();
     initStream();
-    //设置音量
     player.setVolume(AppSettingsController.instance.playerVolume.value);
-
-    // 初始化后台服务
-    initializeBackgroundService();
-
-    // 监听应用生命周期
-    WidgetsBinding.instance.addObserver(_appLifecycleObserver);
 
     super.onInit();
   }
@@ -1051,17 +941,6 @@ class PlayerController extends BaseController
   StreamSubscription? _heightSubscription;
   StreamSubscription? _logSubscription;
   StreamSubscription? _playingSubscription;
-
-  final _appLifecycleObserver = _AppLifecycleObserver();
-
-  void initializeBackgroundService() async {
-    try {
-      await BackgroundServiceManager().initialize();
-      await BackgroundServiceManager().setupAudioSession();
-    } catch (e) {
-      Log.logPrint('初始化后台服务失败: $e');
-    }
-  }
 
   void initStream() {
     _errorSubscription = player.stream.error.listen((event) {
@@ -1081,8 +960,6 @@ class PlayerController extends BaseController
         Log.d("Playing");
         setDanmakuRenderReady(true);
       }
-      // 更新后台服务的播放状态
-      BackgroundServiceManager().setPlaybackState(event);
     });
 
     _completedSubscription = player.stream.completed.listen((event) {
@@ -1118,7 +995,6 @@ class PlayerController extends BaseController
     _widthSubscription?.cancel();
     _heightSubscription?.cancel();
     _logSubscription?.cancel();
-    _pipSubscription?.cancel();
     _playingSubscription?.cancel();
   }
 
@@ -1162,12 +1038,10 @@ class PlayerController extends BaseController
     } catch (e) {
       Log.logPrint('切换为软件解码失败: $e');
     }
-    if (!audioOnlyMode.value) {
-      try {
-        await (player.platform as dynamic).setProperty('vo', 'libmpv');
-      } catch (e) {
-        Log.logPrint('切换渲染输出失败: $e');
-      }
+    try {
+      await (player.platform as dynamic).setProperty('vo', 'libmpv');
+    } catch (e) {
+      Log.logPrint('切换渲染输出失败: $e');
     }
     AppSettingsController.instance.setHardwareDecode(false);
     if (AppSettingsController.instance.customPlayerOutput.value) {
@@ -1178,75 +1052,6 @@ class PlayerController extends BaseController
       await player.open(player.state.playlist);
     }
     SmartDialog.showToast('检测到硬解渲染失败，已切换到软件解码');
-  }
-
-  /// 切换黑听模式
-  Future<void> toggleAudioMode() async {
-    if (_audioModeTransitioning) {
-      return;
-    }
-    _audioModeTransitioning = true;
-    try {
-      audioOnlyMode.value = !audioOnlyMode.value;
-      AppSettingsController.instance.setAudioOnlyMode(audioOnlyMode.value);
-      await applyAudioMode();
-    } finally {
-      _audioModeTransitioning = false;
-    }
-  }
-
-  /// 应用黑听模式
-  Future<void> applyAudioMode() async {
-    // 设置 mpv 的 vo 参数
-    if (player.platform is NativePlayer) {
-      if (audioOnlyMode.value) {
-        Log.d('AudioOnly on, vo=null');
-        // 禁用视频轨道
-        await (player.platform as dynamic).setProperty('vo', 'null');
-      } else {
-        Log.d('AudioOnly off, vo reset');
-        if (Platform.isAndroid) {
-          if (AppSettingsController.instance.customPlayerOutput.value) {
-            final vo = _sanitizeAndroidVo(
-              AppSettingsController.instance.videoOutputDriver.value,
-            );
-            Log.d('AudioOnly off, android custom vo=$vo');
-            await (player.platform as dynamic).setProperty('vo', vo);
-          } else {
-            Log.d('AudioOnly off, android vo=gpu');
-            await (player.platform as dynamic).setProperty('vo', 'gpu');
-          }
-        } else {
-          if (AppSettingsController.instance.customPlayerOutput.value) {
-            Log.d(
-              'AudioOnly off, custom vo=${AppSettingsController.instance.videoOutputDriver.value}',
-            );
-            await (player.platform as dynamic).setProperty(
-              'vo',
-              _sanitizeAndroidVo(
-                AppSettingsController.instance.videoOutputDriver.value,
-              ),
-            );
-            await (player.platform as dynamic).setProperty(
-              'hwdec',
-              AppSettingsController.instance.videoHardwareDecoder.value,
-            );
-          } else {
-            await (player.platform as dynamic).setProperty('vo', 'libmpv');
-            await (player.platform as dynamic).setProperty(
-              'hwdec',
-              AppSettingsController.instance.hardwareDecode.value
-                  ? 'auto'
-                  : 'no',
-            );
-          }
-        }
-        if (player.state.playlist.medias.isNotEmpty) {
-          await Future.delayed(const Duration(milliseconds: 120));
-          await player.open(player.state.playlist);
-        }
-      }
-    }
   }
 
   Widget _buildDebugInfoContent() {
@@ -1381,46 +1186,6 @@ class PlayerController extends BaseController
     await resetSystem();
     await player.dispose();
 
-    // 移除生命周期观察者
-    WidgetsBinding.instance.removeObserver(_appLifecycleObserver);
-
-    // 停止后台服务
-    await BackgroundServiceManager().stopService();
-
     super.onClose();
-  }
-}
-
-class _AppLifecycleObserver extends WidgetsBindingObserver {
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    switch (state) {
-      case AppLifecycleState.inactive:
-        // 应用处于非活动状态
-        break;
-      case AppLifecycleState.paused:
-        // 应用进入后台
-        if (Get.isRegistered<PlayerController>()) {
-          final controller = Get.find<PlayerController>();
-          if (controller.player.state.playing &&
-              controller.audioOnlyMode.value) {
-            // 在黑听模式下且正在播放时启动后台服务
-            BackgroundServiceManager().startService();
-          }
-        }
-        break;
-      case AppLifecycleState.resumed:
-        // 应用回到前台
-        BackgroundServiceManager().stopService();
-        break;
-      case AppLifecycleState.detached:
-        // 应用已分离
-        break;
-      case AppLifecycleState.hidden:
-        // 应用被隐藏
-        break;
-    }
   }
 }

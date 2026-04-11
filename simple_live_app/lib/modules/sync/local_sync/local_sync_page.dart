@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/modules/sync/local_sync/local_sync_controller.dart';
 import 'package:simple_live_app/services/sync_service.dart';
@@ -39,19 +36,11 @@ class LocalSyncPage extends GetView<LocalSyncController> {
                     onSubmitted: (e) {
                       controller.connect();
                     },
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: '客户端地址',
-                      hintText: '请输入地址或扫码自动填写',
+                      hintText: '请输入客户端地址',
                       contentPadding: AppStyle.edgeInsetsH12,
-                      border: const OutlineInputBorder(),
-                      suffixIcon: Visibility(
-                        visible: Platform.isAndroid,
-                        child: TextButton.icon(
-                          onPressed: controller.toScanQr,
-                          icon: const Icon(Remix.qr_scan_line),
-                          label: const Text("扫一扫"),
-                        ),
-                      ),
+                      border: OutlineInputBorder(),
                     ),
                   ),
                   AppStyle.vGap12,

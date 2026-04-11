@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:simple_live_app/app/app_style.dart';
@@ -28,9 +26,6 @@ class PlaySettingsView extends GetView<AppSettingsController> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Platform.isAndroid || Platform.isIOS;
-    final isWindows = Platform.isWindows;
-
     return ListView(
       padding: AppStyle.contentPadding(context),
       children: [
@@ -48,18 +43,6 @@ class PlaySettingsView extends GetView<AppSettingsController> {
                   value: controller.hardwareDecode.value,
                   subtitle: "播放失败时可尝试关闭这一项",
                   onChanged: controller.setHardwareDecode,
-                ),
-              ),
-              if (Platform.isAndroid) AppStyle.divider,
-              Obx(
-                () => Visibility(
-                  visible: Platform.isAndroid,
-                  child: SettingsSwitch(
-                    title: "兼容模式",
-                    subtitle: "若播放卡顿可尝试打开这一项",
-                    value: controller.playerCompatMode.value,
-                    onChanged: controller.setPlayerCompatMode,
-                  ),
                 ),
               ),
               AppStyle.divider,
@@ -94,46 +77,24 @@ class PlaySettingsView extends GetView<AppSettingsController> {
                   onChanged: controller.setPlayerForceHttps,
                 ),
               ),
-              if (isMobile) AppStyle.divider,
-              if (isMobile)
-                Obx(
-                  () => SettingsSwitch(
-                    title: "黑听模式",
-                    subtitle: "仅播放音频，降低资源占用",
-                    value: controller.audioOnlyMode.value,
-                    onChanged: controller.setAudioOnlyMode,
-                  ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: "Windows 任务栏托盘集成",
+                  subtitle: "点击关闭按钮时最小化到托盘",
+                  value: controller.windowsTrayIntegration.value,
+                  onChanged: controller.setWindowsTrayIntegration,
                 ),
-              if (Platform.isAndroid) AppStyle.divider,
-              if (Platform.isAndroid)
-                Obx(
-                  () => SettingsSwitch(
-                    title: "后台保活",
-                    subtitle: "在黑听模式下保持后台运行",
-                    value: controller.backgroundKeepAlive.value,
-                    onChanged: controller.setBackgroundKeepAlive,
-                  ),
+              ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: "透明浮窗模式",
+                  subtitle: "边工作边看直播的桌面模式",
+                  value: controller.ghostMode.value,
+                  onChanged: controller.setGhostMode,
                 ),
-              if (isWindows) AppStyle.divider,
-              if (isWindows)
-                Obx(
-                  () => SettingsSwitch(
-                    title: "Windows 任务栏托盘集成",
-                    subtitle: "点击关闭按钮时最小化到托盘",
-                    value: controller.windowsTrayIntegration.value,
-                    onChanged: controller.setWindowsTrayIntegration,
-                  ),
-                ),
-              if (isWindows) AppStyle.divider,
-              if (isWindows)
-                Obx(
-                  () => SettingsSwitch(
-                    title: "透明浮窗模式",
-                    subtitle: "边工作边看直播的桌面模式",
-                    value: controller.ghostMode.value,
-                    onChanged: controller.setGhostMode,
-                  ),
-                ),
+              ),
             ],
           ),
         ),
@@ -151,17 +112,6 @@ class PlaySettingsView extends GetView<AppSettingsController> {
                   title: "进入直播间自动全屏",
                   value: controller.autoFullScreen.value,
                   onChanged: controller.setAutoFullScreen,
-                ),
-              ),
-              AppStyle.divider,
-              Obx(
-                () => Visibility(
-                  visible: Platform.isAndroid,
-                  child: SettingsSwitch(
-                    title: "进入小窗隐藏弹幕",
-                    value: controller.pipHideDanmu.value,
-                    onChanged: controller.setPIPHideDanmu,
-                  ),
                 ),
               ),
               AppStyle.divider,

@@ -29,4 +29,4 @@ base_revision: 19074d12f7eaf6a8180cd4036a430c1d76de904e
 
 # Files that are not part of the templates will be ignored by default.
 
-unmanaged_files: - 'lib/main.dart' - 'ios/Runner.xcodeproj/project.pbxproj'
+unmanaged_files: - 'lib/main.dart'

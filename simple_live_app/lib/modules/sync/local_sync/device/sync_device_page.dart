@@ -75,9 +75,7 @@ class SyncDevicePage extends GetView<SyncDeviceController> {
   Widget buildIcon() {
     var icon = controller.info.type.toLowerCase();
 
-    if (icon == "android") {
-      return const Icon(Remix.android_line);
-    } else if (icon == "windows") {
+    if (icon == "windows") {
       return const Icon(Remix.microsoft_fill);
     } else {
       return const Icon(Remix.device_line);

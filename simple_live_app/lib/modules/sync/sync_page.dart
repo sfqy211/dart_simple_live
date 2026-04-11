@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/routes/route_path.dart';
+import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/widgets/settings/settings_action.dart';
 import 'package:simple_live_app/widgets/settings/settings_card.dart';
 import 'package:simple_live_app/widgets/settings/settings_workspace.dart';
@@ -14,31 +14,11 @@ class SyncPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SettingsPageScaffold(
+    return const SettingsPageScaffold(
       title: "数据同步",
       subtitle: "局域网、房间与 WebDAV 同步",
-      actions: [
-        if (GetPlatform.isAndroid)
-          TextButton.icon(
-            onPressed: _scanQr,
-            icon: const Icon(Remix.qr_scan_line),
-            label: const Text("扫一扫"),
-          ),
-      ],
-      body: const SyncView(),
+      body: SyncView(),
     );
-  }
-
-  Future<void> _scanQr() async {
-    final result = await Get.toNamed(RoutePath.kSyncScan);
-    if (result == null || result.isEmpty) {
-      return;
-    }
-    if (result.length == 5) {
-      Get.toNamed(RoutePath.kRemoteSyncRoom, arguments: result);
-    } else {
-      Get.toNamed(RoutePath.kLocalSync, arguments: result);
-    }
   }
 }
 

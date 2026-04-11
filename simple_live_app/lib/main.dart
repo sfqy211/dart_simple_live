@@ -38,26 +38,16 @@ import 'package:path/path.dart' as p;
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化 window_manager_plus
-  if (!Platform.isAndroid) {
-    await WindowManagerPlus.ensureInitialized(
-        args.isEmpty ? 0 : int.tryParse(args[0]) ?? 0);
-  }
+  await WindowManagerPlus.ensureInitialized(
+      args.isEmpty ? 0 : int.tryParse(args[0]) ?? 0);
 
-  // 检查是否是主窗口（通过参数判断）
-  bool isMainWindow = args.isEmpty || Platform.isAndroid;
+  final isMainWindow = args.isEmpty;
 
   if (isMainWindow) {
-    // 主窗口：运行完整应用
     await migrateData();
     await initWindow();
     MediaKit.ensureInitialized();
-    await Hive.initFlutter(
-      !Platform.isAndroid
-          ? (await getApplicationSupportDirectory()).path
-          : null,
-    );
-    //初始化服务
+    await Hive.initFlutter((await getApplicationSupportDirectory()).path);
     await initServices();
     await _applyWindowsTrayIntegration(
       AppSettingsController.instance.windowsTrayIntegration.value,
@@ -72,16 +62,12 @@ void main(List<String> args) async {
     SystemChrome.setSystemUIOverlayStyle(systemUiOverlayStyle);
     runApp(const MyApp());
   } else {
-    // 新创建的窗口：运行幽灵窗口
     await runGhostWindow();
   }
 }
 
 /// 将Hive数据迁移到Application Support
 Future migrateData() async {
-  if (Platform.isAndroid) {
-    return;
-  }
   var hiveFileList = [
     "followuser",
     //旧版本写错成hostiry了
@@ -150,9 +136,6 @@ final _windowCloseListener = _WindowCloseListener();
 bool _windowsTrayListenerAttached = false;
 
 Future initWindow() async {
-  if (!Platform.isWindows) {
-    return;
-  }
   WindowOptions windowOptions = const WindowOptions(
     minimumSize: Size(280, 280),
     center: true,
@@ -166,10 +149,6 @@ Future initWindow() async {
 }
 
 Future<void> _applyWindowsTrayIntegration(bool enabled) async {
-  if (!Platform.isWindows) {
-    return;
-  }
-
   if (enabled) {
     await SystemTrayManager().initialize();
     if (!_windowsTrayListenerAttached) {
@@ -274,8 +253,7 @@ class MyApp extends StatelessWidget {
         Log.addDebugLog(text, (isError ?? false) ? Colors.red : Colors.grey);
         Log.writeLog(text, (isError ?? false) ? Level.error : Level.info);
       },
-      // 升级后Android页面过渡动画似乎有BUG
-      defaultTransition: Platform.isAndroid ? Transition.cupertino : null,
+      defaultTransition: null,
       //debugShowCheckedModeBanner: false,
       navigatorObservers: [FlutterSmartDialog.observer],
       // 禁用语义化调试覆盖层
@@ -317,14 +295,12 @@ class MyApp extends StatelessWidget {
                         () => FourthButtonTapGestureRecognizer(),
                         (FourthButtonTapGestureRecognizer instance) {
                           instance.onTapDown = (TapDownDetails details) async {
-                            //如果处于全屏状态，退出全屏
-                            if (!Platform.isAndroid) {
-                              if (await WindowManagerPlus.current
-                                  .isFullScreen()) {
-                                await WindowManagerPlus.current
-                                    .setFullScreen(false);
-                                return;
-                              }
+                            if (await WindowManagerPlus.current
+                                .isFullScreen()) {
+                              await WindowManagerPlus.current.setFullScreen(
+                                false,
+                              );
+                              return;
                             }
                             Get.back();
                           };
@@ -336,15 +312,11 @@ class MyApp extends StatelessWidget {
                       onKeyEvent: (KeyEvent event) async {
                         if (event is KeyDownEvent &&
                             event.logicalKey == LogicalKeyboardKey.escape) {
-                          // ESC退出全屏
-                          // 如果处于全屏状态，退出全屏
-                          if (!Platform.isAndroid) {
-                            if (await WindowManagerPlus.current
-                                .isFullScreen()) {
-                              await WindowManagerPlus.current
-                                  .setFullScreen(false);
-                              return;
-                            }
+                          if (await WindowManagerPlus.current.isFullScreen()) {
+                            await WindowManagerPlus.current.setFullScreen(
+                              false,
+                            );
+                            return;
                           }
                         }
                       },
@@ -380,10 +352,7 @@ class MyApp extends StatelessWidget {
 
         child = smartDialogBuilder(context, child);
 
-        if (!Platform.isAndroid) {
-          return ExcludeSemantics(child: child);
-        }
-        return child;
+        return ExcludeSemantics(child: child);
       },
     );
   }

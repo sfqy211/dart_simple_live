@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
@@ -12,7 +9,6 @@ import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
-import 'package:simple_live_app/modules/live_room/player/audio_mode_cover.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controls.dart';
 import 'package:simple_live_app/modules/live_room/widgets/live_room_chat_input_bar.dart';
 import 'package:simple_live_app/modules/settings/voice_recognition_settings_page.dart';
@@ -104,14 +100,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         }
       },
     );
-    if (!Platform.isAndroid) {
-      return page;
-    }
-    return PiPSwitcher(
-      floating: controller.pip,
-      childWhenDisabled: page,
-      childWhenEnabled: buildMediaPlayer(),
-    );
+    return page;
   }
 
   Widget buildPageUI() {
@@ -504,11 +493,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           children: [
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: Obx(
-                () => controller.audioOnlyMode.value
-                    ? const AudioModeCover()
-                    : buildMediaPlayer(),
-              ),
+              child: buildMediaPlayer(),
             ),
             buildUserProfile(context),
             Expanded(
@@ -536,12 +521,8 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     flex: 7,
                     child: Container(
                       color: Colors.black,
-                      child: Obx(
-                        () => Center(
-                          child: controller.audioOnlyMode.value
-                              ? const AudioModeCover()
-                              : buildMediaPlayer(),
-                        ),
+                      child: Center(
+                        child: buildMediaPlayer(),
                       ),
                     ),
                   ),
@@ -602,14 +583,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                           ),
                   ),
                   const Expanded(child: Center()),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      textStyle: const TextStyle(fontSize: 14),
-                    ),
-                    onPressed: controller.share,
-                    icon: const Icon(Remix.share_line),
-                    label: const Text("分享"),
-                  ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
                       textStyle: const TextStyle(fontSize: 14),
@@ -1060,9 +1033,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               style: TextButton.styleFrom(
                 textStyle: const TextStyle(fontSize: 14),
               ),
-              onPressed: controller.share,
-              icon: const Icon(Remix.share_line),
-              label: const Text("分享"),
+              onPressed: controller.copyUrl,
+              icon: const Icon(Remix.file_copy_line),
+              label: const Text("复制链接"),
             ),
           ),
         ],
@@ -1464,8 +1437,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildSettings() {
-    final canUseGhostMode = Platform.isWindows;
-    final canUseAudioOnlyMode = Platform.isAndroid || Platform.isIOS;
     return ListView(
       padding: AppStyle.edgeInsetsA12,
       children: [
@@ -1490,18 +1461,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (canUseAudioOnlyMode)
-                Obx(
-                  () => SettingsSwitch(
-                    title: controller.audioOnlyMode.value ? "关闭黑听模式" : "开启黑听模式",
-                    subtitle: "移动端仅保留音频播放，不再显示视频画面",
-                    value: controller.audioOnlyMode.value,
-                    onChanged: (_) {
-                      controller.toggleAudioMode();
-                    },
-                  ),
-                ),
-              if (canUseAudioOnlyMode) AppStyle.divider,
               Obx(
                 () => SettingsSwitch(
                   title: "播放区显示SC",
@@ -1512,18 +1471,16 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   },
                 ),
               ),
-              if (canUseGhostMode) AppStyle.divider,
-              if (canUseGhostMode)
-                Obx(
-                  () => SettingsSwitch(
-                    title:
-                        controller.ghostModeState.value ? "关闭透明浮窗" : "开启透明浮窗",
-                    value: controller.ghostModeState.value,
-                    onChanged: (value) {
-                      controller.toggleGhostModeQuick();
-                    },
-                  ),
+              AppStyle.divider,
+              Obx(
+                () => SettingsSwitch(
+                  title: controller.ghostModeState.value ? "关闭透明浮窗" : "开启透明浮窗",
+                  value: controller.ghostModeState.value,
+                  onChanged: (value) {
+                    controller.toggleGhostModeQuick();
+                  },
                 ),
+              ),
             ],
           ),
         ),
@@ -1586,17 +1543,16 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               },
             ),
           ),
-          if (Platform.isWindows)
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Obx(
-                () => DesktopRefreshButton(
-                  refreshing: FollowService.instance.updating.value,
-                  onPressed: FollowService.instance.loadData,
-                ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Obx(
+              () => DesktopRefreshButton(
+                refreshing: FollowService.instance.updating.value,
+                onPressed: FollowService.instance.loadData,
               ),
             ),
+          ),
         ],
       ),
     );
@@ -1735,29 +1691,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         controller.saveScreenshot();
                       },
                     ),
-                  Visibility(
-                    visible: Platform.isAndroid,
-                    child: ListTile(
-                      leading: const Icon(Icons.picture_in_picture),
-                      title: const Text("小窗播放"),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Get.back();
-                        controller.enablePIP();
-                      },
-                    ),
-                  ),
-                  buildSectionTitle("分享与打开"),
-                  if (!isDesktop)
-                    ListTile(
-                      leading: const Icon(Icons.share_sharp),
-                      title: const Text("分享直播间"),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Get.back();
-                        controller.share();
-                      },
-                    ),
                   ListTile(
                     leading: const Icon(Icons.copy),
                     title: const Text("复制链接"),
@@ -1765,15 +1698,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                     onTap: () {
                       Get.back();
                       controller.copyUrl();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.open_in_new),
-                    title: const Text("APP中打开"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Get.back();
-                      controller.openNaviteAPP();
                     },
                   ),
                   buildSectionTitle("调试信息"),
