@@ -4,6 +4,15 @@ import 'package:flutter/widgets.dart';
 import 'package:simple_live_app/app/log.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
+import 'package:smart_refresher/smart_refresher.dart';
+
+enum PageLoadStatus {
+  success,
+  empty,
+  noMore,
+  error,
+  skipped,
+}
 
 class BaseController extends GetxController {
   /// 加载中，更新页面
@@ -50,6 +59,7 @@ class BaseController extends GetxController {
 
 class BasePageController<T> extends BaseController {
   final ScrollController scrollController = ScrollController();
+  final RefreshController refreshController = RefreshController();
   int currentPage = 1;
   int count = 0;
   int maxPage = 0;
@@ -57,15 +67,16 @@ class BasePageController<T> extends BaseController {
   var canLoadMore = false.obs;
   var list = <T>[].obs;
 
-  Future refreshData() async {
+  Future<PageLoadStatus> refreshData() async {
     currentPage = 1;
     list.value = [];
-    await loadData();
+    refreshController.resetNoData();
+    return await loadData();
   }
 
-  Future loadData() async {
+  Future<PageLoadStatus> loadData() async {
     try {
-      if (loadding) return;
+      if (loadding) return PageLoadStatus.skipped;
       loadding = true;
       pageError.value = false;
       pageEmpty.value = false;
@@ -91,8 +102,13 @@ class BasePageController<T> extends BaseController {
       } else {
         list.addAll(result);
       }
+      if (result.isEmpty) {
+        return requestPage == 1 ? PageLoadStatus.empty : PageLoadStatus.noMore;
+      }
+      return PageLoadStatus.success;
     } catch (e) {
       handleError(e, showPageError: currentPage == 1);
+      return PageLoadStatus.error;
     } finally {
       loadding = false;
       pageLoadding.value = false;
@@ -124,5 +140,12 @@ class BasePageController<T> extends BaseController {
     } else {
       refreshData();
     }
+  }
+
+  @override
+  void onClose() {
+    refreshController.dispose();
+    scrollController.dispose();
+    super.onClose();
   }
 }

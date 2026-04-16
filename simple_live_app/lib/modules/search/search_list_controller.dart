@@ -13,9 +13,9 @@ class SearchListController extends BasePageController {
   );
 
   @override
-  Future refreshData() async {
+  Future<PageLoadStatus> refreshData() async {
     if (keyword.isEmpty) {
-      return;
+      return PageLoadStatus.skipped;
     }
     return await super.refreshData();
   }

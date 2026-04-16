@@ -33,6 +33,7 @@ import 'package:simple_live_app/services/sync_service.dart';
 import 'package:simple_live_app/services/system_tray_service.dart';
 import 'package:simple_live_app/widgets/status/app_loadding_widget.dart';
 import 'package:simple_live_core/simple_live_core.dart';
+import 'package:smart_refresher/smart_refresher.dart';
 import 'package:window_manager_plus/window_manager_plus.dart';
 import 'package:path/path.dart' as p;
 
@@ -234,68 +235,92 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: "Simple Live",
-      theme: AppStyle.lightTheme,
-      darkTheme: AppStyle.darkTheme,
-      themeMode:
-          ThemeMode.values[Get.find<AppSettingsController>().themeMode.value],
-      initialRoute: RoutePath.kIndex,
-      getPages: AppPages.routes,
-      //国际化
-      locale: const Locale("zh", "CN"),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale("zh", "CN")],
-      logWriterCallback: (text, {bool? isError}) {
-        Log.addDebugLog(text, (isError ?? false) ? Colors.red : Colors.grey);
-        Log.writeLog(text, (isError ?? false) ? Level.error : Level.info);
-      },
-      defaultTransition: null,
-      //debugShowCheckedModeBanner: false,
-      navigatorObservers: [FlutterSmartDialog.observer],
-      // 禁用语义化调试覆盖层
-      showSemanticsDebugger: false,
-      builder: (context, child) {
-        final smartDialogBuilder = FlutterSmartDialog.init(
-          loadingBuilder: ((msg) => const AppLoaddingWidget()),
-          builder: (context, child) {
-            // Fix for HyperOS windowed-mode Flutter bug:
-            // - Values > 50 indicate the bug (windowed mode on HyperOS)
-            // - Values == 0 are valid for fullscreen/immersive mode and must NOT be treated as abnormal
-            const fallbackPadding = EdgeInsets.only(top: 25, bottom: 35);
-            const maxNormalPadding = 50.0;
+    return RefreshConfiguration(
+      headerTriggerDistance: 80,
+      footerTriggerDistance: 24,
+      hideFooterWhenNotFull: false,
+      enableBallisticLoad: true,
+      child: GetMaterialApp(
+        title: "Simple Live",
+        theme: AppStyle.lightTheme,
+        darkTheme: AppStyle.darkTheme,
+        themeMode:
+            ThemeMode.values[Get.find<AppSettingsController>().themeMode.value],
+        initialRoute: RoutePath.kIndex,
+        getPages: AppPages.routes,
+        //国际化
+        locale: const Locale("zh", "CN"),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          RefreshLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale("zh", "CN")],
+        logWriterCallback: (text, {bool? isError}) {
+          Log.addDebugLog(text, (isError ?? false) ? Colors.red : Colors.grey);
+          Log.writeLog(text, (isError ?? false) ? Level.error : Level.info);
+        },
+        defaultTransition: null,
+        //debugShowCheckedModeBanner: false,
+        navigatorObservers: [FlutterSmartDialog.observer],
+        // 禁用语义化调试覆盖层
+        showSemanticsDebugger: false,
+        builder: (context, child) {
+          final smartDialogBuilder = FlutterSmartDialog.init(
+            loadingBuilder: ((msg) => const AppLoaddingWidget()),
+            builder: (context, child) {
+              // Fix for HyperOS windowed-mode Flutter bug:
+              // - Values > 50 indicate the bug (windowed mode on HyperOS)
+              // - Values == 0 are valid for fullscreen/immersive mode and must NOT be treated as abnormal
+              const fallbackPadding = EdgeInsets.only(top: 25, bottom: 35);
+              const maxNormalPadding = 50.0;
 
-            final mediaQueryData = MediaQuery.of(context);
-            final hasAbnormalPadding =
-                mediaQueryData.viewPadding.top > maxNormalPadding;
+              final mediaQueryData = MediaQuery.of(context);
+              final hasAbnormalPadding =
+                  mediaQueryData.viewPadding.top > maxNormalPadding;
 
-            final fixedMediaQueryData = hasAbnormalPadding
-                ? mediaQueryData.copyWith(
-                    viewPadding: fallbackPadding,
-                    padding: fallbackPadding,
-                    textScaler: const TextScaler.linear(1.0),
-                  )
-                : mediaQueryData.copyWith(
-                    textScaler: const TextScaler.linear(1.0));
+              final fixedMediaQueryData = hasAbnormalPadding
+                  ? mediaQueryData.copyWith(
+                      viewPadding: fallbackPadding,
+                      padding: fallbackPadding,
+                      textScaler: const TextScaler.linear(1.0),
+                    )
+                  : mediaQueryData.copyWith(
+                      textScaler: const TextScaler.linear(1.0));
 
-            return MediaQuery(
-              data: fixedMediaQueryData,
-              child: Stack(
-                children: [
-                  //侧键返回
-                  RawGestureDetector(
-                    excludeFromSemantics: true,
-                    gestures: <Type, GestureRecognizerFactory>{
-                      FourthButtonTapGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<
-                              FourthButtonTapGestureRecognizer>(
-                        () => FourthButtonTapGestureRecognizer(),
-                        (FourthButtonTapGestureRecognizer instance) {
-                          instance.onTapDown = (TapDownDetails details) async {
+              return MediaQuery(
+                data: fixedMediaQueryData,
+                child: Stack(
+                  children: [
+                    //侧键返回
+                    RawGestureDetector(
+                      excludeFromSemantics: true,
+                      gestures: <Type, GestureRecognizerFactory>{
+                        FourthButtonTapGestureRecognizer:
+                            GestureRecognizerFactoryWithHandlers<
+                                FourthButtonTapGestureRecognizer>(
+                          () => FourthButtonTapGestureRecognizer(),
+                          (FourthButtonTapGestureRecognizer instance) {
+                            instance.onTapDown =
+                                (TapDownDetails details) async {
+                              if (await WindowManagerPlus.current
+                                  .isFullScreen()) {
+                                await WindowManagerPlus.current.setFullScreen(
+                                  false,
+                                );
+                                return;
+                              }
+                              Get.back();
+                            };
+                          },
+                        ),
+                      },
+                      child: KeyboardListener(
+                        focusNode: FocusNode(),
+                        onKeyEvent: (KeyEvent event) async {
+                          if (event is KeyDownEvent &&
+                              event.logicalKey == LogicalKeyboardKey.escape) {
                             if (await WindowManagerPlus.current
                                 .isFullScreen()) {
                               await WindowManagerPlus.current.setFullScreen(
@@ -303,58 +328,43 @@ class MyApp extends StatelessWidget {
                               );
                               return;
                             }
-                            Get.back();
-                          };
-                        },
-                      ),
-                    },
-                    child: KeyboardListener(
-                      focusNode: FocusNode(),
-                      onKeyEvent: (KeyEvent event) async {
-                        if (event is KeyDownEvent &&
-                            event.logicalKey == LogicalKeyboardKey.escape) {
-                          if (await WindowManagerPlus.current.isFullScreen()) {
-                            await WindowManagerPlus.current.setFullScreen(
-                              false,
-                            );
-                            return;
                           }
-                        }
-                      },
-                      child: child!,
+                        },
+                        child: child!,
+                      ),
                     ),
-                  ),
 
-                  //查看DEBUG日志按钮
-                  //只在Debug、Profile模式显示
-                  Visibility(
-                    visible: !kReleaseMode,
-                    child: Positioned(
-                      right: 12,
-                      bottom: 100 + context.mediaQueryViewPadding.bottom,
-                      child: Opacity(
-                        opacity: 0.4,
-                        child: ElevatedButton(
-                          child: const Text("DEBUG LOG"),
-                          onPressed: () {
-                            Get.bottomSheet(
-                              const DebugLogPage(),
-                            );
-                          },
+                    //查看DEBUG日志按钮
+                    //只在Debug、Profile模式显示
+                    Visibility(
+                      visible: !kReleaseMode,
+                      child: Positioned(
+                        right: 12,
+                        bottom: 100 + context.mediaQueryViewPadding.bottom,
+                        child: Opacity(
+                          opacity: 0.4,
+                          child: ElevatedButton(
+                            child: const Text("DEBUG LOG"),
+                            onPressed: () {
+                              Get.bottomSheet(
+                                const DebugLogPage(),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
+                  ],
+                ),
+              );
+            },
+          );
 
-        child = smartDialogBuilder(context, child);
+          child = smartDialogBuilder(context, child);
 
-        return ExcludeSemantics(child: child);
-      },
+          return ExcludeSemantics(child: child);
+        },
+      ),
     );
   }
 }
